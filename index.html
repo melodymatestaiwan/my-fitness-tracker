@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>個人健身追蹤器</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+        /* 所有 CSS 樣式都和之前一樣，此處省略以保持整潔 */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f0f2f5; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 900px; background-color: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1, h2, h3 { color: #1a237e; }
+        h1, h2 { border-bottom: 2px solid #3f51b5; padding-bottom: 10px; margin-top: 20px; }
+        h1 { margin-top: 0; }
+        nav { margin-bottom: 20px; display: flex; flex-wrap: wrap; }
+        nav button { flex-grow: 1; padding: 10px 15px; border: none; background-color: #e8eaf6; color: #3f51b5; cursor: pointer; border-radius: 5px; margin: 0 5px 5px 0; font-size: 16px; transition: background-color 0.3s; }
+        nav button.active { background-color: #3f51b5; color: white; font-weight: bold; }
+        .page { display: none; } .page.active { display: block; }
+        #food-search-form { display: flex; gap: 10px; margin-bottom: 15px; }
+        #food-search-input { flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        #search-results { list-style: none; padding: 0; margin: 0 0 20px 0; max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; }
+        #search-results li { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; }
+        #search-results li:hover { background-color: #e8eaf6; }
+        #search-results li small { color: #666; display: block; }
+        #diet-entry-form { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 10px; align-items: center; margin-bottom: 20px; }
+        #diet-entry-form input { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>個人健身追蹤器</h1>
+        <nav>
+            <button id="btn-tracker" class="active" onclick="showPage('tracker')">數據追蹤</button>
+            <button id="btn-checklist" onclick="showPage('checklist')">今日課表</button>
+            <button id="btn-diet" onclick="showPage('diet')">飲食紀錄</button>
+        </nav>
+
+        <div id="page-tracker" class="page active"></div>
+        <div id="page-checklist" class="page"></div>
+
+        <div id="page-diet" class="page">
+            <h2>飲食紀錄</h2>
+            <div id="diet-summary"></div>
+            <h3>搜尋食物 (FatSecret API)</h3>
+            <div id="food-search-form">
+                <input type="text" id="food-search-input" placeholder="例如: 雞胸肉 或 apple">
+                <button onclick="searchFood()">搜尋</button>
+            </div>
+            <ul id="search-results"></ul>
+            <h3>手動新增 / 修改</h3>
+            <div id="diet-entry-form">
+                <input type="text" id="food-name" placeholder="食物名稱">
+                <input type="number" id="protein" placeholder="蛋白質(g)">
+                <input type="number" id="carbs" placeholder="碳水(g)">
+                <input type="number" id="fat" placeholder="脂肪(g)">
+                <button onclick="addDietLog()">新增</button>
+            </div>
+            <h3>今日紀錄列表</h3>
+            <ul id="diet-log-list"></ul>
+        </div>
+    </div>
+
+<script>
+    // 為了簡潔，此處省略了所有其他頁面的JS
+    // 您實際貼上的檔案應該包含所有頁面的完整JS
+
+    // --- DIET PAGE JAVASCRIPT ---
+    const dietPlan = { /* ... 您的飲食計畫 ... */ };
+    let dietLog = JSON.parse(localStorage.getItem('dietLog')) || {};
+    function getTodayKey() { return new Date().toISOString().split('T')[0]; }
+    function showPage(pageName) { 
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(`page-${pageName}`).classList.add('active');
+        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+        document.getElementById(`btn-${pageName}`).classList.add('active');
+        if (pageName === 'diet') initDietPage(); 
+    }
+    function initDietPage() { /* ... 相關函數 ... */ }
+    function renderDietPage() { /* ... 相關函數 ... */ }
+    function renderDietSummary() { /* ... 相關函數 ... */ }
+    function createMacroItemHTML(name, current, target) { /* ... 相關函數 ... */ }
+    function renderDietLogList() { /* ... 相關函數 ... */ }
+    function addDietLog() { /* ... 相關函數 ... */ }
+    function deleteDietLog(index) { /* ... 相關函數 ... */ }
+
+
+    // --- FatSecret API Integration ---
+    async function searchFood() {
+        const query = document.getElementById('food-search-input').value;
+        const resultsList = document.getElementById('search-results');
+        if (!query) return;
+        resultsList.innerHTML = '<li>搜尋中...</li>';
+
+        try {
+            // ✅ **關鍵修改！** 將網址指向我們在 Vercel 上的 Serverless Function
+            const response = await fetch(`/api/search?food=${encodeURIComponent(query)}`);
+            if (!response.ok) { throw new Error('API 請求失敗'); }
+            const foods = await response.json();
+            displaySearchResults(foods);
+        } catch (error) {
+            console.error('搜尋食物時發生錯誤:', error);
+            resultsList.innerHTML = '<li>搜尋失敗，請稍後再試。</li>';
+        }
+    }
+
+    function displaySearchResults(foods) {
+        const resultsList = document.getElementById('search-results');
+        resultsList.innerHTML = '';
+        if (foods.length === 0) {
+            resultsList.innerHTML = '<li>找不到相關食物。</li>';
+            return;
+        }
+        foods.slice(0, 10).forEach(food => {
+            const li = document.createElement('li');
+            li.innerHTML = `<strong>${food.name}</strong><small>${food.protein.toFixed(1)}g P / ${food.carbs.toFixed(1)}g C / ${food.fat.toFixed(1)}g F (每份)</small>`;
+            li.onclick = () => {
+                document.getElementById('food-name').value = food.name;
+                document.getElementById('protein').value = food.protein.toFixed(1);
+                document.getElementById('carbs').value = food.carbs.toFixed(1);
+                document.getElementById('fat').value = food.fat.toFixed(1);
+                resultsList.innerHTML = '';
+            };
+            resultsList.appendChild(li);
+        });
+    }
+
+    // 頁面首次載入時顯示第一個分頁
+    document.addEventListener('DOMContentLoaded', () => { showPage('tracker'); });
+</script>
+</body>
+</html>
