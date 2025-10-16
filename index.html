@@ -3,349 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>個人健身追蹤器</title>
+    <title>數據追蹤 - 個人健身追蹤器</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <style>
-        /* [之前的 CSS 樣式保持不變，此處省略] */
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: #f0f2f5;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-        }
-        .container {
-            width: 100%;
-            max-width: 900px;
-            background-color: #fff;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        h1, h2, h3 {
-            color: #1a237e;
-        }
-        h1, h2 {
-            border-bottom: 2px solid #3f51b5;
-            padding-bottom: 10px;
-            margin-top: 20px;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f0f2f5; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 900px; background-color: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1, h2, h3 { color: #1a237e; }
+        h1, h2 { border-bottom: 2px solid #3f51b5; padding-bottom: 10px; margin-top: 20px; }
         h1 { margin-top: 0; }
-        nav {
-            margin-bottom: 20px;
-            display: flex;
-            flex-wrap: wrap;
-        }
-        nav button {
-            flex-grow: 1; /* Make buttons fill the space */
-            padding: 10px 15px;
-            border: none;
-            background-color: #e8eaf6;
-            color: #3f51b5;
-            cursor: pointer;
-            border-radius: 5px;
-            margin: 0 5px 5px 0;
-            font-size: 16px;
-            transition: background-color 0.3s;
-        }
-        nav button.active {
-            background-color: #3f51b5;
-            color: white;
-            font-weight: bold;
-        }
-        .page { display: none; }
-        .page.active { display: block; }
-
-        #data-entry-form {
-            background-color: #f8f9fa;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .form-row {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        .form-row:last-child {
-            margin-bottom: 0;
-        }
-        .form-row label {
-            font-weight: bold;
-            margin-right: -5px;
-        }
-        .form-row input[type="date"],
-        .form-row input[type="number"],
-        .form-row input[type="text"] {
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-        .form-row input[type="number"] {
-             flex: 1;
-             min-width: 100px;
-        }
-        .radio-group {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-left: 10px;
-        }
-        .button-row {
-            justify-content: flex-end;
-        }
-
-        button {
-            padding: 10px 20px;
-            border: none;
-            background-color: #4caf50;
-            color: white;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s;
-        }
+        nav { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 5px; }
+        nav a { text-decoration: none; flex-grow: 1; padding: 10px 15px; border: none; background-color: #e8eaf6; color: #3f51b5; cursor: pointer; border-radius: 5px; font-size: 16px; transition: background-color 0.3s; text-align: center; }
+        nav a.active { background-color: #3f51b5; color: white; font-weight: bold; }
+        #data-entry-form { background-color: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .form-row { display: flex; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 15px; }
+        .form-row:last-child { margin-bottom: 0; }
+        .form-row label { font-weight: bold; margin-right: -5px; }
+        .form-row input[type="date"], .form-row input[type="number"], .form-row input[type="text"] { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        .form-row input[type="number"] { flex: 1; min-width: 100px; }
+        .radio-group { display: flex; align-items: center; gap: 15px; margin-left: 10px; }
+        .button-row { justify-content: flex-end; }
+        button { padding: 10px 20px; border: none; background-color: #4caf50; color: white; border-radius: 5px; cursor: pointer; font-size: 16px; transition: background-color 0.3s; }
         button:hover { background-color: #45a049; }
-        #chart-controls {
-            margin: 20px 0;
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        #chart-controls button {
-            background-color: #9fa8da;
-            margin-right: 5px;
-            margin-bottom: 5px;
-        }
+        #chart-controls { margin: 20px 0; display: flex; align-items: center; flex-wrap: wrap; }
+        #chart-controls button { background-color: #9fa8da; margin-right: 5px; margin-bottom: 5px; }
         #chart-controls button.active { background-color: #5c6bc0; }
-        canvas {
-            margin-top: 20px;
-            border-radius: 8px;
-        }
-        #raw-data-table-container {
-            margin-top: 30px;
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-        }
-        #raw-data-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        #raw-data-table th, #raw-data-table td {
-            padding: 10px 15px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-        #raw-data-table th {
-            background-color: #e8eaf6;
-            color: #3f51b5;
-            font-weight: bold;
-            position: sticky;
-            top: 0;
-            z-index: 1;
-        }
-        #raw-data-table td button {
-            background-color: #2196f3;
-            margin-right: 5px;
-            padding: 6px 10px;
-            font-size: 12px;
-        }
+        canvas { margin-top: 20px; border-radius: 8px; }
+        #raw-data-table-container { margin-top: 30px; max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; }
+        #raw-data-table { width: 100%; border-collapse: collapse; }
+        #raw-data-table th, #raw-data-table td { padding: 10px 15px; text-align: left; border-bottom: 1px solid #eee; }
+        #raw-data-table th { background-color: #e8eaf6; color: #3f51b5; font-weight: bold; position: sticky; top: 0; z-index: 1; }
+        #raw-data-table td button { background-color: #2196f3; margin-right: 5px; padding: 6px 10px; font-size: 12px; }
         #raw-data-table td button.delete-btn { background-color: #f44336; }
-
-        .workout-nav {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            border-bottom: 2px solid #eee;
-            margin-bottom: 20px;
-        }
-        .workout-nav button {
-            flex: 1;
-            background-color: transparent;
-            border: none;
-            padding: 12px 5px;
-            font-size: 14px;
-            color: #555;
-            border-bottom: 3px solid transparent;
-            border-radius: 0;
-            margin-right: 0;
-        }
-        .workout-nav button.active {
-            color: #3f51b5;
-            border-bottom-color: #3f51b5;
-            font-weight: bold;
-        }
-        .workout-day-content { display: none; }
-        .workout-day-content.active { display: block; }
-
-        .exercise-card {
-            background-color: #fdfdfd;
-            border: 1px solid #eaeaea;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-        .exercise-card h3 {
-            margin-top: 0;
-            margin-bottom: 10px;
-            font-size: 1.2em;
-            color: #333;
-        }
-        .last-log {
-            background-color: #f0f2f5;
-            border-radius: 5px;
-            padding: 8px;
-            margin-bottom: 15px;
-            font-size: 0.9em;
-            color: #666;
-        }
-        .last-log strong { color: #1a237e; }
-        
-        .sets-log-today {
-            margin-top: 10px;
-            font-size: 0.95em;
-        }
-        .set-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 5px 0;
-        }
-        .set-item span {
-            background-color: #e8eaf6;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-weight: bold;
-        }
-        .set-item .delete-set-btn {
-            background: #ffcdd2;
-            color: #c62828;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            width: 24px;
-            height: 24px;
-            font-weight: bold;
-            line-height: 24px;
-            padding: 0;
-        }
-        .input-set-group {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        .input-set-group input {
-            width: 80px;
-        }
-        .rest-day-message {
-            text-align: center;
-            padding: 40px;
-            font-size: 1.2em;
-            color: #888;
-        }
-
-        /* --- NEW Diet Page Styles --- */
-        #diet-summary {
-            background-color: #e8eaf6;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        #diet-summary h3 {
-            margin-top: 0;
-            text-align: center;
-            color: #1a237e;
-        }
-        .macros-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-        }
-        .macro-item {
-            text-align: center;
-        }
-        .macro-item .label {
-            font-size: 0.9em;
-            color: #3f51b5;
-        }
-        .macro-item .values {
-            font-size: 1.2em;
-            font-weight: bold;
-        }
-        .progress-bar {
-            background-color: #c5cae9;
-            border-radius: 10px;
-            height: 10px;
-            margin-top: 5px;
-            overflow: hidden;
-        }
-        .progress-bar-inner {
-            background-color: #3f51b5;
-            height: 100%;
-            width: 0%; /* Will be set by JS */
-            transition: width 0.3s ease-in-out;
-        }
-        .progress-bar-inner.over {
-            background-color: #f44336; /* Red for over-limit */
-        }
-
-        #diet-entry-form {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr auto;
-            gap: 10px;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        #diet-entry-form input {
-            width: 100%;
-            box-sizing: border-box; /* Important for grid layout */
-        }
-        #diet-log-list {
-            list-style: none;
-            padding: 0;
-        }
-        .diet-log-item {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr auto;
-            gap: 10px;
-            align-items: center;
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-        }
-        .diet-log-item:nth-child(odd) {
-            background-color: #f9f9f9;
-        }
-        .diet-log-item span:first-child {
-            font-weight: bold;
-        }
-        .diet-log-item .delete-diet-btn {
-            background-color: #ffcdd2;
-            color: #c62828;
-            padding: 5px 10px;
-            font-size: 12px;
-        }
-        /* --- END NEW Styles --- */
     </style>
 </head>
 <body>
     <div class="container">
         <h1>個人健身追蹤器</h1>
         <nav>
-            <button id="btn-tracker" class="active" onclick="showPage('tracker')">數據追蹤</button>
-            <button id="btn-checklist" onclick="showPage('checklist')">今日課表</button>
-            <button id="btn-diet" onclick="showPage('diet')">飲食紀錄</button>
+            <a href="index.html" class="active">數據追蹤</a>
+            <a href="workout.html">今日課表</a>
+            <a href="diet.html">飲食紀錄</a>
         </nav>
 
-        <div id="page-tracker" class="page active">
+        <div id="page-tracker">
             <h2>數據輸入</h2>
             <div id="data-entry-form">
                 <div class="form-row">
@@ -387,115 +88,183 @@
                 <table id="raw-data-table">
                     <thead>
                         <tr>
-                            <th>日期</th>
-                            <th>時間</th>
-                            <th>體重(kg)</th>
-                            <th>體脂(%)</th>
-                            <th>骨骼肌(kg)</th>
-                            <th>操作</th>
+                            <th>日期</th><th>時間</th><th>體重(kg)</th><th>體脂(%)</th><th>骨骼肌(kg)</th><th>操作</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
                 </table>
             </div>
         </div>
-
-        <div id="page-checklist" class="page">
-            <h2>我的課表</h2>
-            <div class="workout-nav" id="workout-nav"></div>
-            <div id="workout-content-container"></div>
-        </div>
-
-        <div id="page-diet" class="page">
-            <h2>飲食紀錄</h2>
-            <div id="diet-summary"></div>
-            <h3>新增食物</h3>
-            <div id="diet-entry-form">
-                <input type="text" id="food-name" placeholder="食物名稱">
-                <input type="number" id="protein" placeholder="蛋白質(g)">
-                <input type="number" id="carbs" placeholder="碳水(g)">
-                <input type="number" id="fat" placeholder="脂肪(g)">
-                <button onclick="addDietLog()">新增</button>
-            </div>
-            <h3>今日紀錄列表</h3>
-            <ul id="diet-log-list"></ul>
-        </div>
     </div>
 
 <script>
-    // --- [數據追蹤和課表頁面的 JavaScript 不變，此處省略以保持簡潔] ---
     let weightChart, bodyfatChart, muscleMassChart;
     let fitnessData = JSON.parse(localStorage.getItem('fitnessData')) || [];
-    function showPage(pageName) {
-        document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-        document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
-        document.getElementById(`page-${pageName}`).classList.add('active');
-        document.getElementById(`btn-${pageName}`).classList.add('active');
-        if (pageName === 'checklist') { initWorkoutPage(); }
-        if (pageName === 'diet') { initDietPage(); } // 初始化飲食頁面
-    }
+
     function addData() {
         const date = document.getElementById('entry-date').value;
         const timeOfDay = document.querySelector('input[name="time-of-day"]:checked').value;
         const weight = parseFloat(document.getElementById('weight').value);
         const bodyfat = parseFloat(document.getElementById('bodyfat').value);
         const muscleMass = parseFloat(document.getElementById('muscle-mass').value);
-        if (!date || isNaN(weight) || isNaN(bodyfat) || isNaN(muscleMass)) { alert('請輸入有效的數據！'); return; }
+
+        if (!date || isNaN(weight) || isNaN(bodyfat) || isNaN(muscleMass)) {
+            alert('請輸入有效的日期、體重、體脂和骨骼肌重量！');
+            return;
+        }
+
         const lastInputs = { weight, bodyfat, muscleMass };
         localStorage.setItem('lastFitnessInputs', JSON.stringify(lastInputs));
+
         const newEntry = { date, time: timeOfDay, weight, bodyfat, muscleMass };
         const existingIndex = fitnessData.findIndex(d => d.date === date && d.time === timeOfDay);
-        if (existingIndex > -1) { fitnessData[existingIndex] = newEntry; } else { fitnessData.push(newEntry); }
+        if (existingIndex > -1) {
+            fitnessData[existingIndex] = newEntry;
+        } else {
+            fitnessData.push(newEntry);
+        }
+        
         fitnessData.sort((a, b) => new Date(`${a.date} ${a.time === 'morning' ? '08:00' : '20:00'}`) - new Date(`${b.date} ${b.time === 'morning' ? '08:00' : '20:00'}`));
+
         saveFitnessData();
         renderAllCharts();
         renderRawDataTable();
     }
-    function saveFitnessData() { localStorage.setItem('fitnessData', JSON.stringify(fitnessData)); }
-    function getAggregatedData(period) { /* ... 此函數不變 ... */
+    
+    function saveFitnessData() {
+        localStorage.setItem('fitnessData', JSON.stringify(fitnessData));
+    }
+
+    function getAggregatedData(period) {
         if (fitnessData.length === 0) return { labels: [], morning: {}, evening: {} };
         const groups = {};
         fitnessData.forEach(d => {
             const date = new Date(d.date);
             let key;
-            if (period === 'weekly') { const day = date.getDay(); const diff = date.getDate() - day + (day === 0 ? -6 : 1); key = new Date(date.setDate(diff)).toISOString().split('T')[0];
-            } else { key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; }
-            if (!groups[key]) { groups[key] = { weightsM: [], bodyfatsM: [], musclesM: [], weightsE: [], bodyfatsE: [], musclesE: [] }; }
-            if (d.time === 'morning') { groups[key].weightsM.push(d.weight); groups[key].bodyfatsM.push(d.bodyfat); groups[key].musclesM.push(d.muscleMass);
-            } else { groups[key].weightsE.push(d.weight); groups[key].bodyfatsE.push(d.bodyfat); groups[key].musclesE.push(d.muscleMass); }
+            if (period === 'weekly') {
+                const day = date.getDay();
+                const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+                key = new Date(date.setDate(diff)).toISOString().split('T')[0];
+            } else {
+                key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            }
+
+            if (!groups[key]) {
+                groups[key] = {
+                    weightsM: [], bodyfatsM: [], musclesM: [],
+                    weightsE: [], bodyfatsE: [], musclesE: [],
+                };
+            }
+            if (d.time === 'morning') {
+                groups[key].weightsM.push(d.weight);
+                groups[key].bodyfatsM.push(d.bodyfat);
+                groups[key].musclesM.push(d.muscleMass);
+            } else {
+                groups[key].weightsE.push(d.weight);
+                groups[key].bodyfatsE.push(d.bodyfat);
+                groups[key].musclesE.push(d.muscleMass);
+            }
         });
+        
         const labels = Object.keys(groups).sort();
         const getAverage = arr => arr.length > 0 ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : NaN;
+        
         return {
             labels,
-            morning: { weight: labels.map(key => getAverage(groups[key].weightsM)), bodyfat: labels.map(key => getAverage(groups[key].bodyfatsM)), muscleMass: labels.map(key => getAverage(groups[key].musclesM)) },
-            evening: { weight: labels.map(key => getAverage(groups[key].weightsE)), bodyfat: labels.map(key => getAverage(groups[key].bodyfatsE)), muscleMass: labels.map(key => getAverage(groups[key].musclesE)) }
+            morning: {
+                weight: labels.map(key => getAverage(groups[key].weightsM)),
+                bodyfat: labels.map(key => getAverage(groups[key].bodyfatsM)),
+                muscleMass: labels.map(key => getAverage(groups[key].musclesM)),
+            },
+            evening: {
+                weight: labels.map(key => getAverage(groups[key].weightsE)),
+                bodyfat: labels.map(key => getAverage(groups[key].bodyfatsE)),
+                muscleMass: labels.map(key => getAverage(groups[key].musclesE)),
+            }
         };
     }
-    function createChart(canvasId, yAxisLabel, morningData, eveningData, labels, timeUnit) { /* ... 此函數不變 ... */
+
+    function createChart(canvasId, yAxisLabel, morningData, eveningData, labels, timeUnit) {
         const ctx = document.getElementById(canvasId).getContext('2d');
         ctx.canvas.style.backgroundColor = '#E6F5E6';
+
         return new Chart(ctx, {
-            type: 'line', data: { labels: labels,
-                datasets: [{ label: `早上 (${yAxisLabel.split(' ')[0]})`, data: morningData, pointBackgroundColor: 'rgba(255, 255, 255, 1)', pointBorderColor: 'rgba(0, 0, 0, 1)', pointBorderWidth: 1.5, borderColor: 'rgba(0, 0, 0, 0.6)', tension: 0.1, segment: { borderColor: ctx => ctx.p0.parsed.y === null || ctx.p1.parsed.y === null ? 'transparent' : 'rgba(0, 0, 0, 0.6)' } }, { label: `晚上 (${yAxisLabel.split(' ')[0]})`, data: eveningData, borderColor: 'rgba(0, 0, 0, 1)', backgroundColor: 'rgba(0, 0, 0, 0.1)', pointBackgroundColor: 'rgba(0, 0, 0, 1)', tension: 0.1, segment: { borderColor: ctx => ctx.p0.parsed.y === null || ctx.p1.parsed.y === null ? 'transparent' : 'rgba(0, 0, 0, 1)' } }]
-            }, options: { responsive: true, scales: { x: { type: 'time', time: { unit: timeUnit, tooltipFormat: 'yyyy-MM-dd' }, title: { display: true, text: '日期' } }, y: { position: 'left', title: { display: true, text: yAxisLabel } } } }
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: `早上 (${yAxisLabel.split(' ')[0]})`,
+                    data: morningData,
+                    pointBackgroundColor: 'rgba(255, 255, 255, 1)',
+                    pointBorderColor: 'rgba(0, 0, 0, 1)',
+                    pointBorderWidth: 1.5,
+                    borderColor: 'rgba(0, 0, 0, 0.6)',
+                    tension: 0.1,
+                    segment: { borderColor: ctx => ctx.p0.parsed.y === null || ctx.p1.parsed.y === null ? 'transparent' : 'rgba(0, 0, 0, 0.6)' }
+                }, {
+                    label: `晚上 (${yAxisLabel.split(' ')[0]})`,
+                    data: eveningData,
+                    borderColor: 'rgba(0, 0, 0, 1)',
+                    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                    pointBackgroundColor: 'rgba(0, 0, 0, 1)',
+                    tension: 0.1,
+                    segment: { borderColor: ctx => ctx.p0.parsed.y === null || ctx.p1.parsed.y === null ? 'transparent' : 'rgba(0, 0, 0, 1)' }
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: { unit: timeUnit, tooltipFormat: 'yyyy-MM-dd' },
+                        title: { display: true, text: '日期' }
+                    },
+                    y: {
+                        position: 'left',
+                        title: { display: true, text: yAxisLabel }
+                    }
+                }
+            }
         });
     }
-    function renderAllCharts(mode = 'daily') { /* ... 此函數不變 ... */
+
+    function renderAllCharts(mode = 'daily') {
         document.querySelectorAll('#chart-controls button').forEach(btn => btn.classList.remove('active'));
         document.getElementById(`btn-${mode}`).classList.add('active');
-        if (weightChart) weightChart.destroy(); if (bodyfatChart) bodyfatChart.destroy(); if (muscleMassChart) muscleMassChart.destroy();
-        let labels, morningData, eveningData, timeUnit = 'day';
+
+        if (weightChart) weightChart.destroy();
+        if (bodyfatChart) bodyfatChart.destroy();
+        if (muscleMassChart) muscleMassChart.destroy();
+
+        let labels, morningData, eveningData;
+        let timeUnit = 'day';
+
         if (mode === 'daily') {
             labels = fitnessData.map(d => d.date);
-            morningData = { weight: fitnessData.map(d => d.time === 'morning' ? d.weight : NaN), bodyfat: fitnessData.map(d => d.time === 'morning' ? d.bodyfat : NaN), muscleMass: fitnessData.map(d => d.time === 'morning' ? d.muscleMass : NaN) };
-            eveningData = { weight: fitnessData.map(d => d.time === 'evening' ? d.weight : NaN), bodyfat: fitnessData.map(d => d.time === 'evening' ? d.bodyfat : NaN), muscleMass: fitnessData.map(d => d.time === 'evening' ? d.muscleMass : NaN) };
-        } else { const aggregated = getAggregatedData(mode); labels = aggregated.labels; morningData = aggregated.morning; eveningData = aggregated.evening; timeUnit = mode === 'weekly' ? 'week' : 'month'; }
+            morningData = {
+                weight: fitnessData.map(d => d.time === 'morning' ? d.weight : NaN),
+                bodyfat: fitnessData.map(d => d.time === 'morning' ? d.bodyfat : NaN),
+                muscleMass: fitnessData.map(d => d.time === 'morning' ? d.muscleMass : NaN),
+            };
+            eveningData = {
+                weight: fitnessData.map(d => d.time === 'evening' ? d.weight : NaN),
+                bodyfat: fitnessData.map(d => d.time === 'evening' ? d.bodyfat : NaN),
+                muscleMass: fitnessData.map(d => d.time === 'evening' ? d.muscleMass : NaN),
+            };
+        } else {
+            const aggregated = getAggregatedData(mode);
+            labels = aggregated.labels;
+            morningData = aggregated.morning;
+            eveningData = aggregated.evening;
+            timeUnit = mode === 'weekly' ? 'week' : 'month';
+        }
+
         weightChart = createChart('weightChart', '體重 (kg)', morningData.weight, eveningData.weight, labels, timeUnit);
         bodyfatChart = createChart('bodyfatChart', '體脂 (%)', morningData.bodyfat, eveningData.bodyfat, labels, timeUnit);
         muscleMassChart = createChart('muscleMassChart', '骨骼肌 (kg)', morningData.muscleMass, eveningData.muscleMass, labels, timeUnit);
     }
-    function renderRawDataTable() { /* ... 此函數不變 ... */
+
+    function renderRawDataTable() {
         const tableBody = document.getElementById('raw-data-table').querySelector('tbody');
         tableBody.innerHTML = '';
         [...fitnessData].reverse().forEach((entry, reverseIndex) => {
@@ -505,240 +274,40 @@
             row.innerHTML = `<td>${entry.date}</td><td>${entry.time === 'morning' ? '早上' : '晚上'}</td><td>${entry.weight}</td><td>${entry.bodyfat}</td><td>${entry.muscleMass}</td><td><button onclick="editRawData(${actualIndex})">編輯</button><button class="delete-btn" onclick="deleteRawData(${actualIndex})">刪除</button></td>`;
         });
     }
-    function deleteRawData(index) { /* ... 此函數不變 ... */
+
+    function deleteRawData(index) {
         if (confirm('確定要刪除這筆數據嗎？')) {
             fitnessData.splice(index, 1);
-            saveFitnessData(); renderAllCharts(); renderRawDataTable();
+            saveFitnessData();
+            renderAllCharts();
+            renderRawDataTable();
         }
     }
-    function editRawData(index) { /* ... 此函數不變 ... */
+
+    function editRawData(index) {
         const entry = fitnessData[index];
-        const newWeight = prompt("請輸入新的體重 (kg):", entry.weight); const newBodyfat = prompt("請輸入新的體脂 (%):", entry.bodyfat); const newMuscleMass = prompt("請輸入新的骨骼肌 (kg):", entry.muscleMass);
-        const weight = parseFloat(newWeight), bodyfat = parseFloat(newBodyfat), muscleMass = parseFloat(newMuscleMass);
-        if (isNaN(weight) || isNaN(bodyfat) || isNaN(muscleMass)) { alert("輸入無效，操作已取消。"); return; }
-        fitnessData[index].weight = weight; fitnessData[index].bodyfat = bodyfat; fitnessData[index].muscleMass = muscleMass;
-        saveFitnessData(); renderAllCharts(); renderRawDataTable();
-    }
-    const workoutPlan = { /* ... 課表計畫不變 ... */
-        monday: { dayName: "星期一：胸部訓練", exercises: ["地板啞鈴胸推", "上斜啞鈴胸推 (地板式)", "啞鈴Squeeze握推", "臀橋式啞鈴胸推", "窄距/鑽石伏地挺身"] },
-        tuesday: { dayName: "星期二：背部訓練", exercises: ["單臂啞鈴划船", "啞鈴上拉 (Dumbbell Pullover)", "俯身啞鈴划船 (雙手)", "鳥狗式"] },
-        wednesday: { dayName: "星期三：腿部訓練", exercises: ["保加利亞分腿蹲", "高腳杯箱式深蹲", "啞鈴負重臀橋", "站姿啞鈴提踵"] },
-        thursday: { dayName: "星期四：休息日", exercises: [] },
-        friday: { dayName: "星期五：肩部訓練", exercises: ["坐姿啞鈴肩推", "超級組：坐姿啞鈴側平舉 + 坐姿啞鈴前平舉", "俯身啞鈴反向飛鳥", "啞鈴聳肩"] },
-        saturday: { dayName: "星期六：手臂訓練", exercises: ["超級組：啞鈴二頭彎舉 + 坐姿過頭三頭伸展", "超級組：啞鈴鎚式彎舉 + 啞鈴頸後臂屈伸", "超級組：集中彎舉 + 窄距伏地挺身"] },
-        sunday: { dayName: "星期日：休息日", exercises: [] },
-    };
-    const dayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-    let workoutLog = JSON.parse(localStorage.getItem('workoutLog')) || {};
-    function saveWorkoutLog() { localStorage.setItem('workoutLog', JSON.stringify(workoutLog)); }
-    function getTodayKey() { return new Date().toISOString().split('T')[0]; }
-    function initWorkoutPage() { /* ... 此函數不變 ... */
-        const navContainer = document.getElementById('workout-nav');
-        const contentContainer = document.getElementById('workout-content-container');
-        navContainer.innerHTML = ''; contentContainer.innerHTML = '';
-        Object.entries(workoutPlan).forEach(([key, value]) => {
-            const btn = document.createElement('button');
-            btn.id = `btn-workout-${key}`;
-            btn.textContent = value.dayName.split('：')[0];
-            btn.onclick = () => showWorkoutDay(key);
-            navContainer.appendChild(btn);
-            const contentDiv = document.createElement('div');
-            contentDiv.id = `content-workout-${key}`;
-            contentDiv.className = 'workout-day-content';
-            contentContainer.appendChild(contentDiv);
-        });
-        const today = new Date(); const todayInTaiwan = new Date(today.toLocaleString("en-US", {timeZone: "Asia/Taipei"}));
-        const currentDayKey = dayKeys[todayInTaiwan.getDay()];
-        showWorkoutDay(currentDayKey);
-    }
-    function showWorkoutDay(dayKey) { /* ... 此函數不變 ... */
-        document.querySelectorAll('.workout-nav button').forEach(btn => btn.classList.remove('active'));
-        document.querySelectorAll('.workout-day-content').forEach(div => div.classList.remove('active'));
-        document.getElementById(`btn-workout-${dayKey}`).classList.add('active');
-        const contentDiv = document.getElementById(`content-workout-${dayKey}`);
-        contentDiv.classList.add('active');
-        renderDayContent(dayKey, contentDiv);
-    }
-    function renderDayContent(dayKey, container) { /* ... 此函數不變 ... */
-        container.innerHTML = ''; const dayData = workoutPlan[dayKey]; const todayKey = getTodayKey();
-        if (dayData.exercises.length === 0) { container.innerHTML = `<div class="rest-day-message">今天是休息日，讓肌肉好好恢復吧！</div>`; return; }
-        dayData.exercises.forEach((exerciseName, exerciseIndex) => {
-            if (!workoutLog[dayKey]) workoutLog[dayKey] = {}; if (!workoutLog[dayKey][exerciseName]) workoutLog[dayKey][exerciseName] = {};
-            const exerciseLogs = workoutLog[dayKey][exerciseName]; const todayLogs = exerciseLogs[todayKey] || [];
-            const logDates = Object.keys(exerciseLogs).filter(date => date !== todayKey).sort().reverse();
-            let lastLogHTML = '<strong>上次紀錄:</strong> 尚無紀錄';
-            if (logDates.length > 0) { const lastDate = logDates[0]; const lastSets = exerciseLogs[lastDate].map(set => `${set.weight}kg x ${set.reps}次`).join(' / '); lastLogHTML = `<strong>上次紀錄 (${lastDate}):</strong> ${lastSets}`; }
-            const card = document.createElement('div'); card.className = 'exercise-card';
-            card.innerHTML = `<h3>${exerciseName}</h3><div class="last-log">${lastLogHTML}</div><div class="sets-log-today" id="sets-today-${dayKey}-${exerciseIndex}"></div><div class="input-set-group"><input type="number" id="weight-${dayKey}-${exerciseIndex}" placeholder="重量(kg)"><input type="number" id="reps-${dayKey}-${exerciseIndex}" placeholder="次數"><button onclick="addSet('${dayKey}', ${exerciseIndex})">新增一組</button></div>`;
-            container.appendChild(card); renderTodaySets(dayKey, exerciseIndex, todayLogs);
-        });
-    }
-    function renderTodaySets(dayKey, exerciseIndex, sets) { /* ... 此函數不變 ... */
-        const container = document.getElementById(`sets-today-${dayKey}-${exerciseIndex}`); container.innerHTML = '<strong>今日紀錄:</strong>';
-        if (sets.length === 0) { container.innerHTML += ' 尚未記錄'; return; }
-        sets.forEach((set, setIndex) => {
-            const setEl = document.createElement('div'); setEl.className = 'set-item';
-            setEl.innerHTML = `<span>第 ${setIndex + 1} 組</span><div>${set.weight} kg x ${set.reps} 次</div><button class="delete-set-btn" onclick="deleteSet('${dayKey}', ${exerciseIndex}, ${setIndex})">X</button>`;
-            container.appendChild(setEl);
-        });
-    }
-    function addSet(dayKey, exerciseIndex) { /* ... 此函數不變 ... */
-        const weightInput = document.getElementById(`weight-${dayKey}-${exerciseIndex}`); const repsInput = document.getElementById(`reps-${dayKey}-${exerciseIndex}`);
-        const weight = parseFloat(weightInput.value); const reps = parseInt(repsInput.value);
-        if (isNaN(weight) || isNaN(reps) || weight <= 0 || reps <= 0) { alert('請輸入有效的重量和次數！'); return; }
-        const exerciseName = workoutPlan[dayKey].exercises[exerciseIndex]; const todayKey = getTodayKey();
-        if (!workoutLog[dayKey][exerciseName][todayKey]) { workoutLog[dayKey][exerciseName][todayKey] = []; }
-        workoutLog[dayKey][exerciseName][todayKey].push({ weight, reps });
-        saveWorkoutLog(); renderDayContent(dayKey, document.getElementById(`content-workout-${dayKey}`));
-        repsInput.value = ''; repsInput.focus();
-    }
-    function deleteSet(dayKey, exerciseIndex, setIndex) { /* ... 此函數不變 ... */
-        const exerciseName = workoutPlan[dayKey].exercises[exerciseIndex]; const todayKey = getTodayKey();
-        workoutLog[dayKey][exerciseName][todayKey].splice(setIndex, 1);
-        saveWorkoutLog(); renderDayContent(dayKey, document.getElementById(`content-workout-${dayKey}`));
-    }
-
-    // --- NEW: Diet Page JavaScript ---
-
-    // 1. Define the master diet plan based on the image
-    const dietPlan = {
-        monday:    { name: "低碳日", protein: 130, carbs: 150, fat: 98 },
-        tuesday:   { name: "低碳日", protein: 130, carbs: 150, fat: 98 },
-        wednesday: { name: "高碳日", protein: 130, carbs: 285, fat: 60 },
-        thursday:  { name: "無碳日", protein: 130, carbs: 40,  fat: 102 }, // Assuming <40g means target is 40g
-        friday:    { name: "低碳日", protein: 130, carbs: 150, fat: 98 },
-        saturday:  { name: "低碳日", protein: 130, carbs: 150, fat: 98 },
-        sunday:    { name: "無碳日", protein: 130, carbs: 40,  fat: 102 },
-    };
-    
-    // 2. Load diet log from localStorage
-    let dietLog = JSON.parse(localStorage.getItem('dietLog')) || {};
-
-    function saveDietLog() {
-        localStorage.setItem('dietLog', JSON.stringify(dietLog));
-    }
-
-    // 3. Main function to initialize the diet page
-    function initDietPage() {
-        const todayKey = getTodayKey();
-        if (!dietLog[todayKey]) {
-            dietLog[todayKey] = []; // Ensure today's log exists
-        }
-        renderDietPage();
-    }
-
-    // 4. Function to render all elements on the diet page
-    function renderDietPage() {
-        renderDietSummary();
-        renderDietLogList();
-    }
-
-    // 5. Render the summary (targets, current totals, progress bars)
-    function renderDietSummary() {
-        const summaryContainer = document.getElementById('diet-summary');
-        const today = new Date();
-        const todayInTaiwan = new Date(today.toLocaleString("en-US", {timeZone: "Asia/Taipei"}));
-        const currentDayKey = dayKeys[todayInTaiwan.getDay()];
-        const todayDietPlan = dietPlan[currentDayKey];
-
-        // Calculate current totals
-        const todayKey = getTodayKey();
-        const todayLogs = dietLog[todayKey] || [];
-        const totals = todayLogs.reduce((acc, item) => {
-            acc.protein += item.protein;
-            acc.carbs += item.carbs;
-            acc.fat += item.fat;
-            return acc;
-        }, { protein: 0, carbs: 0, fat: 0 });
-
-        summaryContainer.innerHTML = `
-            <h3>今日目標 (${todayDietPlan.name})</h3>
-            <div class="macros-grid">
-                ${createMacroItemHTML('蛋白質', totals.protein, todayDietPlan.protein)}
-                ${createMacroItemHTML('碳水化合物', totals.carbs, todayDietPlan.carbs)}
-                ${createMacroItemHTML('脂肪', totals.fat, todayDietPlan.fat)}
-            </div>
-        `;
-    }
-    
-    function createMacroItemHTML(name, current, target) {
-        const percentage = target > 0 ? (current / target) * 100 : 0;
-        const isOver = current > target;
-        return `
-            <div class="macro-item">
-                <div class="label">${name} (克)</div>
-                <div class="values">${current.toFixed(1)} / ${target}</div>
-                <div class="progress-bar">
-                    <div class="progress-bar-inner ${isOver ? 'over' : ''}" style="width: ${Math.min(percentage, 100)}%;"></div>
-                </div>
-            </div>
-        `;
-    }
-
-    // 6. Render the list of logged food items
-    function renderDietLogList() {
-        const listContainer = document.getElementById('diet-log-list');
-        listContainer.innerHTML = ''; // Clear current list
+        const newWeight = prompt("請輸入新的體重 (kg):", entry.weight);
+        const newBodyfat = prompt("請輸入新的體脂 (%):", entry.bodyfat);
+        const newMuscleMass = prompt("請輸入新的骨骼肌 (kg):", entry.muscleMass);
         
-        const todayKey = getTodayKey();
-        const todayLogs = dietLog[todayKey] || [];
+        const weight = parseFloat(newWeight);
+        const bodyfat = parseFloat(newBodyfat);
+        const muscleMass = parseFloat(newMuscleMass);
 
-        if (todayLogs.length === 0) {
-            listContainer.innerHTML = '<li>尚未新增任何飲食紀錄...</li>';
+        if (isNaN(weight) || isNaN(bodyfat) || isNaN(muscleMass)) {
+            alert("輸入無效，操作已取消。");
             return;
         }
 
-        todayLogs.forEach((item, index) => {
-            const li = document.createElement('li');
-            li.className = 'diet-log-item';
-            li.innerHTML = `
-                <span>${item.name}</span>
-                <span>${item.protein}g P</span>
-                <span>${item.carbs}g C</span>
-                <span>${item.fat}g F</span>
-                <button class="delete-diet-btn" onclick="deleteDietLog(${index})">刪除</button>
-            `;
-            listContainer.appendChild(li);
-        });
+        fitnessData[index].weight = weight;
+        fitnessData[index].bodyfat = bodyfat;
+        fitnessData[index].muscleMass = muscleMass;
+        
+        saveFitnessData();
+        renderAllCharts();
+        renderRawDataTable();
     }
 
-    // 7. Functions to add/delete diet logs
-    function addDietLog() {
-        const name = document.getElementById('food-name').value;
-        const protein = parseFloat(document.getElementById('protein').value) || 0;
-        const carbs = parseFloat(document.getElementById('carbs').value) || 0;
-        const fat = parseFloat(document.getElementById('fat').value) || 0;
-
-        if (!name) {
-            alert('請輸入品項名稱！');
-            return;
-        }
-
-        const todayKey = getTodayKey();
-        if (!dietLog[todayKey]) {
-            dietLog[todayKey] = [];
-        }
-        dietLog[todayKey].push({ name, protein, carbs, fat });
-
-        saveDietLog();
-        renderDietPage();
-
-        // Clear input fields
-        document.getElementById('food-name').value = '';
-        document.getElementById('protein').value = '';
-        document.getElementById('carbs').value = '';
-        document.getElementById('fat').value = '';
-        document.getElementById('food-name').focus();
-    }
-
-    function deleteDietLog(index) {
-        const todayKey = getTodayKey();
-        dietLog[todayKey].splice(index, 1);
-        saveDietLog();
-        renderDietPage();
-    }
-    
-    // --- Initial page load ---
     document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
         const lastInputs = JSON.parse(localStorage.getItem('lastFitnessInputs'));
@@ -749,7 +318,6 @@
         }
         renderAllCharts();
         renderRawDataTable();
-        showPage('tracker');
     });
 </script>
 </body>

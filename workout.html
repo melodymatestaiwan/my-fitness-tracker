@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今日課表 - 個人健身追蹤器</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f0f2f5; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 900px; background-color: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1, h2, h3 { color: #1a237e; }
+        h1, h2 { border-bottom: 2px solid #3f51b5; padding-bottom: 10px; margin-top: 20px; }
+        h1 { margin-top: 0; }
+        nav { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 5px; }
+        nav a { text-decoration: none; flex-grow: 1; padding: 10px 15px; border: none; background-color: #e8eaf6; color: #3f51b5; cursor: pointer; border-radius: 5px; font-size: 16px; transition: background-color 0.3s; text-align: center; }
+        nav a.active { background-color: #3f51b5; color: white; font-weight: bold; }
+        .workout-nav { display: flex; flex-wrap: wrap; gap: 5px; border-bottom: 2px solid #eee; margin-bottom: 20px; }
+        .workout-nav button { flex: 1; background-color: transparent; border: none; padding: 12px 5px; font-size: 14px; color: #555; border-bottom: 3px solid transparent; border-radius: 0; margin: 0; }
+        .workout-nav button.active { color: #3f51b5; border-bottom-color: #3f51b5; font-weight: bold; }
+        .workout-day-content { display: none; }
+        .workout-day-content.active { display: block; }
+        .exercise-card { background-color: #fdfdfd; border: 1px solid #eaeaea; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+        .exercise-card h3 { margin-top: 0; margin-bottom: 10px; font-size: 1.2em; color: #333; }
+        .last-log { background-color: #f0f2f5; border-radius: 5px; padding: 8px; margin-bottom: 15px; font-size: 0.9em; color: #666; }
+        .last-log strong { color: #1a237e; }
+        .sets-log-today { margin-top: 10px; font-size: 0.95em; }
+        .set-item { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
+        .set-item span { background-color: #e8eaf6; padding: 3px 8px; border-radius: 12px; font-weight: bold; }
+        .set-item .delete-set-btn { background: #ffcdd2; color: #c62828; border: none; border-radius: 50%; cursor: pointer; width: 24px; height: 24px; font-weight: bold; line-height: 24px; padding: 0; }
+        .input-set-group { display: flex; gap: 10px; align-items: center; }
+        .input-set-group input { width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        .input-set-group button { padding: 8px 15px; font-size: 14px; }
+        .rest-day-message { text-align: center; padding: 40px; font-size: 1.2em; color: #888; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>個人健身追蹤器</h1>
+        <nav>
+            <a href="index.html">數據追蹤</a>
+            <a href="workout.html" class="active">今日課表</a>
+            <a href="diet.html">飲食紀錄</a>
+        </nav>
+
+        <div id="page-checklist">
+            <h2>我的課表</h2>
+            <div class="workout-nav" id="workout-nav"></div>
+            <div id="workout-content-container"></div>
+        </div>
+    </div>
+
+<script>
+    const workoutPlan = {
+        monday: { dayName: "星期一：胸部訓練", exercises: ["地板啞鈴胸推", "上斜啞鈴胸推 (地板式)", "啞鈴Squeeze握推", "臀橋式啞鈴胸推", "窄距/鑽石伏地挺身"] },
+        tuesday: { dayName: "星期二：背部訓練", exercises: ["單臂啞鈴划船", "啞鈴上拉 (Dumbbell Pullover)", "俯身啞鈴划船 (雙手)", "鳥狗式"] },
+        wednesday: { dayName: "星期三：休息日", exercises: [] },
+        thursday: { dayName: "星期四：腿部訓練", exercises: ["保加利亞分腿蹲", "高腳杯箱式深蹲", "啞鈴負重臀橋", "站姿啞鈴提踵"] },
+        friday: { dayName: "星期五：肩部訓練", exercises: ["坐姿啞鈴肩推", "超級組：坐姿啞鈴側平舉 + 坐姿啞鈴前平舉", "俯身啞鈴反向飛鳥", "啞鈴聳肩"] },
+        saturday: { dayName: "星期六：手臂訓練", exercises: ["超級組：啞鈴二頭彎舉 + 坐姿過頭三頭伸展", "超級組：啞鈴鎚式彎舉 + 啞鈴頸後臂屈伸", "超級組：集中彎舉 + 窄距伏地挺身"] },
+        sunday: { dayName: "星期日：休息日", exercises: [] },
+    };
+    const dayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    let workoutLog = JSON.parse(localStorage.getItem('workoutLog')) || {};
+
+    function saveWorkoutLog() {
+        localStorage.setItem('workoutLog', JSON.stringify(workoutLog));
+    }
+
+    function getTodayKey() {
+        return new Date().toISOString().split('T')[0];
+    }
+
+    function initWorkoutPage() {
+        const navContainer = document.getElementById('workout-nav');
+        const contentContainer = document.getElementById('workout-content-container');
+        navContainer.innerHTML = '';
+        contentContainer.innerHTML = '';
+
+        Object.entries(workoutPlan).forEach(([key, value]) => {
+            const btn = document.createElement('button');
+            btn.id = `btn-workout-${key}`;
+            btn.textContent = value.dayName.split('：')[0];
+            btn.onclick = () => showWorkoutDay(key);
+            navContainer.appendChild(btn);
+
+            const contentDiv = document.createElement('div');
+            contentDiv.id = `content-workout-${key}`;
+            contentDiv.className = 'workout-day-content';
+            contentContainer.appendChild(contentDiv);
+        });
+        
+        const today = new Date();
+        const todayInTaiwan = new Date(today.toLocaleString("en-US", {timeZone: "Asia/Taipei"}));
+        const currentDayKey = dayKeys[todayInTaiwan.getDay()];
+        showWorkoutDay(currentDayKey);
+    }
+    
+    function showWorkoutDay(dayKey) {
+        document.querySelectorAll('.workout-nav button').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.workout-day-content').forEach(div => div.classList.remove('active'));
+
+        document.getElementById(`btn-workout-${dayKey}`).classList.add('active');
+        const contentDiv = document.getElementById(`content-workout-${dayKey}`);
+        contentDiv.classList.add('active');
+
+        renderDayContent(dayKey, contentDiv);
+    }
+    
+    function renderDayContent(dayKey, container) {
+        container.innerHTML = '';
+        const dayData = workoutPlan[dayKey];
+        const todayKey = getTodayKey();
+
+        if (dayData.exercises.length === 0) {
+            container.innerHTML = `<div class="rest-day-message">今天是休息日，讓肌肉好好恢復吧！</div>`;
+            return;
+        }
+
+        dayData.exercises.forEach((exerciseName, exerciseIndex) => {
+            if (!workoutLog[dayKey]) workoutLog[dayKey] = {};
+            if (!workoutLog[dayKey][exerciseName]) workoutLog[dayKey][exerciseName] = {};
+            
+            const exerciseLogs = workoutLog[dayKey][exerciseName];
+            const todayLogs = exerciseLogs[todayKey] || [];
+
+            const logDates = Object.keys(exerciseLogs).filter(date => date !== todayKey).sort().reverse();
+            let lastLogHTML = '<strong>上次紀錄:</strong> 尚無紀錄';
+            if (logDates.length > 0) {
+                const lastDate = logDates[0];
+                const lastSets = exerciseLogs[lastDate].map(set => `${set.weight}kg x ${set.reps}次`).join(' / ');
+                lastLogHTML = `<strong>上次紀錄 (${lastDate}):</strong> ${lastSets}`;
+            }
+
+            const card = document.createElement('div');
+            card.className = 'exercise-card';
+            card.innerHTML = `
+                <h3>${exerciseName}</h3>
+                <div class="last-log">${lastLogHTML}</div>
+                <div class="sets-log-today" id="sets-today-${dayKey}-${exerciseIndex}"></div>
+                <div class="input-set-group">
+                    <input type="number" id="weight-${dayKey}-${exerciseIndex}" placeholder="重量(kg)">
+                    <input type="number" id="reps-${dayKey}-${exerciseIndex}" placeholder="次數">
+                    <button onclick="addSet('${dayKey}', ${exerciseIndex})">新增一組</button>
+                </div>
+            `;
+            container.appendChild(card);
+            renderTodaySets(dayKey, exerciseIndex, todayLogs);
+        });
+    }
+
+    function renderTodaySets(dayKey, exerciseIndex, sets) {
+        const container = document.getElementById(`sets-today-${dayKey}-${exerciseIndex}`);
+        container.innerHTML = '<strong>今日紀錄:</strong>';
+        if (sets.length === 0) {
+            container.innerHTML += ' 尚未記錄';
+            return;
+        }
+        sets.forEach((set, setIndex) => {
+            const setEl = document.createElement('div');
+            setEl.className = 'set-item';
+            setEl.innerHTML = `
+                <span>第 ${setIndex + 1} 組</span>
+                <div>${set.weight} kg x ${set.reps} 次</div>
+                <button class="delete-set-btn" onclick="deleteSet('${dayKey}', ${exerciseIndex}, ${setIndex})">X</button>
+            `;
+            container.appendChild(setEl);
+        });
+    }
+
+    function addSet(dayKey, exerciseIndex) {
+        const weightInput = document.getElementById(`weight-${dayKey}-${exerciseIndex}`);
+        const repsInput = document.getElementById(`reps-${dayKey}-${exerciseIndex}`);
+        const weight = parseFloat(weightInput.value);
+        const reps = parseInt(repsInput.value);
+
+        if (isNaN(weight) || isNaN(reps) || weight <= 0 || reps <= 0) {
+            alert('請輸入有效的重量和次數！');
+            return;
+        }
+
+        const exerciseName = workoutPlan[dayKey].exercises[exerciseIndex];
+        const todayKey = getTodayKey();
+        
+        if (!workoutLog[dayKey][exerciseName][todayKey]) {
+            workoutLog[dayKey][exerciseName][todayKey] = [];
+        }
+        workoutLog[dayKey][exerciseName][todayKey].push({ weight, reps });
+        
+        saveWorkoutLog();
+        renderDayContent(dayKey, document.getElementById(`content-workout-${dayKey}`));
+        
+        repsInput.value = '';
+        repsInput.focus();
+    }
+
+    function deleteSet(dayKey, exerciseIndex, setIndex) {
+        const exerciseName = workoutPlan[dayKey].exercises[exerciseIndex];
+        const todayKey = getTodayKey();
+        workoutLog[dayKey][exerciseName][todayKey].splice(setIndex, 1);
+        
+        saveWorkoutLog();
+        renderDayContent(dayKey, document.getElementById(`content-workout-${dayKey}`));
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initWorkoutPage();
+    });
+</script>
+</body>
+</html>
