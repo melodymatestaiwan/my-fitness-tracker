@@ -15,6 +15,59 @@
         nav { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 5px; }
         nav a { text-decoration: none; flex-grow: 1; padding: 10px 15px; border: none; background-color: #e8eaf6; color: #3f51b5; cursor: pointer; border-radius: 5px; font-size: 16px; transition: background-color 0.3s; text-align: center; }
         nav a.active { background-color: #3f51b5; color: white; font-weight: bold; }
+        
+        /* --- NEW COUNTDOWN STYLES --- */
+        #countdown-container {
+            background-color: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        #countdown-container h2 {
+            margin-top: 0;
+            text-align: center;
+            border-bottom: none;
+            padding-bottom: 0;
+            font-size: 1.5em;
+        }
+        .progress-block {
+            margin-top: 15px;
+        }
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .progress-label .start { font-weight: bold; }
+        .progress-label .end { font-weight: bold; }
+        .progress-bar-wrapper {
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            height: 20px;
+            overflow: hidden;
+            border: 1px solid #ccc;
+        }
+        .progress-bar-inner {
+            height: 100%;
+            border-radius: 0;
+            transition: width 0.5s ease-in-out;
+            text-align: center;
+            color: white;
+            font-weight: bold;
+            line-height: 20px;
+            font-size: 0.8em;
+        }
+        .time-progress .progress-bar-inner {
+            background-color: #4caf50; /* Green for time */
+        }
+        .weight-progress .progress-bar-inner {
+            background-color: #3f51b5; /* Blue for weight */
+        }
+        /* --- END NEW STYLES --- */
+
         #data-entry-form { background-color: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
         .form-row { display: flex; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 15px; }
         .form-row:last-child { margin-bottom: 0; }
@@ -46,6 +99,9 @@
             <a href="diet.html">飲食紀錄</a>
         </nav>
 
+        <div id="countdown-container">
+            </div>
+
         <div id="page-tracker">
             <h2>數據輸入</h2>
             <div id="data-entry-form">
@@ -71,6 +127,7 @@
                     <button onclick="addData()">新增紀錄</button>
                 </div>
             </div>
+            
             <div id="chart-controls">
                 <span>檢視模式:</span>
                 <button id="btn-daily" class="active" onclick="renderAllCharts('daily')">每日數據</button>
@@ -102,211 +159,131 @@
     let fitnessData = JSON.parse(localStorage.getItem('fitnessData')) || [];
 
     function addData() {
+        // ... (addData 函數不變) ...
         const date = document.getElementById('entry-date').value;
         const timeOfDay = document.querySelector('input[name="time-of-day"]:checked').value;
         const weight = parseFloat(document.getElementById('weight').value);
         const bodyfat = parseFloat(document.getElementById('bodyfat').value);
         const muscleMass = parseFloat(document.getElementById('muscle-mass').value);
-
-        if (!date || isNaN(weight) || isNaN(bodyfat) || isNaN(muscleMass)) {
-            alert('請輸入有效的日期、體重、體脂和骨骼肌重量！');
-            return;
-        }
-
+        if (!date || isNaN(weight) || isNaN(bodyfat) || isNaN(muscleMass)) { alert('請輸入有效的數據！'); return; }
         const lastInputs = { weight, bodyfat, muscleMass };
         localStorage.setItem('lastFitnessInputs', JSON.stringify(lastInputs));
-
         const newEntry = { date, time: timeOfDay, weight, bodyfat, muscleMass };
         const existingIndex = fitnessData.findIndex(d => d.date === date && d.time === timeOfDay);
-        if (existingIndex > -1) {
-            fitnessData[existingIndex] = newEntry;
-        } else {
-            fitnessData.push(newEntry);
-        }
-        
+        if (existingIndex > -1) { fitnessData[existingIndex] = newEntry; } else { fitnessData.push(newEntry); }
         fitnessData.sort((a, b) => new Date(`${a.date} ${a.time === 'morning' ? '08:00' : '20:00'}`) - new Date(`${b.date} ${b.time === 'morning' ? '08:00' : '20:00'}`));
-
         saveFitnessData();
         renderAllCharts();
         renderRawDataTable();
+        renderCountdown(); // ✅ NEW: 新增數據後，重新渲染倒數計時器
     }
     
     function saveFitnessData() {
         localStorage.setItem('fitnessData', JSON.stringify(fitnessData));
     }
 
-    function getAggregatedData(period) {
-        if (fitnessData.length === 0) return { labels: [], morning: {}, evening: {} };
-        const groups = {};
-        fitnessData.forEach(d => {
-            const date = new Date(d.date);
-            let key;
-            if (period === 'weekly') {
-                const day = date.getDay();
-                const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-                key = new Date(date.setDate(diff)).toISOString().split('T')[0];
-            } else {
-                key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            }
+    // ... (getAggregatedData, createChart, renderAllCharts, renderRawDataTable, deleteRawData, editRawData 函數都不變) ...
+    function getAggregatedData(period) { /* ... 此函數不變 ... */ if (fitnessData.length === 0) return { labels: [], morning: {}, evening: {} }; const groups = {}; fitnessData.forEach(d => { const date = new Date(d.date); let key; if (period === 'weekly') { const day = date.getDay(); const diff = date.getDate() - day + (day === 0 ? -6 : 1); key = new Date(date.setDate(diff)).toISOString().split('T')[0]; } else { key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; } if (!groups[key]) { groups[key] = { weightsM: [], bodyfatsM: [], musclesM: [], weightsE: [], bodyfatsE: [], musclesE: [] }; } if (d.time === 'morning') { groups[key].weightsM.push(d.weight); groups[key].bodyfatsM.push(d.bodyfat); groups[key].musclesM.push(d.muscleMass); } else { groups[key].weightsE.push(d.weight); groups[key].bodyfatsE.push(d.bodyfat); groups[key].musclesE.push(d.muscleMass); } }); const labels = Object.keys(groups).sort(); const getAverage = arr => arr.length > 0 ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : NaN; return { labels, morning: { weight: labels.map(key => getAverage(groups[key].weightsM)), bodyfat: labels.map(key => getAverage(groups[key].bodyfatsM)), muscleMass: labels.map(key => getAverage(groups[key].musclesM)) }, evening: { weight: labels.map(key => getAverage(groups[key].weightsE)), bodyfat: labels.map(key => getAverage(groups[key].bodyfatsE)), muscleMass: labels.map(key => getAverage(groups[key].musclesE)) } }; }
+    function createChart(canvasId, yAxisLabel, morningData, eveningData, labels, timeUnit) { /* ... 此函數不變 ... */ const ctx = document.getElementById(canvasId).getContext('2d'); ctx.canvas.style.backgroundColor = '#E6F5E6'; return new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [{ label: `早上 (${yAxisLabel.split(' ')[0]})`, data: morningData, pointBackgroundColor: 'rgba(255, 255, 255, 1)', pointBorderColor: 'rgba(0, 0, 0, 1)', pointBorderWidth: 1.5, borderColor: 'rgba(0, 0, 0, 0.6)', tension: 0.1, segment: { borderColor: ctx => ctx.p0.parsed.y === null || ctx.p1.parsed.y === null ? 'transparent' : 'rgba(0, 0, 0, 0.6)' } }, { label: `晚上 (${yAxisLabel.split(' ')[0]})`, data: eveningData, borderColor: 'rgba(0, 0, 0, 1)', backgroundColor: 'rgba(0, 0, 0, 0.1)', pointBackgroundColor: 'rgba(0, 0, 0, 1)', tension: 0.1, segment: { borderColor: ctx => ctx.p0.parsed.y === null || ctx.p1.parsed.y === null ? 'transparent' : 'rgba(0, 0, 0, 1)' } }] }, options: { responsive: true, scales: { x: { type: 'time', time: { unit: timeUnit, tooltipFormat: 'yyyy-MM-dd' }, title: { display: true, text: '日期' } }, y: { position: 'left', title: { display: true, text: yAxisLabel } } } } }); }
+    function renderAllCharts(mode = 'daily') { /* ... 此函數不變 ... */ document.querySelectorAll('#chart-controls button').forEach(btn => btn.classList.remove('active')); document.getElementById(`btn-${mode}`).classList.add('active'); if (weightChart) weightChart.destroy(); if (bodyfatChart) bodyfatChart.destroy(); if (muscleMassChart) muscleMassChart.destroy(); let labels, morningData, eveningData, timeUnit = 'day'; if (mode === 'daily') { labels = fitnessData.map(d => d.date); morningData = { weight: fitnessData.map(d => d.time === 'morning' ? d.weight : NaN), bodyfat: fitnessData.map(d => d.time === 'morning' ? d.bodyfat : NaN), muscleMass: fitnessData.map(d => d.time === 'morning' ? d.muscleMass : NaN) }; eveningData = { weight: fitnessData.map(d => d.time === 'evening' ? d.weight : NaN), bodyfat: fitnessData.map(d => d.time === 'evening' ? d.bodyfat : NaN), muscleMass: fitnessData.map(d => d.time === 'evening' ? d.muscleMass : NaN) }; } else { const aggregated = getAggregatedData(mode); labels = aggregated.labels; morningData = aggregated.morning; eveningData = aggregated.evening; timeUnit = mode === 'weekly' ? 'week' : 'month'; } weightChart = createChart('weightChart', '體重 (kg)', morningData.weight, eveningData.weight, labels, timeUnit); bodyfatChart = createChart('bodyfatChart', '體脂 (%)', morningData.bodyfat, eveningData.bodyfat, labels, timeUnit); muscleMassChart = createChart('muscleMassChart', '骨骼肌 (kg)', morningData.muscleMass, eveningData.muscleMass, labels, timeUnit); }
+    function renderRawDataTable() { /* ... 此函數不變 ... */ const tableBody = document.getElementById('raw-data-table').querySelector('tbody'); tableBody.innerHTML = ''; [...fitnessData].reverse().forEach((entry, reverseIndex) => { const actualIndex = fitnessData.length - 1 - reverseIndex; const row = tableBody.insertRow(); row.setAttribute('data-index', actualIndex); row.innerHTML = `<td>${entry.date}</td><td>${entry.time === 'morning' ? '早上' : '晚上'}</td><td>${entry.weight}</td><td>${entry.bodyfat}</td><td>${entry.muscleMass}</td><td><button onclick="editRawData(${actualIndex})">編輯</button><button class="delete-btn" onclick="deleteRawData(${actualIndex})">刪除</button></td>`; }); }
+    function deleteRawData(index) { /* ... 此函數不變 ... */ if (confirm('確定要刪除這筆數據嗎？')) { fitnessData.splice(index, 1); saveFitnessData(); renderAllCharts(); renderRawDataTable(); renderCountdown(); /* ✅ NEW: 刪除後也要更新倒數計時器 */ } }
+    function editRawData(index) { /* ... 此函數不變 ... */ const entry = fitnessData[index]; const newWeight = prompt("請輸入新的體重 (kg):", entry.weight); const newBodyfat = prompt("請輸入新的體脂 (%):", entry.bodyfat); const newMuscleMass = prompt("請輸入新的骨骼肌 (kg):", entry.muscleMass); const weight = parseFloat(newWeight), bodyfat = parseFloat(newBodyfat), muscleMass = parseFloat(newMuscleMass); if (isNaN(weight) || isNaN(bodyfat) || isNaN(muscleMass)) { alert("輸入無效，操作已取消。"); return; } fitnessData[index].weight = weight; fitnessData[index].bodyfat = bodyfat; fitnessData[index].muscleMass = muscleMass; saveFitnessData(); renderAllCharts(); renderRawDataTable(); renderCountdown(); /* ✅ NEW: 編輯後也要更新倒數計時器 */ }
 
-            if (!groups[key]) {
-                groups[key] = {
-                    weightsM: [], bodyfatsM: [], musclesM: [],
-                    weightsE: [], bodyfatsE: [], musclesE: [],
-                };
-            }
-            if (d.time === 'morning') {
-                groups[key].weightsM.push(d.weight);
-                groups[key].bodyfatsM.push(d.bodyfat);
-                groups[key].musclesM.push(d.muscleMass);
-            } else {
-                groups[key].weightsE.push(d.weight);
-                groups[key].bodyfatsE.push(d.bodyfat);
-                groups[key].musclesE.push(d.muscleMass);
-            }
-        });
-        
-        const labels = Object.keys(groups).sort();
-        const getAverage = arr => arr.length > 0 ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : NaN;
-        
-        return {
-            labels,
-            morning: {
-                weight: labels.map(key => getAverage(groups[key].weightsM)),
-                bodyfat: labels.map(key => getAverage(groups[key].bodyfatsM)),
-                muscleMass: labels.map(key => getAverage(groups[key].musclesM)),
-            },
-            evening: {
-                weight: labels.map(key => getAverage(groups[key].weightsE)),
-                bodyfat: labels.map(key => getAverage(groups[key].bodyfatsE)),
-                muscleMass: labels.map(key => getAverage(groups[key].musclesE)),
-            }
-        };
-    }
 
-    function createChart(canvasId, yAxisLabel, morningData, eveningData, labels, timeUnit) {
-        const ctx = document.getElementById(canvasId).getContext('2d');
-        ctx.canvas.style.backgroundColor = '#E6F5E6';
+    // --- ✅ NEW JAVASCRIPT: 百日倒數功能 ---
+    function renderCountdown() {
+        // --- 挑戰設定 ---
+        // ❗❗❗ 請在這裡修改您的挑戰開始日期 (今天是 2025-10-18，下週一是 2025-10-20)
+        const CHALLENGE_START_DATE_STRING = '2025-10-20'; 
+        const CHALLENGE_DURATION = 100; // 總天數
+        const TARGET_WEIGHT = 75.0; // 目標體重 (kg)
+        // --- 結束設定 ---
 
-        return new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: `早上 (${yAxisLabel.split(' ')[0]})`,
-                    data: morningData,
-                    pointBackgroundColor: 'rgba(255, 255, 255, 1)',
-                    pointBorderColor: 'rgba(0, 0, 0, 1)',
-                    pointBorderWidth: 1.5,
-                    borderColor: 'rgba(0, 0, 0, 0.6)',
-                    tension: 0.1,
-                    segment: { borderColor: ctx => ctx.p0.parsed.y === null || ctx.p1.parsed.y === null ? 'transparent' : 'rgba(0, 0, 0, 0.6)' }
-                }, {
-                    label: `晚上 (${yAxisLabel.split(' ')[0]})`,
-                    data: eveningData,
-                    borderColor: 'rgba(0, 0, 0, 1)',
-                    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                    pointBackgroundColor: 'rgba(0, 0, 0, 1)',
-                    tension: 0.1,
-                    segment: { borderColor: ctx => ctx.p0.parsed.y === null || ctx.p1.parsed.y === null ? 'transparent' : 'rgba(0, 0, 0, 1)' }
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: { unit: timeUnit, tooltipFormat: 'yyyy-MM-dd' },
-                        title: { display: true, text: '日期' }
-                    },
-                    y: {
-                        position: 'left',
-                        title: { display: true, text: yAxisLabel }
-                    }
-                }
-            }
-        });
-    }
+        const container = document.getElementById('countdown-container');
+        const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
-    function renderAllCharts(mode = 'daily') {
-        document.querySelectorAll('#chart-controls button').forEach(btn => btn.classList.remove('active'));
-        document.getElementById(`btn-${mode}`).classList.add('active');
+        // 1. 處理日期
+        const startDate = new Date(CHALLENGE_START_DATE_STRING + 'T00:00:00');
+        const endDate = new Date(startDate.getTime() + CHALLENGE_DURATION * MS_PER_DAY);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // 將今天的時間設為午夜，以便準確比較天數
 
-        if (weightChart) weightChart.destroy();
-        if (bodyfatChart) bodyfatChart.destroy();
-        if (muscleMassChart) muscleMassChart.destroy();
+        const daysPassed = Math.floor((today - startDate) / MS_PER_DAY);
+        let timePercentage = (daysPassed / CHALLENGE_DURATION) * 100;
 
-        let labels, morningData, eveningData;
-        let timeUnit = 'day';
-
-        if (mode === 'daily') {
-            labels = fitnessData.map(d => d.date);
-            morningData = {
-                weight: fitnessData.map(d => d.time === 'morning' ? d.weight : NaN),
-                bodyfat: fitnessData.map(d => d.time === 'morning' ? d.bodyfat : NaN),
-                muscleMass: fitnessData.map(d => d.time === 'morning' ? d.muscleMass : NaN),
-            };
-            eveningData = {
-                weight: fitnessData.map(d => d.time === 'evening' ? d.weight : NaN),
-                bodyfat: fitnessData.map(d => d.time === 'evening' ? d.bodyfat : NaN),
-                muscleMass: fitnessData.map(d => d.time === 'evening' ? d.muscleMass : NaN),
-            };
-        } else {
-            const aggregated = getAggregatedData(mode);
-            labels = aggregated.labels;
-            morningData = aggregated.morning;
-            eveningData = aggregated.evening;
-            timeUnit = mode === 'weekly' ? 'week' : 'month';
+        let title = "百日減重挑戰";
+        if (daysPassed < 0) {
+            title = `挑戰將於 ${CHALLENGE_START_DATE_STRING} 開始！`;
+            timePercentage = 0;
+        } else if (daysPassed > CHALLENGE_DURATION) {
+            title = "百日挑戰已結束！";
+            timePercentage = 100;
         }
 
-        weightChart = createChart('weightChart', '體重 (kg)', morningData.weight, eveningData.weight, labels, timeUnit);
-        bodyfatChart = createChart('bodyfatChart', '體脂 (%)', morningData.bodyfat, eveningData.bodyfat, labels, timeUnit);
-        muscleMassChart = createChart('muscleMassChart', '骨骼肌 (kg)', morningData.muscleMass, eveningData.muscleMass, labels, timeUnit);
-    }
-
-    function renderRawDataTable() {
-        const tableBody = document.getElementById('raw-data-table').querySelector('tbody');
-        tableBody.innerHTML = '';
-        [...fitnessData].reverse().forEach((entry, reverseIndex) => {
-            const actualIndex = fitnessData.length - 1 - reverseIndex;
-            const row = tableBody.insertRow();
-            row.setAttribute('data-index', actualIndex);
-            row.innerHTML = `<td>${entry.date}</td><td>${entry.time === 'morning' ? '早上' : '晚上'}</td><td>${entry.weight}</td><td>${entry.bodyfat}</td><td>${entry.muscleMass}</td><td><button onclick="editRawData(${actualIndex})">編輯</button><button class="delete-btn" onclick="deleteRawData(${actualIndex})">刪除</button></td>`;
-        });
-    }
-
-    function deleteRawData(index) {
-        if (confirm('確定要刪除這筆數據嗎？')) {
-            fitnessData.splice(index, 1);
-            saveFitnessData();
-            renderAllCharts();
-            renderRawDataTable();
-        }
-    }
-
-    function editRawData(index) {
-        const entry = fitnessData[index];
-        const newWeight = prompt("請輸入新的體重 (kg):", entry.weight);
-        const newBodyfat = prompt("請輸入新的體脂 (%):", entry.bodyfat);
-        const newMuscleMass = prompt("請輸入新的骨骼肌 (kg):", entry.muscleMass);
+        // 2. 處理體重數據
+        // 確保 fitnessData 已按日期排序 (在 addData 中已完成)
+        let startWeight = null;
+        let currentWeight = null;
         
-        const weight = parseFloat(newWeight);
-        const bodyfat = parseFloat(newBodyfat);
-        const muscleMass = parseFloat(newMuscleMass);
-
-        if (isNaN(weight) || isNaN(bodyfat) || isNaN(muscleMass)) {
-            alert("輸入無效，操作已取消。");
-            return;
+        // 找到起始體重：挑戰開始後的第一筆紀錄
+        const startEntry = fitnessData.find(entry => new Date(entry.date) >= new Date(CHALLENGE_START_DATE_STRING));
+        if (startEntry) {
+            startWeight = startEntry.weight;
+        }
+        
+        // 找到目前體重：最新的紀錄
+        if (fitnessData.length > 0) {
+            currentWeight = fitnessData[fitnessData.length - 1].weight;
         }
 
-        fitnessData[index].weight = weight;
-        fitnessData[index].bodyfat = bodyfat;
-        fitnessData[index].muscleMass = muscleMass;
+        // 3. 計算體重進度
+        let weightPercentage = 0;
+        let startWeightDisplay = startWeight ? `${startWeight.toFixed(1)}kg` : "尚未記錄";
+        let currentWeightDisplay = currentWeight ? `${currentWeight.toFixed(1)}kg` : "尚未記錄";
         
-        saveFitnessData();
-        renderAllCharts();
-        renderRawDataTable();
+        if (startWeight && currentWeight && startWeight > TARGET_WEIGHT) {
+            const totalToLose = startWeight - TARGET_WEIGHT;
+            const lostSoFar = startWeight - currentWeight;
+            weightPercentage = (lostSoFar / totalToLose) * 100;
+        } else if (startWeight && currentWeight && currentWeight <= TARGET_WEIGHT) {
+            // 如果已經達標
+            weightPercentage = 100;
+        }
+        
+        // 確保百分比在 0-100 之間
+        timePercentage = Math.max(0, Math.min(100, timePercentage));
+        weightPercentage = Math.max(0, Math.min(100, weightPercentage));
+
+        // 4. 產生 HTML
+        container.innerHTML = `
+            <h2>${title}</h2>
+            
+            <div class="progress-block time-progress">
+                <div class="progress-label">
+                    <span>時間進度 (天)</span>
+                    <span class="end">第 ${Math.max(0, daysPassed)} / ${CHALLENGE_DURATION} 天</span>
+                </div>
+                <div class="progress-bar-wrapper">
+                    <div class="progress-bar-inner" style="width: ${timePercentage.toFixed(0)}%;">${timePercentage.toFixed(0)}%</div>
+                </div>
+            </div>
+
+            <div class="progress-block weight-progress">
+                <div class="progress-label">
+                    <span class="start">起始: ${startWeightDisplay}</span>
+                    <span class="end">目標: ${TARGET_WEIGHT.toFixed(1)}kg</span>
+                </div>
+                <div class="progress-bar-wrapper">
+                    <div class="progress-bar-inner" style="width: ${weightPercentage.toFixed(0)}%;">
+                        目前: ${currentWeightDisplay} (${weightPercentage.toFixed(0)}%)
+                    </div>
+                </div>
+            </div>
+        `;
     }
+    // --- END NEW JAVASCRIPT ---
+
 
     document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
@@ -318,6 +295,7 @@
         }
         renderAllCharts();
         renderRawDataTable();
+        renderCountdown(); // ✅ NEW: 頁面載入時執行一次
     });
 </script>
 </body>
