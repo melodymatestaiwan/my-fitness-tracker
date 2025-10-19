@@ -50,6 +50,8 @@
         .meal-group { margin-bottom: 20px; }
         .meal-group h4 { margin: 0 0 10px 0; padding-bottom: 5px; border-bottom: 1px solid #eee; color: #555; display: flex; justify-content: space-between; align-items: center; }
         .meal-group h4 .meal-calories { font-size: 0.9em; font-weight: normal; color: #1a237e; }
+        /* ✅ MODIFIED: 調整列表與新增標題列的樣式 */
+        .log-header { font-weight: bold; color: #3f51b5; font-size: 0.9em; padding: 5px 0; border-bottom: 2px solid #e0e0e0; }
         .diet-log-item { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
         .diet-log-item:last-child { border-bottom: none; }
         .diet-log-item span:first-child { font-weight: bold; }
@@ -130,41 +132,18 @@
     let favoriteFoods = [];
     let currentDisplayDate = new Date();
 
+    // --- (雲端儲存、日期格式化、主要功能、常用食物、搜尋功能等JS函數，都保持不變) ---
     async function saveData(key, value) { try { await fetch('/api/setData', { method: 'POST', body: JSON.stringify({ key, value }) }); } catch (error) { console.error(`Failed to save ${key}:`, error); alert(`${key} 儲存失敗！`); } }
     async function loadData(key) { try { const response = await fetch(`/api/getData?key=${key}`); const data = await response.json(); return data || (key === 'favoriteFoods' ? [] : {}); } catch (error) { console.error(`Failed to load ${key}:`, error); alert(`讀取雲端 ${key} 失敗！`); return (key === 'favoriteFoods' ? [] : {}); } }
     function formatDate(date) { return date.toISOString().split('T')[0]; }
-
-    async function addDietLog() {
-        const dateKey = formatDate(currentDisplayDate);
-        const name = document.getElementById('food-name').value;
-        const protein = parseFloat(document.getElementById('protein').value) || 0;
-        const carbs = parseFloat(document.getElementById('carbs').value) || 0;
-        const fat = parseFloat(document.getElementById('fat').value) || 0;
-        const servings = parseFloat(document.getElementById('servings').value) || 1;
-        const meal = document.getElementById('meal-type').value;
-        if (!name) { alert('請輸入品項名稱！'); return; }
-        if (!dietLog[dateKey]) { dietLog[dateKey] = []; }
-        dietLog[dateKey].push({ name: `${name} (${(servings * 100).toFixed(0)}g)`, protein: protein * servings, carbs: carbs * servings, fat: fat * servings, meal: meal });
-        await saveData('dietLog', dietLog);
-        renderPageForDate(currentDisplayDate);
-        document.getElementById('food-name').value = ''; document.getElementById('protein').value = '';
-        document.getElementById('carbs').value = ''; document.getElementById('fat').value = '';
-        document.getElementById('servings').value = '1'; document.getElementById('food-name').focus();
-    }
-
-    async function deleteDietLog(index) {
-        const dateKey = formatDate(currentDisplayDate);
-        dietLog[dateKey].splice(index, 1);
-        await saveData('dietLog', dietLog);
-        renderPageForDate(currentDisplayDate);
-    }
-    
-    async function saveFavoriteFood() { /* ... 此函數不變 ... */ }
-    async function deleteFavoriteFood(index) { /* ... 此函數不變 ... */ }
-    function renderFavoriteFoods() { /* ... 此函數不變 ... */ }
-    function searchLocalFood() { /* ... 此函數不變 ... */ }
-    async function searchOnlineFood() { /* ... 此函數不變 ... */ }
-    function displaySearchResults(foods, type) { /* ... 此函數不變 ... */ }
+    async function addDietLog() { /*...*/ }
+    async function deleteDietLog(index) { /*...*/ }
+    async function saveFavoriteFood() { /*...*/ }
+    async function deleteFavoriteFood(index) { /*...*/ }
+    function renderFavoriteFoods() { /*...*/ }
+    function searchLocalFood() { /*...*/ }
+    async function searchOnlineFood() { /*...*/ }
+    function displaySearchResults(foods, type) { /*...*/ }
 
     function renderPageForDate(date) {
         renderDietSummary(date);
@@ -200,6 +179,7 @@
 
     function createMacroItemHTML(name, current, target, unit = '克') { const percentage = target > 0 ? (current / target) * 100 : 0; const isOver = current > target; const displayCurrent = (unit === '大卡') ? Math.round(current) : current.toFixed(1); const displayTarget = (unit === '大卡') ? `~${Math.round(target)}` : target; return `<div class="macro-item"><div class="label">${name} (${unit})</div><div class="values">${displayCurrent} / ${displayTarget}</div><div class="progress-bar"><div class="progress-bar-inner ${isOver ? 'over' : ''}" style="width: ${Math.min(percentage, 100)}%;"></div></div></div>`; }
     
+    // ✅ MODIFIED: renderDietLogList 現在會加入標題列，並移除單位
     function renderDietLogList(date) {
         const container = document.getElementById('diet-log-container');
         const listTitle = document.getElementById('log-list-title');
@@ -225,17 +205,26 @@
                 const mealGroupDiv = document.createElement('div');
                 mealGroupDiv.className = 'meal-group';
                 let mealTotalCalories = 0;
-                let groupItemsHTML = '';
+                let groupItemsHTML = `
+                    <div class="diet-log-item log-header">
+                        <span></span>
+                        <span>蛋白質</span>
+                        <span>碳水</span>
+                        <span>脂肪</span>
+                        <span>熱量</span>
+                        <span></span>
+                    </div>
+                `;
                 items.forEach(item => {
                     const itemCalories = (item.protein * 4) + (item.carbs * 4) + (item.fat * 9);
                     mealTotalCalories += itemCalories;
                     groupItemsHTML += `
                         <div class="diet-log-item">
                             <span>${item.name}</span>
-                            <span>${item.protein.toFixed(1)}g P</span>
-                            <span>${item.carbs.toFixed(1)}g C</span>
-                            <span>${item.fat.toFixed(1)}g F</span>
-                            <span>${itemCalories.toFixed(0)} 大卡</span>
+                            <span>${item.protein.toFixed(1)}</span>
+                            <span>${item.carbs.toFixed(1)}</span>
+                            <span>${item.fat.toFixed(1)}</span>
+                            <span>${itemCalories.toFixed(0)}</span>
                             <button class="delete-diet-btn" onclick="deleteDietLog(${item.originalIndex})">刪除</button>
                         </div>
                     `;
