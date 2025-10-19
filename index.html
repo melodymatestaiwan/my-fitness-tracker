@@ -16,61 +16,12 @@
         nav a { text-decoration: none; flex-grow: 1; padding: 10px 15px; border: none; background-color: #e8eaf6; color: #3f51b5; cursor: pointer; border-radius: 5px; font-size: 16px; transition: background-color 0.3s; text-align: center; }
         nav a.active { background-color: #3f51b5; color: white; font-weight: bold; }
         
-        /* --- ✅ MODIFIED COUNTDOWN STYLES --- */
-        #countdown-container {
-            background-color: #f8f9fa;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 25px;
-        }
-        #countdown-container h2 {
-            margin-top: 0;
-            text-align: center;
-            border-bottom: none;
-            padding-bottom: 0;
-            font-size: 1.5em;
-        }
-        .progress-track {
-            position: relative; /* 關鍵：讓圖示可以定位在它上面 */
-            background-color: #e0e0e0;
-            border-radius: 15px;
-            height: 25px;
-            margin-top: 20px;
-            border: 1px solid #ccc;
-            overflow: hidden;
-        }
-        .time-bar {
-            background-color: #4caf50; /* 時間進度的底色 */
-            height: 100%;
-            width: 0%; /* JS控制 */
-            transition: width 0.5s ease-in-out;
-        }
-        .weight-icon {
-            position: absolute; /* 關鍵：讓圖示浮動 */
-            top: 50%;
-            left: 0%; /* JS控制 */
-            transform: translate(-50%, -50%); /* 讓圖示的中心點對準 left 的百分比位置 */
-            width: 32px;
-            height: 32px;
-            background-color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            transition: left 0.5s ease-in-out;
-        }
-        .progress-details {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 8px;
-            font-size: 0.9em;
-            color: #555;
-            padding: 0 5px;
-        }
-        /* --- END MODIFIED STYLES --- */
+        #countdown-container { background-color: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 25px; }
+        #countdown-container h2 { margin-top: 0; text-align: center; border-bottom: none; padding-bottom: 0; font-size: 1.5em; }
+        .progress-track { position: relative; background-color: #e0e0e0; border-radius: 15px; height: 25px; margin-top: 20px; border: 1px solid #ccc; overflow: hidden; }
+        .time-bar { background-color: #4caf50; height: 100%; width: 0%; transition: width 0.5s ease-in-out; }
+        .weight-icon { position: absolute; top: 50%; left: 0%; transform: translate(-50%, -50%); width: 32px; height: 32px; background-color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: left 0.5s ease-in-out; }
+        .progress-details { display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.9em; color: #555; padding: 0 5px; flex-wrap: wrap; }
 
         #data-entry-form { background-color: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
         .form-row { display: flex; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 15px; }
@@ -108,8 +59,36 @@
 
         <div id="page-tracker">
             <h2>數據輸入</h2>
-            <div id="data-entry-form"> </div>
-            <div id="chart-controls"> </div>
+            <div id="data-entry-form">
+                <div class="form-row">
+                    <label for="entry-date">日期:</label>
+                    <input type="date" id="entry-date">
+                    <div class="radio-group">
+                        <input type="radio" id="time-morning" name="time-of-day" value="morning" checked>
+                        <label for="time-morning">早上</label>
+                        <input type="radio" id="time-evening" name="time-of-day" value="evening">
+                        <label for="time-evening">晚上</label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label for="weight">體重(kg):</label>
+                    <input type="number" id="weight" step="0.1" placeholder="75.5">
+                    <label for="bodyfat">體脂(%):</label>
+                    <input type="number" id="bodyfat" step="0.1" placeholder="18.5">
+                    <label for="muscle-mass">骨骼肌(kg):</label>
+                    <input type="number" id="muscle-mass" step="0.1" placeholder="35.0">
+                </div>
+                <div class="form-row button-row">
+                    <button onclick="addData()">新增紀錄</button>
+                </div>
+            </div>
+            
+            <div id="chart-controls">
+                <span>檢視模式:</span>
+                <button id="btn-daily" class="active" onclick="renderAllCharts('daily')">每日數據</button>
+                <button id="btn-weekly" onclick="renderAllCharts('weekly')">每週平均</button>
+                <button id="btn-monthly" onclick="renderAllCharts('monthly')">每月平均</button>
+            </div>
             <h2>體重趨勢</h2>
             <canvas id="weightChart"></canvas>
             <h2>體脂趨勢</h2>
@@ -117,7 +96,16 @@
             <h2>骨骼肌趨勢</h2>
             <canvas id="muscleMassChart"></canvas>
             <h2>原始數據 (RAW Data)</h2>
-            <div id="raw-data-table-container"> </div>
+            <div id="raw-data-table-container">
+                <table id="raw-data-table">
+                    <thead>
+                        <tr>
+                            <th>日期</th><th>時間</th><th>體重(kg)</th><th>體脂(%)</th><th>骨骼肌(kg)</th><th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -126,18 +114,26 @@
     let fitnessData = JSON.parse(localStorage.getItem('fitnessData')) || [];
 
     function addData() {
-        // ... (addData 函數不變) ...
-        renderCountdown(); // 新增數據後，重新渲染倒數計時器
+        const date = document.getElementById('entry-date').value;
+        const timeOfDay = document.querySelector('input[name="time-of-day"]:checked').value;
+        const weight = parseFloat(document.getElementById('weight').value);
+        const bodyfat = parseFloat(document.getElementById('bodyfat').value);
+        const muscleMass = parseFloat(document.getElementById('muscle-mass').value);
+        if (!date || isNaN(weight) || isNaN(bodyfat) || isNaN(muscleMass)) { alert('請輸入有效的數據！'); return; }
+        const lastInputs = { weight, bodyfat, muscleMass };
+        localStorage.setItem('lastFitnessInputs', JSON.stringify(lastInputs));
+        const newEntry = { date, time: timeOfDay, weight, bodyfat, muscleMass };
+        const existingIndex = fitnessData.findIndex(d => d.date === date && d.time === timeOfDay);
+        if (existingIndex > -1) { fitnessData[existingIndex] = newEntry; } else { fitnessData.push(newEntry); }
+        fitnessData.sort((a, b) => new Date(`${a.date} ${a.time === 'morning' ? '08:00' : '20:00'}`) - new Date(`${b.date} ${b.time === 'morning' ? '08:00' : '20:00'}`));
+        saveFitnessData();
+        renderAllCharts();
+        renderRawDataTable();
+        renderCountdown();
     }
     
-    function saveFitnessData() {
-        localStorage.setItem('fitnessData', JSON.stringify(fitnessData));
-    }
-    
-    // ... (所有圖表和表格的JS函數都保持不變) ...
+    function saveFitnessData() { localStorage.setItem('fitnessData', JSON.stringify(fitnessData)); }
 
-
-    // --- ✅ MODIFIED JAVASCRIPT: 百日倒數功能 ---
     function renderCountdown() {
         const CHALLENGE_START_DATE_STRING = '2025-10-20'; 
         const CHALLENGE_DURATION = 100;
@@ -146,7 +142,6 @@
         const container = document.getElementById('countdown-container');
         const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
-        // 1. 處理日期
         const startDate = new Date(CHALLENGE_START_DATE_STRING + 'T00:00:00');
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -163,7 +158,6 @@
             timePercentage = 100;
         }
 
-        // 2. 處理體重數據
         let startWeight = null;
         let currentWeight = null;
         
@@ -175,7 +169,6 @@
             currentWeight = fitnessData[fitnessData.length - 1].weight;
         }
 
-        // 3. 計算體重進度
         let weightPercentage = 0;
         let startWeightDisplay = startWeight ? `${startWeight.toFixed(1)}kg` : "N/A";
         let currentWeightDisplay = currentWeight ? `${currentWeight.toFixed(1)}kg` : "N/A";
@@ -191,26 +184,37 @@
         timePercentage = Math.max(0, Math.min(100, timePercentage));
         weightPercentage = Math.max(0, Math.min(100, weightPercentage));
 
-        // 4. 產生新的 HTML 結構
         container.innerHTML = `
             <h2>${title}</h2>
-            
             <div class="progress-track">
                 <div class="time-bar" style="width: ${timePercentage.toFixed(0)}%;"></div>
                 <div class="weight-icon" style="left: ${weightPercentage.toFixed(0)}%;">🏃</div>
             </div>
-
             <div class="progress-details">
                 <span>時間: 第 ${Math.max(0, daysPassed)} / ${CHALLENGE_DURATION} 天</span>
                 <span>體重: ${startWeightDisplay} → ${currentWeightDisplay} (目標 ${TARGET_WEIGHT.toFixed(1)}kg)</span>
             </div>
         `;
     }
-    // --- END MODIFIED JAVASCRIPT ---
+
+    function getAggregatedData(period) { if (fitnessData.length === 0) return { labels: [], morning: {}, evening: {} }; const groups = {}; fitnessData.forEach(d => { const date = new Date(d.date); let key; if (period === 'weekly') { const day = date.getDay(); const diff = date.getDate() - day + (day === 0 ? -6 : 1); key = new Date(date.setDate(diff)).toISOString().split('T')[0]; } else { key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; } if (!groups[key]) { groups[key] = { weightsM: [], bodyfatsM: [], musclesM: [], weightsE: [], bodyfatsE: [], musclesE: [] }; } if (d.time === 'morning') { groups[key].weightsM.push(d.weight); groups[key].bodyfatsM.push(d.bodyfat); groups[key].musclesM.push(d.muscleMass); } else { groups[key].weightsE.push(d.weight); groups[key].bodyfatsE.push(d.bodyfat); groups[key].musclesE.push(d.muscleMass); } }); const labels = Object.keys(groups).sort(); const getAverage = arr => arr.length > 0 ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : NaN; return { labels, morning: { weight: labels.map(key => getAverage(groups[key].weightsM)), bodyfat: labels.map(key => getAverage(groups[key].bodyfatsM)), muscleMass: labels.map(key => getAverage(groups[key].musclesM)) }, evening: { weight: labels.map(key => getAverage(groups[key].weightsE)), bodyfat: labels.map(key => getAverage(groups[key].bodyfatsE)), muscleMass: labels.map(key => getAverage(groups[key].musclesE)) } }; }
+    function createChart(canvasId, yAxisLabel, morningData, eveningData, labels, timeUnit) { const ctx = document.getElementById(canvasId).getContext('2d'); ctx.canvas.style.backgroundColor = '#E6F5E6'; return new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [{ label: `早上 (${yAxisLabel.split(' ')[0]})`, data: morningData, pointBackgroundColor: 'rgba(255, 255, 255, 1)', pointBorderColor: 'rgba(0, 0, 0, 1)', pointBorderWidth: 1.5, borderColor: 'rgba(0, 0, 0, 0.6)', tension: 0.1, segment: { borderColor: ctx => ctx.p0.parsed.y === null || ctx.p1.parsed.y === null ? 'transparent' : 'rgba(0, 0, 0, 0.6)' } }, { label: `晚上 (${yAxisLabel.split(' ')[0]})`, data: eveningData, borderColor: 'rgba(0, 0, 0, 1)', backgroundColor: 'rgba(0, 0, 0, 0.1)', pointBackgroundColor: 'rgba(0, 0, 0, 1)', tension: 0.1, segment: { borderColor: ctx => ctx.p0.parsed.y === null || ctx.p1.parsed.y === null ? 'transparent' : 'rgba(0, 0, 0, 1)' } }] }, options: { responsive: true, scales: { x: { type: 'time', time: { unit: timeUnit, tooltipFormat: 'yyyy-MM-dd' }, title: { display: true, text: '日期' } }, y: { position: 'left', title: { display: true, text: yAxisLabel } } } } }); }
+    function renderAllCharts(mode = 'daily') { document.querySelectorAll('#chart-controls button').forEach(btn => btn.classList.remove('active')); document.getElementById(`btn-${mode}`).classList.add('active'); if (weightChart) weightChart.destroy(); if (bodyfatChart) bodyfatChart.destroy(); if (muscleMassChart) muscleMassChart.destroy(); let labels, morningData, eveningData, timeUnit = 'day'; if (mode === 'daily') { labels = fitnessData.map(d => d.date); morningData = { weight: fitnessData.map(d => d.time === 'morning' ? d.weight : NaN), bodyfat: fitnessData.map(d => d.time === 'morning' ? d.bodyfat : NaN), muscleMass: fitnessData.map(d => d.time === 'morning' ? d.muscleMass : NaN) }; eveningData = { weight: fitnessData.map(d => d.time === 'evening' ? d.weight : NaN), bodyfat: fitnessData.map(d => d.time === 'evening' ? d.bodyfat : NaN), muscleMass: fitnessData.map(d => d.time === 'evening' ? d.muscleMass : NaN) }; } else { const aggregated = getAggregatedData(mode); labels = aggregated.labels; morningData = aggregated.morning; eveningData = aggregated.evening; timeUnit = mode === 'weekly' ? 'week' : 'month'; } weightChart = createChart('weightChart', '體重 (kg)', morningData.weight, eveningData.weight, labels, timeUnit); bodyfatChart = createChart('bodyfatChart', '體脂 (%)', morningData.bodyfat, eveningData.bodyfat, labels, timeUnit); muscleMassChart = createChart('muscleMassChart', '骨骼肌 (kg)', morningData.muscleMass, eveningData.muscleMass, labels, timeUnit); }
+    function renderRawDataTable() { const tableBody = document.getElementById('raw-data-table').querySelector('tbody'); tableBody.innerHTML = ''; [...fitnessData].reverse().forEach((entry, reverseIndex) => { const actualIndex = fitnessData.length - 1 - reverseIndex; const row = tableBody.insertRow(); row.setAttribute('data-index', actualIndex); row.innerHTML = `<td>${entry.date}</td><td>${entry.time === 'morning' ? '早上' : '晚上'}</td><td>${entry.weight}</td><td>${entry.bodyfat}</td><td>${entry.muscleMass}</td><td><button onclick="editRawData(${actualIndex})">編輯</button><button class="delete-btn" onclick="deleteRawData(${actualIndex})">刪除</button></td>`; }); }
+    function deleteRawData(index) { if (confirm('確定要刪除這筆數據嗎？')) { fitnessData.splice(index, 1); saveFitnessData(); renderAllCharts(); renderRawDataTable(); renderCountdown(); } }
+    function editRawData(index) { const entry = fitnessData[index]; const newWeight = prompt("請輸入新的體重 (kg):", entry.weight); const newBodyfat = prompt("請輸入新的體脂 (%):", entry.bodyfat); const newMuscleMass = prompt("請輸入新的骨骼肌 (kg):", entry.muscleMass); const weight = parseFloat(newWeight), bodyfat = parseFloat(newBodyfat), muscleMass = parseFloat(newMuscleMass); if (isNaN(weight) || isNaN(bodyfat) || isNaN(muscleMass)) { alert("輸入無效，操作已取消。"); return; } fitnessData[index].weight = weight; fitnessData[index].bodyfat = bodyfat; fitnessData[index].muscleMass = muscleMass; saveFitnessData(); renderAllCharts(); renderRawDataTable(); renderCountdown(); }
 
     document.addEventListener('DOMContentLoaded', () => {
-        // ... (頁面載入時的其他函數不變) ...
-        renderCountdown(); // 頁面載入時執行一次
+        document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
+        const lastInputs = JSON.parse(localStorage.getItem('lastFitnessInputs'));
+        if (lastInputs) {
+            document.getElementById('weight').value = lastInputs.weight;
+            document.getElementById('bodyfat').value = lastInputs.bodyfat;
+            document.getElementById('muscle-mass').value = lastInputs.muscleMass;
+        }
+        renderCountdown();
+        renderAllCharts();
+        renderRawDataTable();
     });
 </script>
 </body>
