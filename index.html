@@ -50,9 +50,12 @@
             <a href="index.html" class="active">數據追蹤</a>
             <a href="workout.html">今日課表</a>
             <a href="diet.html">飲食紀錄</a>
-           <a href="share.html">一鍵生圖</a>
         </nav>
+        
+        <a href="share.html" style="display:block; text-align:center; padding:10px; background-color:#ff9800; color:white; border-radius:5px; text-decoration:none; margin-bottom:20px;">🖼️ 產生每日分享圖 (三張)</a>
+
         <div id="countdown-container"></div>
+
         <div id="page-tracker">
             <h2>數據輸入</h2>
             <div id="data-entry-form">
@@ -71,6 +74,7 @@
                 </div>
                 <div class="form-row button-row"><button onclick="addData()">新增紀錄</button></div>
             </div>
+            
             <div id="chart-controls">
                 <span>檢視模式:</span>
                 <button id="btn-daily" class="active" onclick="renderAllCharts('daily')">每日數據</button>
@@ -92,22 +96,11 @@
 
 <script>
     let weightChart, bodyfatChart, muscleMassChart;
-    let fitnessData = []; // 資料預設為空，等待從雲端載入
+    let fitnessData = [];
 
-    // 異步儲存數據到雲端
-    async function saveFitnessData() {
-        try {
-            await fetch('/api/setData', {
-                method: 'POST',
-                body: JSON.stringify({ key: 'fitnessData', value: fitnessData })
-            });
-        } catch (error) {
-            console.error('Failed to save fitness data:', error);
-            alert('數據儲存失敗，請檢查網路連線！');
-        }
-    }
+    async function saveData(key, value) { try { await fetch('/api/setData', { method: 'POST', body: JSON.stringify({ key, value }) }); } catch (error) { console.error(`Failed to save ${key}:`, error); alert(`${key} 儲存失敗！`); } }
+    async function loadData(key) { try { const response = await fetch(`/api/getData?key=${key}`); const data = await response.json(); return data || []; } catch (error) { console.error(`Failed to load ${key}:`, error); alert(`讀取雲端 ${key} 失敗！`); return []; } }
 
-    // addData 函數現在是異步的
     async function addData() {
         const date = document.getElementById('entry-date').value;
         const timeOfDay = document.querySelector('input[name="time-of-day"]:checked').value;
@@ -115,26 +108,22 @@
         const bodyfat = parseFloat(document.getElementById('bodyfat').value);
         const muscleMass = parseFloat(document.getElementById('muscle-mass').value);
         if (!date || isNaN(weight) || isNaN(bodyfat) || isNaN(muscleMass)) { alert('請輸入有效的數據！'); return; }
-        
         const lastInputs = { weight, bodyfat, muscleMass };
         localStorage.setItem('lastFitnessInputs', JSON.stringify(lastInputs));
-        
         const newEntry = { date, time: timeOfDay, weight, bodyfat, muscleMass };
         const existingIndex = fitnessData.findIndex(d => d.date === date && d.time === timeOfDay);
         if (existingIndex > -1) { fitnessData[existingIndex] = newEntry; } else { fitnessData.push(newEntry); }
         fitnessData.sort((a, b) => new Date(`${a.date} ${a.time === 'morning' ? '08:00' : '20:00'}`) - new Date(`${b.date} ${b.time === 'morning' ? '08:00' : '20:00'}`));
-        
-        await saveFitnessData();
+        await saveData('fitnessData', fitnessData);
         renderAllCharts();
         renderRawDataTable();
         renderCountdown();
     }
     
-    // deleteRawData 和 editRawData 也是異步的
     async function deleteRawData(index) {
         if (confirm('確定要刪除這筆數據嗎？')) {
             fitnessData.splice(index, 1);
-            await saveFitnessData();
+            await saveData('fitnessData', fitnessData);
             renderAllCharts(); renderRawDataTable(); renderCountdown();
         }
     }
@@ -148,7 +137,7 @@
         fitnessData[index].weight = weight;
         fitnessData[index].bodyfat = bodyfat;
         fitnessData[index].muscleMass = muscleMass;
-        await saveFitnessData();
+        await saveData('fitnessData', fitnessData);
         renderAllCharts(); renderRawDataTable(); renderCountdown();
     }
     
@@ -164,13 +153,8 @@
         const daysPassed = Math.round((today - startDate) / MS_PER_DAY);
         let timePercentage = (daysPassed / CHALLENGE_DURATION) * 100;
         let title = "百日減重挑戰";
-        if (daysPassed < 0) {
-            title = `挑戰將於 ${CHALLENGE_START_DATE_STRING} 開始！`;
-            timePercentage = 0;
-        } else if (daysPassed > CHALLENGE_DURATION) {
-            title = "百日挑戰已結束！";
-            timePercentage = 100;
-        }
+        if (daysPassed < 0) { title = `挑戰將於 ${CHALLENGE_START_DATE_STRING} 開始！`; timePercentage = 0; }
+        else if (daysPassed > CHALLENGE_DURATION) { title = "百日挑戰已結束！"; timePercentage = 100; }
         let startWeight = null;
         let currentWeight = null;
         const startEntry = fitnessData.find(entry => new Date(entry.date) >= new Date(CHALLENGE_START_DATE_STRING));
@@ -183,9 +167,7 @@
             const totalToLose = startWeight - TARGET_WEIGHT;
             const lostSoFar = startWeight - currentWeight;
             weightPercentage = (lostSoFar / totalToLose) * 100;
-        } else if (startWeight && currentWeight && currentWeight <= TARGET_WEIGHT) {
-            weightPercentage = 100;
-        }
+        } else if (startWeight && currentWeight && currentWeight <= TARGET_WEIGHT) { weightPercentage = 100; }
         timePercentage = Math.max(0, Math.min(100, timePercentage));
         weightPercentage = Math.max(0, Math.min(100, weightPercentage));
         container.innerHTML = `
@@ -207,16 +189,7 @@
     function renderRawDataTable() { const tableBody = document.getElementById('raw-data-table').querySelector('tbody'); tableBody.innerHTML = ''; [...fitnessData].reverse().forEach((entry, reverseIndex) => { const actualIndex = fitnessData.length - 1 - reverseIndex; const row = tableBody.insertRow(); row.setAttribute('data-index', actualIndex); row.innerHTML = `<td>${entry.date}</td><td>${entry.time === 'morning' ? '早上' : '晚上'}</td><td>${entry.weight}</td><td>${entry.bodyfat}</td><td>${entry.muscleMass}</td><td><button onclick="editRawData(${actualIndex})">編輯</button><button class="delete-btn" onclick="deleteRawData(${actualIndex})">刪除</button></td>`; }); }
 
     document.addEventListener('DOMContentLoaded', async () => {
-        try {
-            const response = await fetch('/api/getData?key=fitnessData');
-            const data = await response.json();
-            if (data) {
-                fitnessData = data;
-            }
-        } catch (error) {
-            console.error('Failed to load fitness data:', error);
-            alert('讀取雲端數據失敗，請重新整理頁面！');
-        }
+        fitnessData = await loadData('fitnessData');
 
         document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
         const lastInputs = JSON.parse(localStorage.getItem('lastFitnessInputs'));
@@ -233,6 +206,3 @@
 </script>
 </body>
 </html>
-
-
-
