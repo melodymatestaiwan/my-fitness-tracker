@@ -14,8 +14,8 @@ module.exports = async (req, res) => {
         return res.status(400).json({ error: 'Food search term is required' });
     }
 
-    // Open Food Facts API 的搜尋網址
-    const searchURL = `https://world.openfoodfacts.org/api/v2/search?search_terms=${encodeURIComponent(searchTerm)}&search_tag=brands&fields=product_name,nutriments,serving_size&json=true&page_size=10`;
+    // ✅ 關鍵修改！新增國家/地區過濾器，明確指定只搜尋台灣的資料
+    const searchURL = `https://world.openfoodfacts.org/api/v2/search?search_terms=${encodeURIComponent(searchTerm)}&countries_tags_zh=taiwan&fields=product_name,nutriments,serving_size&json=true&page_size=10`;
 
     try {
         const response = await axios.get(searchURL);
@@ -25,10 +25,8 @@ module.exports = async (req, res) => {
             return res.status(200).json([]);
         }
 
-        // 將 API 回傳的複雜資料，整理成我們需要的簡單格式
         const simplifiedFoods = products.map(product => {
             const nutriments = product.nutriments;
-            // 營養素單位通常是 per 100g
             return {
                 name: product.product_name || '未知品名',
                 protein: parseFloat(nutriments['proteins_100g']) || 0,
