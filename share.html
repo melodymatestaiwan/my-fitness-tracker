@@ -22,7 +22,7 @@
             text-align: center;
         }
         .capture-area {
-            width: 1080px;
+            width: 1080px; /* IG 正方形尺寸 */
             height: 1350px; /* IG 4:5 比例 */
             padding: 80px;
             box-sizing: border-box;
@@ -85,6 +85,7 @@
             font-size: 42px;
             line-height: 1.8;
         }
+        .card-content u { text-decoration-thickness: 3px; }
         .card-content u.orange { text-decoration-color: #ff9800; }
         .card-content u.blue { text-decoration-color: #2196F3; }
         .total-calories { margin-top: 30px; }
@@ -132,29 +133,37 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
         const today = new Date();
+        today.setHours(0,0,0,0);
         const todayKey = today.toISOString().split('T')[0];
         
-        // 抓取所有數據
         let allData;
         try {
             const response = await fetch('/api/getAllData');
+            if (!response.ok) throw new Error('API request failed');
             allData = await response.json();
         } catch (error) {
             document.getElementById('loading-text').textContent = '讀取雲端資料失敗！請重新整理。';
+            console.error(error);
             return;
         }
+
+        const { 
+            fitnessData = [], 
+            dietLog = {}, 
+            workoutLog = {} 
+        } = allData;
 
         // --- 渲染圖一：體重 ---
         const diffTime = today - CHALLENGE_START_DATE;
         const challengeDayNum = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
         document.getElementById('weight-day').textContent = `第 ${challengeDayNum} 天`;
-
-        const startEntry = allData.fitnessData.find(entry => new Date(entry.date) >= CHALLENGE_START_DATE);
-        const startWeight = startEntry ? startEntry.weight : 'N/A';
+        
+        const startEntry = fitnessData.find(entry => new Date(entry.date) >= CHALLENGE_START_DATE);
+        const startWeight = startEntry ? startEntry.weight.toFixed(1) : 'N/A';
         document.getElementById('weight-start').textContent = `起始體重: ${startWeight} 公斤`;
         
-        const todayWeightEntries = allData.fitnessData.filter(entry => entry.date === todayKey);
-        const currentWeight = todayWeightEntries.length > 0 ? todayWeightEntries[todayWeightEntries.length - 1].weight : 'N/A';
+        const todayWeightEntries = fitnessData.filter(entry => entry.date === todayKey);
+        const currentWeight = todayWeightEntries.length > 0 ? todayWeightEntries[todayWeightEntries.length - 1].weight.toFixed(1) : 'N/A';
         document.getElementById('weight-current').textContent = `今日體重: ${currentWeight} 公斤`;
 
         // --- 渲染圖二：飲食 ---
@@ -163,10 +172,18 @@
         document.getElementById('diet-day-of-week').textContent = `(${dayOfWeekStr}.)`;
         document.getElementById('diet-date').textContent = dateStr;
         
-        const dietPlan = { /* ... 您的飲食計畫 ... */ };
+        const dietPlan = {
+            monday:    { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
+            tuesday:   { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
+            wednesday: { name: "高碳日", protein: 160, carbs: 230, fat: 51 },
+            thursday:  { name: "無碳日", protein: 160, carbs: 40,  fat: 98 },
+            friday:    { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
+            saturday:  { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
+            sunday:    { name: "無碳日", protein: 160, carbs: 40,  fat: 98 },
+        };
         const dayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
         const planForDay = dietPlan[dayKeys[today.getDay()]];
-        const logsForDay = allData.dietLog[todayKey] || [];
+        const logsForDay = dietLog[todayKey] || [];
         const totals = logsForDay.reduce((acc, item) => { acc.protein += item.protein; acc.carbs += item.carbs; acc.fat += item.fat; return acc; }, { protein: 0, carbs: 0, fat: 0 });
         const currentCalories = (totals.protein * 4) + (totals.carbs * 4) + (totals.fat * 9);
         
@@ -184,14 +201,14 @@
 
         let workoutHTML = '';
         const workoutDayKey = dayKeys[today.getDay()];
-        if(allData.workoutLog[workoutDayKey]) {
-            for (const exName in allData.workoutLog[workoutDayKey]) {
-                const sets = allData.workoutLog[workoutDayKey][exName][todayKey];
+        if(workoutLog && workoutLog[workoutDayKey]) {
+            for (const exName in workoutLog[workoutDayKey]) {
+                const sets = workoutLog[workoutDayKey][exName][todayKey];
                 if (sets && sets.length > 0) {
                     const weightSets = sets.filter(s => s.type === 'weight');
                     const timeSets = sets.filter(s => s.type === 'time');
                     if (weightSets.length > 0) {
-                        const weight = weightSets[0].weight; // 取第一個組數的重量
+                        const weight = weightSets[0].weight;
                         workoutHTML += `<u class="blue">${exName}</u> ${weight}公斤 ${weightSets.length}組<br>`;
                     }
                     if (timeSets.length > 0) {
@@ -216,7 +233,8 @@
         
         html2canvas(element, { 
             useCORS: true,
-            scale: 1 // 使用原始尺寸
+            scale: window.devicePixelRatio, // 提高解析度以應對高DPI螢幕
+            backgroundColor: null // 保持背景圖
         }).then(canvas => {
             const link = document.createElement('a');
             link.download = `${fileNamePrefix}_${todayKey}.png`;
