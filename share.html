@@ -43,6 +43,7 @@
             cursor: pointer;
         }
         #loading-text { font-size: 24px; }
+
         #capture-area-1 {
             background-image: url('https://i.imgur.com/L4ZgYyJ.jpeg');
             background-size: cover;
@@ -53,6 +54,7 @@
         #capture-area-1 h1, #capture-area-1 h2 { margin: 15px 0; }
         #capture-area-1 h1 { font-size: 80px; }
         #capture-area-1 h2 { font-size: 60px; }
+
         #capture-area-2, #capture-area-3 {
             background-color: #f4f4f4;
             background-image: linear-gradient(rgba(255,255,255,0.5), rgba(255,255,255,0.5)), url('https://i.imgur.com/fA7g7b1.png');
@@ -73,6 +75,7 @@
 </head>
 <body>
     <div id="loading-text">讀取今日紀錄中...</div>
+
     <div class="capture-wrapper" id="wrapper-1" style="display: none;">
         <div class="capture-area" id="capture-area-1">
             <h1 id="weight-title">百日減脂計畫</h1>
@@ -82,6 +85,7 @@
         </div>
         <button class="download-btn" onclick="downloadImage('capture-area-1', '百日計畫')">下載第一張圖</button>
     </div>
+
     <div class="capture-wrapper" id="wrapper-2" style="display: none;">
         <div class="capture-area" id="capture-area-2">
             <div class="card-header">
@@ -93,6 +97,7 @@
         </div>
         <button class="download-btn" onclick="downloadImage('capture-area-2', '飲食紀錄')">下載第二張圖</button>
     </div>
+
     <div class="capture-wrapper" id="wrapper-3" style="display: none;">
         <div class="capture-area" id="capture-area-3">
              <div class="card-header">
@@ -132,12 +137,12 @@
         let allData;
         try {
             const response = await fetch('/api/getAllData');
-            if (!response.ok) throw new Error('API request failed with status ' + response.status);
+            if (!response.ok) throw new Error('API request failed');
             allData = await response.json();
         } catch (error) {
             document.getElementById('loading-text').textContent = '讀取雲端資料失敗！請重新整理。';
             console.error(error);
-            return;
+            allData = {}; // 給一個空的預設值，讓頁面可以繼續渲染
         }
 
         const { fitnessData = [], dietLog = {}, workoutLog = {} } = allData;
@@ -148,11 +153,11 @@
         document.getElementById('weight-day').textContent = `第 ${challengeDayNum} 天`;
         
         const startEntry = fitnessData.find(entry => new Date(entry.date) >= CHALLENGE_START_DATE);
-        const startWeight = startEntry ? startEntry.weight.toFixed(1) : 'N/A';
+        const startWeight = startEntry ? startEntry.weight.toFixed(1) : '???';
         document.getElementById('weight-start').textContent = `起始體重: ${startWeight} 公斤`;
         
         const todayWeightEntries = fitnessData.filter(entry => entry.date === todayKey);
-        const currentWeight = todayWeightEntries.length > 0 ? todayWeightEntries[todayWeightEntries.length - 1].weight.toFixed(1) : 'N/A';
+        const currentWeight = todayWeightEntries.length > 0 ? todayWeightEntries[todayWeightEntries.length - 1].weight.toFixed(1) : '???';
         document.getElementById('weight-current').textContent = `今日體重: ${currentWeight} 公斤`;
 
         // --- 渲染圖二：飲食 ---
@@ -163,15 +168,16 @@
         
         const planForDay = dietPlan[dayKeys[today.getDay()]];
         const logsForDay = dietLog[todayKey] || [];
+        const hasDietLogs = logsForDay.length > 0;
         const totals = logsForDay.reduce((acc, item) => { acc.protein += item.protein; acc.carbs += item.carbs; acc.fat += item.fat; return acc; }, { protein: 0, carbs: 0, fat: 0 });
         const currentCalories = (totals.protein * 4) + (totals.carbs * 4) + (totals.fat * 9);
         
         document.getElementById('diet-content').innerHTML = `
             <u class="orange">${planForDay.name}</u><br>
-            蛋白質: ${totals.protein.toFixed(0)}/${planForDay.protein} 克<br>
-            碳水化合物: ${totals.carbs.toFixed(0)}/${planForDay.carbs} 克<br>
-            脂肪: ${totals.fat.toFixed(0)}/${planForDay.fat} 克<br>
-            <div class="total-calories">總熱量 ${currentCalories.toFixed(0)} 大卡</div>
+            蛋白質: ${hasDietLogs ? totals.protein.toFixed(0) : '???'} / ${planForDay.protein} 克<br>
+            碳水化合物: ${hasDietLogs ? totals.carbs.toFixed(0) : '???'} / ${planForDay.carbs} 克<br>
+            脂肪: ${hasDietLogs ? totals.fat.toFixed(0) : '???'} / ${planForDay.fat} 克<br>
+            <div class="total-calories">總熱量 ${hasDietLogs ? currentCalories.toFixed(0) : '???'} 大卡</div>
         `;
 
         // --- 渲染圖三：運動 ---
@@ -180,10 +186,12 @@
 
         let workoutHTML = '';
         const workoutDayKey = dayKeys[today.getDay()];
+        let hasWorkout = false;
         if(workoutLog && workoutLog[workoutDayKey]) {
             for (const exName in workoutLog[workoutDayKey]) {
                 const sets = workoutLog[workoutDayKey][exName][todayKey];
                 if (sets && sets.length > 0) {
+                    hasWorkout = true;
                     const weightSets = sets.filter(s => s.type === 'weight');
                     const timeSets = sets.filter(s => s.type === 'time');
                     if (weightSets.length > 0) {
@@ -197,7 +205,7 @@
                 }
             }
         }
-        document.getElementById('workout-content').innerHTML = workoutHTML || '今天休息';
+        document.getElementById('workout-content').innerHTML = hasWorkout ? workoutHTML : '今日未記錄 ???';
 
         // --- 顯示所有內容 ---
         document.getElementById('loading-text').style.display = 'none';
