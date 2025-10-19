@@ -7,7 +7,6 @@ async function getAccessToken() {
     if (accessToken && Date.now() < tokenExpiryTime) {
         return accessToken;
     }
-    // 從 Vercel 的環境變數中讀取金鑰
     const clientId = process.env.FATSECRET_CLIENT_ID;
     const clientSecret = process.env.FATSECRET_CLIENT_SECRET;
     if (!clientId || !clientSecret) {
@@ -33,13 +32,24 @@ module.exports = async (req, res) => {
     try {
         const token = await getAccessToken();
         const searchResponse = await axios.get('https://platform.fatsecret.com/rest/server.api', { params: { method: 'foods.search', search_expression: searchTerm, format: 'json' }, headers: { 'Authorization': `Bearer ${token}` } });
-        const foods = searchResponse.data.foods.food;
-        if (!foods) { return res.status(200).json([]); }
+        
+        // ✅ **關鍵修正！**
+        // 先安全地檢查 'foods' 和 'foods.food' 是否存在
+        const foodsContainer = searchResponse.data.foods;
+        if (!foodsContainer || !foodsContainer.food) {
+            // 如果不存在，就回傳一個空的陣列，告訴前端「找不到結果」
+            return res.status(200).json([]);
+        }
+
+        const foods = foodsContainer.food;
+
         const simplifiedFoods = foods.map(food => {
             const nutrition = Array.isArray(food.servings.serving) ? food.servings.serving[0] : food.servings.serving;
             return { id: food.food_id, name: food.food_name, description: food.food_description, protein: parseFloat(nutrition.protein) || 0, carbs: parseFloat(nutrition.carbohydrate) || 0, fat: parseFloat(nutrition.fat) || 0, };
         });
+        
         res.status(200).json(simplifiedFoods);
+
     } catch (error) {
         console.error('Error in serverless function:', error.message);
         res.status(500).json({ error: 'Failed to fetch data from FatSecret' });
