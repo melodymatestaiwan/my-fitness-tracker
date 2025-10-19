@@ -287,8 +287,8 @@
   {"name":"木瓜牛奶","protein":2.5,"carbs":15.3,"fat":2.1},
   {"name":"西瓜汁","protein":0.3,"carbs":8.1,"fat":0.1},
   {"name":"檸檬汁","protein":0.2,"carbs":5.3,"fat":0},
-  {"name":"甘蔗汁","protein":0.2,"carbs":18.2,"fat":0}
-{"name":"紅豆(乾)","protein":20.7,"carbs":61.9,"fat":0.6},
+  {"name":"甘蔗汁","protein":0.2,"carbs":18.2,"fat":0},
+  {"name":"紅豆(乾)","protein":20.7,"carbs":61.9,"fat":0.6},
   {"name":"綠豆(乾)","protein":22.6,"carbs":62.4,"fat":1.2},
   {"name":"菜豆(乾)","protein":23.1,"carbs":61.3,"fat":1.2},
   {"name":"皇帝豆(乾)","protein":24.5,"carbs":59.6,"fat":1.1},
@@ -1170,3 +1170,4 @@
   {"name":"皮蛋豆腐","protein":10.1,"carbs":2.1,"fat":8.1}
 ]
 ]
+
