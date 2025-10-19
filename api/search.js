@@ -5,8 +5,8 @@ const crypto = require('crypto');
 // 初始化 OAuth 1.0 驗證器
 const oauth = OAuth({
     consumer: {
-        key: process.env.FATSECRET_CLIENT_ID,     // 使用 OAuth 1.0 的 Consumer Key
-        secret: process.env.FATSECRET_CLIENT_SECRET // 使用 OAuth 1.0 的 Consumer Secret
+        key: process.env.FATSECRET_CLIENT_ID,
+        secret: process.env.FATSECRET_CLIENT_SECRET
     },
     signature_method: 'HMAC-SHA1',
     hash_function(base_string, key) {
@@ -30,7 +30,6 @@ module.exports = async (req, res) => {
         return res.status(400).json({ error: 'Food search term is required' });
     }
 
-    // 定義 API 請求的細節
     const request_data = {
         url: 'https://platform.fatsecret.com/rest/server.api',
         method: 'GET',
@@ -44,19 +43,15 @@ module.exports = async (req, res) => {
     };
 
     try {
-        // 使用 oauth-1.0a 工具來產生帶有簽名的請求標頭
         const authHeader = oauth.toHeader(oauth.authorize(request_data));
 
-        // 發送 API 請求
         const response = await axios.get(request_data.url, {
             params: request_data.data,
             headers: authHeader,
         });
 
-        // 檢查回傳的資料中是否有錯誤代碼
         if (response.data.error) {
             console.error('FatSecret API Error:', response.data.error.message);
-            // 將 API 回傳的錯誤訊息也顯示出來，方便除錯
             return res.status(200).json([]);
         }
 
@@ -66,9 +61,17 @@ module.exports = async (req, res) => {
         }
 
         const foods = Array.isArray(foodsContainer.food) ? foodsContainer.food : [foodsContainer.food];
+
         const simplifiedFoods = foods.map(food => {
+            // ✅ **關鍵修正！**
+            // 在讀取 'serving' 之前，先安全地檢查 'servings' 是否存在
+            if (!food.servings || !food.servings.serving) {
+                // 如果這個食物沒有份量資訊，就跳過它
+                return null;
+            }
+
             const nutrition = Array.isArray(food.servings.serving) ? food.servings.serving[0] : food.servings.serving;
-            if (!nutrition) return null;
+            
             return {
                 id: food.food_id,
                 name: food.food_name,
@@ -77,13 +80,12 @@ module.exports = async (req, res) => {
                 carbs: parseFloat(nutrition.carbohydrate) || 0,
                 fat: parseFloat(nutrition.fat) || 0,
             };
-        }).filter(item => item !== null);
+        }).filter(item => item !== null); // 過濾掉被我們跳過的 null 項目
 
         res.status(200).json(simplifiedFoods);
 
     } catch (error) {
         console.error('Error in serverless function:', error.response ? error.response.data : error.message);
-        // 如果請求本身就失敗了，回傳 500 錯誤
         res.status(500).json({ error: 'Failed to process request to FatSecret API' });
     }
 };
