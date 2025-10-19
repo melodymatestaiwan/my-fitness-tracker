@@ -77,62 +77,7 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>個人健身追蹤器</h1>
-        <nav>
-            <a href="index.html">數據追蹤</a>
-            <a href="workout.html">今日課表</a>
-            <a href="diet.html" class="active">飲食紀錄</a>
-        </nav>
-        <div id="page-diet">
-            <h2>飲食紀錄</h2>
-            <div id="diet-summary">
-                <div class="summary-header">
-                    <button id="prev-day-btn">‹</button>
-                    <div class="title-container">
-                        <h3 id="date-title"></h3>
-                        <button id="back-to-today-btn">返回今天</button>
-                    </div>
-                    <button id="next-day-btn">›</button>
-                </div>
-                <div class="macros-grid" id="macros-grid-container"></div>
-            </div>
-            
-            <div id="favorite-foods-container">
-                <h3>我的常用食物</h3>
-                <div id="favorite-foods-list">讀取中...</div>
-            </div>
-
-            <div class="search-container">
-                <h3>搜尋食物</h3>
-                <div class="search-form">
-                    <input type="text" id="food-search-input" placeholder="載入資料庫中..." disabled>
-                    <button class="local-search-btn" onclick="searchLocalFood()">搜尋在地食物</button>
-                    <button class="online-search-btn" onclick="searchOnlineFood()">線上搜尋加工品</button>
-                </div>
-                <ul class="search-results" id="search-results"></ul>
-            </div>
-
-            <h3 id="entry-form-title">新增食物</h3>
-            <div id="diet-entry-form">
-                <input type="text" id="food-name" placeholder="食物名稱">
-                <input type="number" id="protein" placeholder="蛋白質(g)">
-                <input type="number" id="carbs" placeholder="碳水(g)">
-                <input type="number" id="fat" placeholder="脂肪(g)">
-                <input type="number" id="servings" value="1" step="0.1" placeholder="份數">
-                <select id="meal-type">
-                    <option value="breakfast">早餐</option>
-                    <option value="lunch">午餐</option>
-                    <option value="dinner">晚餐</option>
-                    <option value="snack">點心</option>
-                </select>
-                <button id="add-diet-btn" onclick="addDietLog()">新增</button>
-                <button id="save-favorite-btn" onclick="saveFavoriteFood()">⭐ 存為常用</button>
-            </div>
-            <h3 id="log-list-title">今日紀錄列表</h3>
-            <div id="diet-log-container"></div>
-        </div>
-    </div>
+    <div class="container"></div>
 
 <script>
     let foodDatabase = [];
@@ -152,7 +97,13 @@
 
     async function saveData(key, value) { try { await fetch('/api/setData', { method: 'POST', body: JSON.stringify({ key, value }) }); } catch (error) { console.error(`Failed to save ${key}:`, error); alert(`${key} 儲存失敗！`); } }
     async function loadData(key) { try { const response = await fetch(`/api/getData?key=${key}`); const data = await response.json(); return data || (key === 'favoriteFoods' ? [] : {}); } catch (error) { console.error(`Failed to load ${key}:`, error); alert(`讀取雲端 ${key} 失敗！`); return (key === 'favoriteFoods' ? [] : {}); } }
-    function formatDate(date) { return date.toISOString().split('T')[0]; }
+    
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
 
     async function addDietLog() {
         const dateKey = formatDate(currentDisplayDate);
