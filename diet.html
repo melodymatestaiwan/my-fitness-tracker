@@ -181,7 +181,8 @@
             .then(res => res.json()).then(data => { if (data) { dietLog = data; } })
             .catch(err => { console.error('Failed to load diet log:', err); alert('讀取雲端飲食紀錄失敗！'); });
 
-        const loadFoodDbPromise = fetch('./tfda_db.json')
+        // ✅ **關鍵修正！** Vercel 會自動將 public 資料夾對應到根目錄 /
+        const loadFoodDbPromise = fetch('/tfda_db.json')
             .then(res => res.json())
             .then(data => {
                 foodDatabase = data;
