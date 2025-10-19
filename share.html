@@ -18,23 +18,22 @@
             color: #333;
         }
         .capture-wrapper {
-            margin-bottom: 30px;
+            margin-bottom: 20px; /* 縮小間隙 */
             text-align: center;
         }
         .capture-area {
             width: 1080px;
             height: 1350px;
-            padding: 80px;
+            padding: 80px 100px; /* 調整內邊距 */
             box-sizing: border-box;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             margin-bottom: 15px;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            transform: scale(0.5); /* 縮小預覽，方便查看 */
+            justify-content: flex-start; /* 改為從頂部開始對齊 */
+            transform: scale(0.5); 
             transform-origin: top center;
             position: relative;
-            /* ✅ 關鍵修正！路徑改為 ./ 表示同一個資料夾 */
             background-image: url('./share-background.png'); 
             background-size: cover;
             background-position: center;
@@ -54,21 +53,23 @@
         /* 圖一：體重紀錄 */
         #capture-area-1 {
             color: #4a4a4a;
-            align-items: center;
+            align-items: flex-start; /* 文字置左 */
+            padding-top: 300px; /* 調整垂直位置 */
         }
         #capture-area-1 h1, #capture-area-1 h2 {
             margin: 20px 0;
             font-weight: 700;
+            text-align: left;
+            width: 100%;
         }
         #capture-area-1 h1 { font-size: 80px; }
         #capture-area-1 h2 { font-size: 60px; }
 
         /* 圖二 & 圖三：飲食與運動 */
         #capture-area-2, #capture-area-3 {
-            /* ✅ 關鍵修正！路徑改為 ./ 表示同一個資料夾 */
             background-image: linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url('./share-background.png');
             align-items: flex-start;
-            padding-left: 100px;
+            padding-top: 250px; /* 調整垂直位置 */
             color: #333;
         }
         .card-header {
@@ -91,10 +92,16 @@
         .card-content {
             font-size: 48px;
             line-height: 1.8;
+            text-align: left;
+            width: 100%;
         }
         .card-content u { 
             text-decoration-thickness: 3px;
             text-underline-offset: 8px;
+        }
+        .card-content .diet-plan-name {
+            font-size: 56px; /* 加大字體 */
+            font-weight: 700;
         }
         .card-content u.orange { text-decoration-color: #ff9800; }
         .card-content u.blue { text-decoration-color: #2196F3; }
@@ -201,7 +208,7 @@
         const currentCalories = (totals.protein * 4) + (totals.carbs * 4) + (totals.fat * 9);
         
         document.getElementById('diet-content').innerHTML = `
-            <u class="orange">${planForDay.name}</u><br>
+            <span class="diet-plan-name"><u class="orange">${planForDay.name}</u></span><br><br>
             蛋白質: ${hasDietLogs ? totals.protein.toFixed(0) : '???'} / ${planForDay.protein} 克<br>
             碳水化合物: ${hasDietLogs ? totals.carbs.toFixed(0) : '???'} / ${planForDay.carbs} 克<br>
             脂肪: ${hasDietLogs ? totals.fat.toFixed(0) : '???'} / ${planForDay.fat} 克<br>
@@ -217,7 +224,7 @@
         let hasWorkout = false;
         if(workoutLog && workoutLog[workoutDayKey]) {
             for (const exName in workoutLog[workoutDayKey]) {
-                const sets = workoutLog[workoutLog][workoutDayKey][exName][todayKey];
+                const sets = workoutLog[workoutDayKey][exName][todayKey];
                 if (sets && sets.length > 0) {
                     hasWorkout = true;
                     const weightSets = sets.filter(s => s.type === 'weight');
@@ -251,7 +258,7 @@
         html2canvas(element, { 
             useCORS: true,
             scale: 1, 
-            backgroundColor: null 
+            backgroundColor: null
         }).then(canvas => {
             const link = document.createElement('a');
             link.download = `${fileNamePrefix}_${todayKey}.png`;
