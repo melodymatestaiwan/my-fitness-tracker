@@ -36,8 +36,9 @@ module.exports = async (req, res) => {
                 method: 'foods.search',
                 search_expression: searchTerm,
                 format: 'json',
-                // ✅ 關鍵修改！在這裡告訴 API 我們在台灣地區
-                region: 'TW' 
+                // ✅ 關鍵修改！同時指定地區和語言
+                region: 'TW',
+                language: 'zh-TW'
             },
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -49,12 +50,22 @@ module.exports = async (req, res) => {
             return res.status(200).json([]);
         }
 
+        // API回傳單一物件或陣列的處理
         const foods = Array.isArray(foodsContainer.food) ? foodsContainer.food : [foodsContainer.food];
 
         const simplifiedFoods = foods.map(food => {
             const nutrition = Array.isArray(food.servings.serving) ? food.servings.serving[0] : food.servings.serving;
-            return { id: food.food_id, name: food.food_name, description: food.food_description, protein: parseFloat(nutrition.protein) || 0, carbs: parseFloat(nutrition.carbohydrate) || 0, fat: parseFloat(nutrition.fat) || 0, };
-        });
+            // 確保 nutrition 物件存在
+            if (!nutrition) return null;
+            return { 
+                id: food.food_id, 
+                name: food.food_name, 
+                description: food.food_description, 
+                protein: parseFloat(nutrition.protein) || 0, 
+                carbs: parseFloat(nutrition.carbohydrate) || 0, 
+                fat: parseFloat(nutrition.fat) || 0, 
+            };
+        }).filter(item => item !== null); // 過濾掉可能為null的項目
         
         res.status(200).json(simplifiedFoods);
 
