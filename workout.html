@@ -40,7 +40,7 @@
         .set-item span { background-color: #e8eaf6; padding: 3px 8px; border-radius: 12px; font-weight: bold; }
         .set-item .delete-set-btn { background: #ffcdd2; color: #c62828; border: none; border-radius: 50%; cursor: pointer; width: 24px; height: 24px; font-weight: bold; line-height: 24px; padding: 0; }
         .input-set-group { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; border-top: 1px dashed #ccc; padding-top: 15px; margin-top: 15px; }
-        .input-set-group:first-of-type { border-top: none; } /* 第一個輸入群組不要有上邊線 */
+        .input-set-group:first-of-type { border-top: none; }
         .input-set-group input { width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
         .input-set-group button { padding: 8px 15px; font-size: 14px; background-color: #4caf50; color: white; border: none; border-radius: 5px; cursor: pointer;}
         .rest-day-message { text-align: center; padding: 20px; font-size: 1.2em; color: #888; }
@@ -60,7 +60,15 @@
 
         <div id="page-checklist">
             <h2>我的課表</h2>
-            <div id="calendar-container"></div>
+            <div id="calendar-container">
+                <div class="calendar-header">
+                    <button id="prev-week-btn">‹</button>
+                    <h3 id="calendar-title"></h3>
+                    <button id="next-week-btn">›</button>
+                </div>
+                <div class="calendar-grid" id="calendar-weekdays"></div>
+                <div class="calendar-grid" id="calendar-days"></div>
+            </div>
             <div class="workout-nav" id="workout-nav"></div>
             <div id="workout-content-container"></div>
         </div>
@@ -136,14 +144,16 @@
             if (dateString === todayString) { dayDiv.classList.add('today'); }
             dayDiv.innerHTML = `<div class="day-date">${currentDate.getDate()}</div><div class="day-challenge-num">${challengeDayText}</div>`;
             
-            const planForDay = workoutPlan[dayKeys[currentDate.getDay()]];
-            if (isWorkoutCompletedOnDate(dateString)) {
-                dayDiv.innerHTML += `<span class="checkmark green">✓</span>`;
-            } else if (planForDay && planForDay.exercises.length === 0) {
-                if (hasAnyWorkoutOnDate(dateString)) {
+            if (currentDate >= CHALLENGE_START_DATE) {
+                const planForDay = workoutPlan[dayKeys[currentDate.getDay()]];
+                if (isWorkoutCompletedOnDate(dateString)) {
                     dayDiv.innerHTML += `<span class="checkmark green">✓</span>`;
-                } else {
-                    dayDiv.innerHTML += `<span class="checkmark yellow">🟡</span>`;
+                } else if (planForDay && planForDay.exercises.length === 0) {
+                    if (hasAnyWorkoutOnDate(dateString)) {
+                        dayDiv.innerHTML += `<span class="checkmark green">✓</span>`;
+                    } else {
+                        dayDiv.innerHTML += `<span class="checkmark yellow">🟡</span>`;
+                    }
                 }
             }
             daysContainer.appendChild(dayDiv);
@@ -186,7 +196,7 @@
         if (exerciseList.length === 0 && dayData.exercises.length === 0) { container.innerHTML = `<div class="rest-day-message">今天是休息日，但您仍可以新增活動紀錄。</div>`; }
         
         exerciseList.forEach((exerciseName) => {
-            const uniqueId = exerciseName.replace(/[^a-zA-Z0-9]/g, ''); // 產生唯一的ID
+            const uniqueId = exerciseName.replace(/[^a-zA-Z0-9]/g, '');
             const isCustom = !dayData.exercises.includes(exerciseName);
             if (!workoutLog[dayKey]) workoutLog[dayKey] = {};
             if (!workoutLog[dayKey][exerciseName]) workoutLog[dayKey][exerciseName] = {};
@@ -318,13 +328,10 @@
         const todayKey = getTodayKey();
         const wasCompleted = isWorkoutCompletedOnDate(todayKey);
         const wasActiveRest = hasAnyWorkoutOnDate(todayKey);
-
         workoutLog[dayKey][exerciseName][todayKey].splice(setIndex, 1);
         await saveData('workoutLog', workoutLog);
-
         const isNowCompleted = isWorkoutCompletedOnDate(todayKey);
         const isNowActiveRest = hasAnyWorkoutOnDate(todayKey);
-
         if ((wasCompleted && !isNowCompleted) || (wasActiveRest && !isNowActiveRest)) {
             renderWorkoutCalendar(currentCalendarDate);
         }
