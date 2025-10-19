@@ -40,6 +40,7 @@
         .set-item span { background-color: #e8eaf6; padding: 3px 8px; border-radius: 12px; font-weight: bold; }
         .set-item .delete-set-btn { background: #ffcdd2; color: #c62828; border: none; border-radius: 50%; cursor: pointer; width: 24px; height: 24px; font-weight: bold; line-height: 24px; padding: 0; }
         .input-set-group { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; border-top: 1px dashed #ccc; padding-top: 15px; margin-top: 15px; }
+        .input-set-group:first-of-type { border-top: none; } /* 第一個輸入群組不要有上邊線 */
         .input-set-group input { width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
         .input-set-group button { padding: 8px 15px; font-size: 14px; background-color: #4caf50; color: white; border: none; border-radius: 5px; cursor: pointer;}
         .rest-day-message { text-align: center; padding: 20px; font-size: 1.2em; color: #888; }
@@ -59,15 +60,7 @@
 
         <div id="page-checklist">
             <h2>我的課表</h2>
-            <div id="calendar-container">
-                <div class="calendar-header">
-                    <button id="prev-week-btn">‹</button>
-                    <h3 id="calendar-title"></h3>
-                    <button id="next-week-btn">›</button>
-                </div>
-                <div class="calendar-grid" id="calendar-weekdays"></div>
-                <div class="calendar-grid" id="calendar-days"></div>
-            </div>
+            <div id="calendar-container"></div>
             <div class="workout-nav" id="workout-nav"></div>
             <div id="workout-content-container"></div>
         </div>
@@ -92,11 +85,22 @@
     async function loadData(key) { try { const response = await fetch(`/api/getData?key=${key}`); const data = await response.json(); return data || {}; } catch (error) { console.error(`Failed to load ${key}:`, error); alert(`讀取雲端 ${key} 失敗！`); return {}; } }
     function saveLastWorkoutInputs() { localStorage.setItem('lastWorkoutInputs', JSON.stringify(lastWorkoutInputs)); }
     function getTodayKey() { return new Date().toISOString().split('T')[0]; }
-
-    // (isWorkoutCompletedOnDate 函數不變)
-    function isWorkoutCompletedOnDate(dateString) { /* ... */ }
     
-    // ✅ NEW: 檢查某天是否有任何訓練 (包括自訂)
+    function isWorkoutCompletedOnDate(dateString) {
+        const date = new Date(dateString + 'T00:00:00');
+        const dayOfWeekKey = dayKeys[date.getDay()];
+        const planForDay = workoutPlan[dayOfWeekKey];
+        if (!planForDay || planForDay.exercises.length === 0) { return false; }
+        for (const exerciseName of planForDay.exercises) {
+            let hasLog = false;
+            if (workoutLog[dayOfWeekKey] && workoutLog[dayOfWeekKey][exerciseName] && workoutLog[dayOfWeekKey][exerciseName][dateString] && workoutLog[dayOfWeekKey][exerciseName][dateString].length > 0) {
+                hasLog = true;
+            }
+            if (!hasLog) { return false; }
+        }
+        return true;
+    }
+    
     function hasAnyWorkoutOnDate(dateString) {
         for (const dayKey in workoutLog) {
             for (const exName in workoutLog[dayKey]) {
@@ -108,9 +112,7 @@
         return false;
     }
     
-    // ✅ MODIFIED: renderWorkoutCalendar 現在會顯示黃色勾勾
     function renderWorkoutCalendar(displayDate) {
-        // ... (日曆渲染邏輯不變，只修改勾勾部分)
         const titleEl = document.getElementById('calendar-title');
         const daysContainer = document.getElementById('calendar-days');
         const weekdaysContainer = document.getElementById('calendar-weekdays');
@@ -134,19 +136,16 @@
             if (dateString === todayString) { dayDiv.classList.add('today'); }
             dayDiv.innerHTML = `<div class="day-date">${currentDate.getDate()}</div><div class="day-challenge-num">${challengeDayText}</div>`;
             
-            // --- 勾勾邏輯 ---
             const planForDay = workoutPlan[dayKeys[currentDate.getDay()]];
             if (isWorkoutCompletedOnDate(dateString)) {
-                dayDiv.innerHTML += `<span class="checkmark green">✓</span>`; // 完成預設任務，綠勾勾
-            } else if (planForDay && planForDay.exercises.length === 0) { // 如果是休息日
+                dayDiv.innerHTML += `<span class="checkmark green">✓</span>`;
+            } else if (planForDay && planForDay.exercises.length === 0) {
                 if (hasAnyWorkoutOnDate(dateString)) {
-                    dayDiv.innerHTML += `<span class="checkmark green">✓</span>`; // 休息日有做運動，綠勾勾
+                    dayDiv.innerHTML += `<span class="checkmark green">✓</span>`;
                 } else {
-                    dayDiv.innerHTML += `<span class="checkmark yellow">🟡</span>`; // 真正休息，黃勾勾
+                    dayDiv.innerHTML += `<span class="checkmark yellow">🟡</span>`;
                 }
             }
-            // --- 結束 ---
-
             daysContainer.appendChild(dayDiv);
         }
     }
@@ -186,7 +185,8 @@
         
         if (exerciseList.length === 0 && dayData.exercises.length === 0) { container.innerHTML = `<div class="rest-day-message">今天是休息日，但您仍可以新增活動紀錄。</div>`; }
         
-        exerciseList.forEach((exerciseName, exerciseIndex) => {
+        exerciseList.forEach((exerciseName) => {
+            const uniqueId = exerciseName.replace(/[^a-zA-Z0-9]/g, ''); // 產生唯一的ID
             const isCustom = !dayData.exercises.includes(exerciseName);
             if (!workoutLog[dayKey]) workoutLog[dayKey] = {};
             if (!workoutLog[dayKey][exerciseName]) workoutLog[dayKey][exerciseName] = {};
@@ -200,25 +200,34 @@
                 const lastSets = exerciseLogs[lastDate].map(set => (set.type === 'time') ? `${set.duration} 分鐘` : `${set.weight}kg x ${set.reps}次`).join(' / ');
                 lastLogHTML = `<strong>上次紀錄 (${lastDate}):</strong> ${lastSets}`;
             }
+            
+            let inputGroupsHTML = `
+                <div class="input-set-group">
+                    <input type="number" id="weight-${dayKey}-${uniqueId}" placeholder="重量(kg)" value="${lastInput.weight || ''}">
+                    <input type="number" id="reps-${dayKey}-${uniqueId}" placeholder="次數" value="${lastInput.reps || ''}">
+                    <button onclick="addSet('${dayKey}', '${exerciseName}', 'weight')">新增組數</button>
+                </div>
+            `;
+            if (isCustom) {
+                inputGroupsHTML += `
+                    <div class="input-set-group">
+                        <input type="number" id="time-${dayKey}-${uniqueId}" placeholder="時間(分鐘)" value="${lastInput.duration || ''}">
+                        <button onclick="addSet('${dayKey}', '${exerciseName}', 'time')">新增時間</button>
+                    </div>
+                `;
+            }
+
             const card = document.createElement('div');
             card.className = 'exercise-card';
             const deleteBtnHTML = isCustom ? `<span class="delete-custom-btn" onclick="deleteCustomExercise('${dayKey}', '${exerciseName}')">×</span>` : '';
             card.innerHTML = `
                 <h3><span>${exerciseName} ${isCustom ? '<span style="color:#ff9800; font-size:0.8em;">(自訂)</span>' : ''}</span> ${deleteBtnHTML}</h3>
                 <div class="last-log">${lastLogHTML}</div>
-                <div class="sets-log-today" id="sets-today-${dayKey}-${exerciseIndex.toString()}"></div>
-                <div class="input-set-group">
-                    <input type="number" id="weight-${dayKey}-${exerciseIndex}" placeholder="重量(kg)" value="${lastInput.weight || ''}">
-                    <input type="number" id="reps-${dayKey}-${exerciseIndex}" placeholder="次數" value="${lastInput.reps || ''}">
-                    <button onclick="addSet('${dayKey}', '${exerciseName}', 'weight', ${exerciseIndex})">新增組數</button>
-                </div>
-                <div class="input-set-group">
-                    <input type="number" id="time-${dayKey}-${exerciseIndex}" placeholder="時間(分鐘)" value="${lastInput.duration || ''}">
-                    <button onclick="addSet('${dayKey}', '${exerciseName}', 'time', ${exerciseIndex})">新增時間</button>
-                </div>
+                <div class="sets-log-today" id="sets-today-${uniqueId}"></div>
+                ${inputGroupsHTML}
             `;
             container.appendChild(card);
-            renderTodaySets(dayKey, exerciseName, exerciseIndex.toString(), todayLogs);
+            renderTodaySets(dayKey, exerciseName, uniqueId, todayLogs);
         });
 
         const addForm = document.createElement('div');
@@ -227,8 +236,8 @@
         container.appendChild(addForm);
     }
 
-    function renderTodaySets(dayKey, exerciseName, exerciseIndex, sets) {
-        const container = document.getElementById(`sets-today-${dayKey}-${exerciseIndex}`);
+    function renderTodaySets(dayKey, exerciseName, uniqueId, sets) {
+        const container = document.getElementById(`sets-today-${uniqueId}`);
         container.innerHTML = '<strong>今日紀錄:</strong>';
         if (!sets || sets.length === 0) { container.innerHTML += ' 尚未記錄'; return; }
         sets.forEach((set, setIndex) => {
@@ -266,26 +275,26 @@
         }
     }
     
-    async function addSet(dayKey, exerciseName, type, exerciseIndex) {
+    async function addSet(dayKey, exerciseName, type) {
+        const uniqueId = exerciseName.replace(/[^a-zA-Z0-9]/g, '');
         const todayKey = getTodayKey();
         const wasCompleted = isWorkoutCompletedOnDate(todayKey);
         const wasActiveRest = hasAnyWorkoutOnDate(todayKey);
-
         if (!workoutLog[dayKey]) workoutLog[dayKey] = {};
         if (!workoutLog[dayKey][exerciseName]) workoutLog[dayKey][exerciseName] = {};
         if (!workoutLog[dayKey][exerciseName][todayKey]) { workoutLog[dayKey][exerciseName][todayKey] = []; }
 
         let newSet;
         if (type === 'weight') {
-            const weightInput = document.getElementById(`weight-${dayKey}-${exerciseIndex}`);
-            const repsInput = document.getElementById(`reps-${dayKey}-${exerciseIndex}`);
+            const weightInput = document.getElementById(`weight-${dayKey}-${uniqueId}`);
+            const repsInput = document.getElementById(`reps-${dayKey}-${uniqueId}`);
             const weight = parseFloat(weightInput.value);
             const reps = parseInt(repsInput.value);
             if (isNaN(weight) || isNaN(reps) || weight < 0 || reps <= 0) { alert('請輸入有效的重量和次數！'); return; }
             newSet = { type: 'weight', weight, reps };
             lastWorkoutInputs[exerciseName] = { ...lastWorkoutInputs[exerciseName], weight, reps };
         } else { // type === 'time'
-            const timeInput = document.getElementById(`time-${dayKey}-${exerciseIndex}`);
+            const timeInput = document.getElementById(`time-${dayKey}-${uniqueId}`);
             const duration = parseInt(timeInput.value);
             if (isNaN(duration) || duration <= 0) { alert('請輸入有效的時間(分鐘)！'); return; }
             newSet = { type: 'time', duration };
