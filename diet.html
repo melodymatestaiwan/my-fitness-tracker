@@ -129,11 +129,14 @@
     let favoriteFoods = [];
     let currentDisplayDate = new Date();
 
+    // --- 雲端儲存 ---
     async function saveData(key, value) { try { await fetch('/api/setData', { method: 'POST', body: JSON.stringify({ key, value }) }); } catch (error) { console.error(`Failed to save ${key}:`, error); alert(`${key} 儲存失敗！`); } }
     async function loadData(key) { try { const response = await fetch(`/api/getData?key=${key}`); const data = await response.json(); return data || (key === 'favoriteFoods' ? [] : {}); } catch (error) { console.error(`Failed to load ${key}:`, error); alert(`讀取雲端 ${key} 失敗！`); return (key === 'favoriteFoods' ? [] : {}); } }
+
+    // --- 日期格式化 ---
     function formatDate(date) { return date.toISOString().split('T')[0]; }
 
-    // ✅ MODIFIED: addDietLog 現在會儲存餐別
+    // --- 主要功能 ---
     async function addDietLog() {
         const dateKey = formatDate(currentDisplayDate);
         const name = document.getElementById('food-name').value;
@@ -143,13 +146,10 @@
         const servings = parseFloat(document.getElementById('servings').value) || 1;
         const meal = document.getElementById('meal-type').value;
         if (!name) { alert('請輸入品項名稱！'); return; }
-        
         if (!dietLog[dateKey]) { dietLog[dateKey] = []; }
         dietLog[dateKey].push({ name: `${name} (${(servings * 100).toFixed(0)}g)`, protein: protein * servings, carbs: carbs * servings, fat: fat * servings, meal: meal });
-        
         await saveData('dietLog', dietLog);
         renderPageForDate(currentDisplayDate);
-        
         document.getElementById('food-name').value = ''; document.getElementById('protein').value = '';
         document.getElementById('carbs').value = ''; document.getElementById('fat').value = '';
         document.getElementById('servings').value = '1'; document.getElementById('food-name').focus();
@@ -161,50 +161,95 @@
         await saveData('dietLog', dietLog);
         renderPageForDate(currentDisplayDate);
     }
-    
-    // (常用食物和搜尋相關的函數保持不變)
-    async function saveFavoriteFood() { /*...*/ }
-    async function deleteFavoriteFood(index) { /*...*/ }
-    function renderFavoriteFoods() { /*...*/ }
-    function searchLocalFood() { /*...*/ }
-    async function searchOnlineFood() { /*...*/ }
-    function displaySearchResults(foods, type) { /*...*/ }
 
-    function renderPageForDate(date) { renderDietSummary(date); renderDietLogList(date); }
-    function renderDietSummary(date) { /* ... 此函數不變 ... */ }
-    function createMacroItemHTML(name, current, target, unit = '克') { /* ... 此函數不變 ... */ }
+    // --- 常用食物 ---
+    async function saveFavoriteFood() {
+        const name = document.getElementById('food-name').value.trim();
+        const protein = parseFloat(document.getElementById('protein').value) || 0;
+        const carbs = parseFloat(document.getElementById('carbs').value) || 0;
+        const fat = parseFloat(document.getElementById('fat').value) || 0;
+        if (!name) { alert('請先輸入或搜尋食物名稱！'); return; }
+        const existingIndex = favoriteFoods.findIndex(f => f.name === name);
+        if (existingIndex > -1) { favoriteFoods[existingIndex] = { name, protein, carbs, fat }; } else { favoriteFoods.push({ name, protein, carbs, fat }); }
+        await saveData('favoriteFoods', favoriteFoods);
+        renderFavoriteFoods();
+        alert(`"${name}" 已儲存至常用食物！`);
+    }
+
+    async function deleteFavoriteFood(index) {
+        if (confirm(`確定要從常用清單中刪除 "${favoriteFoods[index].name}" 嗎？`)) {
+            favoriteFoods.splice(index, 1);
+            await saveData('favoriteFoods', favoriteFoods);
+            renderFavoriteFoods();
+        }
+    }
+
+    function renderFavoriteFoods() {
+        const listContainer = document.getElementById('favorite-foods-list');
+        listContainer.innerHTML = '';
+        if (favoriteFoods.length === 0) { listContainer.innerHTML = '尚無常用食物...'; return; }
+        favoriteFoods.forEach((food, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'favorite-item-btn';
+            btn.textContent = food.name;
+            btn.onclick = () => {
+                document.getElementById('food-name').value = food.name;
+                document.getElementById('protein').value = food.protein;
+                document.getElementById('carbs').value = food.carbs;
+                document.getElementById('fat').value = food.fat;
+                document.getElementById('servings').value = '1';
+            };
+            const delBtn = document.createElement('span');
+            delBtn.className = 'delete-fav-btn';
+            delBtn.textContent = 'x';
+            delBtn.onclick = (e) => { e.stopPropagation(); deleteFavoriteFood(index); };
+            btn.appendChild(delBtn);
+            listContainer.appendChild(btn);
+        });
+    }
+
+    // --- 渲染與搜尋 ---
+    function renderPageForDate(date) {
+        renderDietSummary(date);
+        renderDietLogList(date);
+    }
     
-    // ✅ MODIFIED: renderDietLogList 現在會按餐別分組顯示
+    function renderDietSummary(date) {
+        const dateTitleEl = document.getElementById('date-title');
+        const macrosContainer = document.getElementById('macros-grid-container');
+        const dateKey = formatDate(date);
+        const dayOfWeek = date.getDay();
+        const planForDay = dietPlan[dayKeys[dayOfWeek]];
+        const todayKey = formatDate(new Date());
+        let dateString = `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+        if (dateKey === todayKey) { dateString = "今天"; }
+        dateTitleEl.innerHTML = `${dateString} (${planForDay.name})`;
+        const logsForDay = dietLog[dateKey] || [];
+        const totals = logsForDay.reduce((acc, item) => { acc.protein += item.protein; acc.carbs += item.carbs; acc.fat += item.fat; return acc; }, { protein: 0, carbs: 0, fat: 0 });
+        const currentCalories = (totals.protein * 4) + (totals.carbs * 4) + (totals.fat * 9);
+        const targetCalories = (planForDay.protein * 4) + (planForDay.carbs * 4) + (planForDay.fat * 9);
+        macrosContainer.innerHTML = `${createMacroItemHTML('蛋白質', totals.protein, planForDay.protein, '克')}${createMacroItemHTML('碳水化合物', totals.carbs, planForDay.carbs, '克')}${createMacroItemHTML('脂肪', totals.fat, planForDay.fat, '克')}${createMacroItemHTML('總熱量', currentCalories, targetCalories, '大卡')}`;
+    }
+
+    function createMacroItemHTML(name, current, target, unit = '克') { const percentage = target > 0 ? (current / target) * 100 : 0; const isOver = current > target; const displayCurrent = (unit === '大卡') ? Math.round(current) : current.toFixed(1); const displayTarget = (unit === '大卡') ? `~${Math.round(target)}` : target; return `<div class="macro-item"><div class="label">${name} (${unit})</div><div class="values">${displayCurrent} / ${displayTarget}</div><div class="progress-bar"><div class="progress-bar-inner ${isOver ? 'over' : ''}" style="width: ${Math.min(percentage, 100)}%;"></div></div></div>`; }
+    
     function renderDietLogList(date) {
         const container = document.getElementById('diet-log-container');
         const listTitle = document.getElementById('log-list-title');
         const dateKey = formatDate(date);
-        
         const todayKey = formatDate(new Date());
         listTitle.textContent = (dateKey === todayKey) ? "今日紀錄列表" : `${dateKey} 的紀錄列表`;
         container.innerHTML = '';
-        
         const logsForDay = dietLog[dateKey] || [];
-        if (logsForDay.length === 0) { container.innerHTML = '<li>本日尚無任何飲食紀錄...</li>'; return; }
-
-        const groupedMeals = {
-            breakfast: [],
-            lunch: [],
-            dinner: [],
-            snack: [],
-            uncategorized: []
-        };
-        
-        // 將食物根據餐別分組
+        if (logsForDay.length === 0) { container.innerHTML = '尚無紀錄...'; return; }
+        const groupedMeals = { breakfast: [], lunch: [], dinner: [], snack: [], uncategorized: [] };
         logsForDay.forEach((item, index) => {
             const itemWithIndex = { ...item, originalIndex: index };
             const mealType = item.meal || 'uncategorized';
             groupedMeals[mealType].push(itemWithIndex);
         });
-        
         const mealOrder = ['breakfast', 'lunch', 'dinner', 'snack', 'uncategorized'];
         const mealNames = { breakfast: '早餐', lunch: '午餐', dinner: '晚餐', snack: '點心', uncategorized: '未分類'};
-        
         let hasContent = false;
         mealOrder.forEach(mealKey => {
             const items = groupedMeals[mealKey];
@@ -212,31 +257,63 @@
                 hasContent = true;
                 const mealGroupDiv = document.createElement('div');
                 mealGroupDiv.className = 'meal-group';
-                
                 let groupHTML = `<h4>${mealNames[mealKey]}</h4>`;
                 items.forEach(item => {
-                    groupHTML += `
-                        <div class="diet-log-item">
-                            <span>${item.name}</span>
-                            <span>${item.protein.toFixed(1)}g P</span>
-                            <span>${item.carbs.toFixed(1)}g C</span>
-                            <span>${item.fat.toFixed(1)}g F</span>
-                            <button class="delete-diet-btn" onclick="deleteDietLog(${item.originalIndex})">刪除</button>
-                        </div>
-                    `;
+                    groupHTML += `<div class="diet-log-item"><span>${item.name}</span><span>${item.protein.toFixed(1)}g P</span><span>${item.carbs.toFixed(1)}g C</span><span>${item.fat.toFixed(1)}g F</span><button class="delete-diet-btn" onclick="deleteDietLog(${item.originalIndex})">刪除</button></div>`;
                 });
                 mealGroupDiv.innerHTML = groupHTML;
                 container.appendChild(mealGroupDiv);
             }
         });
-
-        if (!hasContent) {
-            container.innerHTML = '<li>本日尚無任何飲食紀錄...</li>';
+        if (!hasContent) { container.innerHTML = '尚無紀錄...'; }
+    }
+    
+    function searchLocalFood() {
+        const searchInput = document.getElementById('food-search-input');
+        if (foodDatabase.length === 0) { alert('在地食物資料庫仍在載入中，請稍候...'); return; }
+        const query = searchInput.value.trim();
+        if (!query) { return; }
+        const results = foodDatabase.filter(food => food.name.includes(query));
+        displaySearchResults(results, 'local');
+    }
+    
+    async function searchOnlineFood() {
+        const query = document.getElementById('food-search-input').value.trim();
+        const resultsList = document.getElementById('search-results');
+        if (!query) return;
+        resultsList.innerHTML = '<li>線上搜尋中...</li>';
+        try {
+            const response = await fetch(`/api/openfoodfacts?food=${encodeURIComponent(query)}`);
+            if (!response.ok) { throw new Error('Network response was not ok'); }
+            const foods = await response.json();
+            displaySearchResults(foods, 'online');
+        } catch (error) {
+            console.error('Error fetching online food data:', error);
+            resultsList.innerHTML = '<li>線上搜尋失敗，請稍後再試。</li>';
         }
+    }
+    
+    function displaySearchResults(foods, type) {
+        const resultsList = document.getElementById('search-results');
+        resultsList.innerHTML = '';
+        if (foods.length === 0) { resultsList.innerHTML = '<li>找不到相關食物。</li>'; return; }
+        foods.slice(0, 10).forEach(food => {
+            const li = document.createElement('li');
+            const sourceText = (type === 'local') ? '在地' : '線上';
+            li.innerHTML = `<strong>${food.name}</strong><small>[${sourceText}] ${food.protein.toFixed(1)}g P / ${food.carbs.toFixed(1)}g C / ${food.fat.toFixed(1)}g F (每100g)</small>`;
+            li.onclick = () => {
+                document.getElementById('food-name').value = food.name;
+                document.getElementById('protein').value = food.protein.toFixed(1);
+                document.getElementById('carbs').value = food.carbs.toFixed(1);
+                document.getElementById('fat').value = food.fat.toFixed(1);
+                document.getElementById('servings').value = '1';
+                resultsList.innerHTML = '';
+            };
+            resultsList.appendChild(li);
+        });
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
-        // ... (頁面載入邏輯與事件綁定不變) ...
         const searchInput = document.getElementById('food-search-input');
         document.getElementById('prev-day-btn').onclick = () => { currentDisplayDate.setDate(currentDisplayDate.getDate() - 1); renderPageForDate(currentDisplayDate); };
         document.getElementById('next-day-btn').onclick = () => { currentDisplayDate.setDate(currentDisplayDate.getDate() + 1); renderPageForDate(currentDisplayDate); };
@@ -247,7 +324,10 @@
             foodDatabase = data;
             searchInput.placeholder = '輸入食物關鍵字...';
             searchInput.disabled = false;
-        }).catch(err => { console.error('Failed to load food database:', err); searchInput.placeholder = '在地資料庫載入失敗'; });
+        }).catch(err => {
+            console.error('Failed to load food database:', err);
+            searchInput.placeholder = '在地資料庫載入失敗';
+        });
         await Promise.all([loadDietLogPromise, loadFavoritesPromise, loadFoodDbPromise]);
         renderPageForDate(currentDisplayDate);
         renderFavoriteFoods();
