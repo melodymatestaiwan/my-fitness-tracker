@@ -55,6 +55,23 @@
         .diet-log-item:last-child { border-bottom: none; }
         .diet-log-item span:first-child { font-weight: bold; }
         .delete-diet-btn { background-color: #ffcdd2; color: #c62828; padding: 5px 10px; font-size: 12px; border: none; border-radius: 5px; cursor: pointer; }
+        
+        @media (max-width: 768px) {
+            #diet-entry-form {
+                grid-template-columns: 1fr 1fr;
+            }
+            #diet-entry-form #food-name {
+                grid-column: 1 / -1;
+            }
+            #diet-entry-form button {
+                grid-column: 1 / -1;
+                width: 100%;
+            }
+            .diet-log-item, .log-header {
+                grid-template-columns: 2fr repeat(5, 1fr);
+                font-size: 0.9em;
+            }
+        }
     </style>
 </head>
 <body>
