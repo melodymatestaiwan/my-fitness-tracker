@@ -1,46 +1,208 @@
-// api/openfoodfacts.js
-const axios = require('axios');
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>飲食紀錄 - 個人健身追蹤器</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f0f2f5; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 900px; background-color: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1, h2, h3 { color: #1a237e; }
+        h1, h2 { border-bottom: 2px solid #3f51b5; padding-bottom: 10px; margin-top: 20px; }
+        h1 { margin-top: 0; }
+        nav { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 5px; }
+        nav a { text-decoration: none; flex-grow: 1; padding: 10px 15px; border: none; background-color: #e8eaf6; color: #3f51b5; cursor: pointer; border-radius: 5px; font-size: 16px; transition: background-color 0.3s; text-align: center; }
+        nav a.active { background-color: #3f51b5; color: white; font-weight: bold; }
+        #diet-summary { background-color: #e8eaf6; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        #diet-summary h3 { margin-top: 0; text-align: center; color: #1a237e; }
+        .macros-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+        .macro-item { text-align: center; }
+        .macro-item .label { font-size: 0.9em; color: #3f51b5; }
+        .macro-item .values { font-size: 1.2em; font-weight: bold; }
+        .progress-bar { background-color: #c5cae9; border-radius: 10px; height: 10px; margin-top: 5px; overflow: hidden; }
+        .progress-bar-inner { background-color: #3f51b5; height: 100%; width: 0%; transition: width 0.3s ease-in-out; }
+        .progress-bar-inner.over { background-color: #f44336; }
+        .search-container { margin-bottom: 20px; }
+        .search-form { display: flex; gap: 10px; margin-bottom: 10px; }
+        .search-form input { flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        .search-form button { padding: 8px 15px; font-size: 14px; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .search-form .local-search-btn { background-color: #3f51b5; }
+        .search-form .online-search-btn { background-color: #ff9800; }
+        .search-results { list-style: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; }
+        .search-results li { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; }
+        .search-results li:hover { background-color: #e8eaf6; }
+        .search-results li small { color: #666; display: block; }
+        #diet-entry-form { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 0.8fr auto; gap: 10px; align-items: center; margin-bottom: 20px; }
+        #diet-entry-form input { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        #diet-entry-form button { padding: 8px 15px; font-size: 14px; background-color: #4caf50; color: white; border: none; border-radius: 5px; cursor: pointer;}
+        #diet-log-list { list-style: none; padding: 0; }
+        .diet-log-item { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 10px; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+        .diet-log-item:nth-child(odd) { background-color: #f9f9f9; }
+        .diet-log-item span:first-child { font-weight: bold; }
+        .diet-log-item .delete-diet-btn { background-color: #ffcdd2; color: #c62828; padding: 5px 10px; font-size: 12px; border: none; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>個人健身追蹤器</h1>
+        <nav>
+            <a href="index.html">數據追蹤</a>
+            <a href="workout.html">今日課表</a>
+            <a href="diet.html" class="active">飲食紀錄</a>
+        </nav>
+        <div id="page-diet">
+            <h2>飲食紀錄</h2>
+            <div id="diet-summary"></div>
+            
+            <div class="search-container">
+                <h3>搜尋食物</h3>
+                <div class="search-form">
+                    <input type="text" id="food-search-input" placeholder="載入資料庫中..." disabled>
+                    <button class="local-search-btn" onclick="searchLocalFood()">搜尋在地食物</button>
+                    <button class="online-search-btn" onclick="searchOnlineFood()">線上搜尋加工品</button>
+                </div>
+                <ul class="search-results" id="search-results"></ul>
+            </div>
 
-module.exports = async (req, res) => {
-    // 跨域設定
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
+            <h3>手動新增 / 修改</h3>
+            <div id="diet-entry-form">
+                <input type="text" id="food-name" placeholder="食物名稱">
+                <input type="number" id="protein" placeholder="蛋白質(g)">
+                <input type="number" id="carbs" placeholder="碳水(g)">
+                <input type="number" id="fat" placeholder="脂肪(g)">
+                <input type="number" id="servings" value="1" step="0.1" placeholder="份數">
+                <button onclick="addDietLog()">新增</button>
+            </div>
+            <h3>今日紀錄列表</h3>
+            <ul id="diet-log-list"></ul>
+        </div>
+    </div>
 
-    const searchTerm = req.query.food;
-    if (!searchTerm) {
-        return res.status(400).json({ error: 'Food search term is required' });
-    }
+<script>
+    let foodDatabase = [];
+    const dietPlan = {
+        monday:    { name: "低碳日", protein: 130, carbs: 150, fat: 98 },
+        tuesday:   { name: "低碳日", protein: 130, carbs: 150, fat: 98 },
+        wednesday: { name: "無碳日", protein: 130, carbs: 40,  fat: 102 },
+        thursday:  { name: "高碳日", protein: 130, carbs: 285, fat: 60 },
+        friday:    { name: "低碳日", protein: 130, carbs: 150, fat: 98 },
+        saturday:  { name: "低碳日", protein: 130, carbs: 150, fat: 98 },
+        sunday:    { name: "無碳日", protein: 130, carbs: 40,  fat: 102 },
+    };
+    const dayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    let dietLog = {};
 
-    // Open Food Facts API 的搜尋網址
-    const searchURL = `https://world.openfoodfacts.org/api/v2/search?search_terms=${encodeURIComponent(searchTerm)}&search_tag=brands&fields=product_name,nutriments,serving_size&json=true&page_size=10`;
-
-    try {
-        const response = await axios.get(searchURL);
-        const products = response.data.products;
-
-        if (!products || products.length === 0) {
-            return res.status(200).json([]);
+    async function saveDietLog() {
+        try {
+            await fetch('/api/setData', {
+                method: 'POST',
+                body: JSON.stringify({ key: 'dietLog', value: dietLog })
+            });
+        } catch (error) {
+            console.error('Failed to save diet log:', error);
+            alert('飲食紀錄儲存失敗，請檢查網路連線！');
         }
-
-        // 將 API 回傳的複雜資料，整理成我們需要的簡單格式
-        const simplifiedFoods = products.map(product => {
-            const nutriments = product.nutriments;
-            // 營養素單位通常是 per 100g
-            return {
-                name: product.product_name || '未知品名',
-                protein: parseFloat(nutriments['proteins_100g']) || 0,
-                carbs: parseFloat(nutriments['carbohydrates_100g']) || 0,
-                fat: parseFloat(nutriments['fat_100g']) || 0
-            };
-        });
-
-        res.status(200).json(simplifiedFoods);
-
-    } catch (error) {
-        console.error('Error fetching from Open Food Facts:', error.message);
-        res.status(500).json({ error: 'Failed to fetch data from Open Food Facts' });
     }
-};
+    function getTodayKey() { return new Date().toISOString().split('T')[0]; }
+
+    async function addDietLog() {
+        const name = document.getElementById('food-name').value;
+        const protein = parseFloat(document.getElementById('protein').value) || 0;
+        const carbs = parseFloat(document.getElementById('carbs').value) || 0;
+        const fat = parseFloat(document.getElementById('fat').value) || 0;
+        const servings = parseFloat(document.getElementById('servings').value) || 1;
+        if (!name) { alert('請輸入品項名稱！'); return; }
+        const todayKey = getTodayKey();
+        if (!dietLog[todayKey]) { dietLog[todayKey] = []; }
+        dietLog[todayKey].push({
+            name: `${name} (${(servings * 100).toFixed(0)}g)`,
+            protein: protein * servings,
+            carbs: carbs * servings,
+            fat: fat * servings
+        });
+        await saveDietLog();
+        renderDietPage();
+        document.getElementById('food-name').value = '';
+        document.getElementById('protein').value = '';
+        document.getElementById('carbs').value = '';
+        document.getElementById('fat').value = '';
+        document.getElementById('servings').value = '1';
+        document.getElementById('food-name').focus();
+    }
+
+    async function deleteDietLog(index) {
+        const todayKey = getTodayKey();
+        dietLog[todayKey].splice(index, 1);
+        await saveDietLog();
+        renderDietPage();
+    }
+    
+    function initDietPage() { const todayKey = getTodayKey(); if (!dietLog[todayKey]) { dietLog[todayKey] = []; } renderDietPage(); }
+    function renderDietPage() { renderDietSummary(); renderDietLogList(); }
+    function renderDietSummary() { const summaryContainer = document.getElementById('diet-summary'); const today = new Date(); const todayInTaiwan = new Date(today.toLocaleString("en-US", {timeZone: "Asia/Taipei"})); const currentDayKey = dayKeys[todayInTaiwan.getDay()]; const todayDietPlan = dietPlan[currentDayKey]; const todayKey = getTodayKey(); const todayLogs = dietLog[todayKey] || []; const totals = todayLogs.reduce((acc, item) => { acc.protein += item.protein; acc.carbs += item.carbs; acc.fat += item.fat; return acc; }, { protein: 0, carbs: 0, fat: 0 }); summaryContainer.innerHTML = `<h3>今日目標 (${todayDietPlan.name})</h3><div class="macros-grid">${createMacroItemHTML('蛋白質', totals.protein, todayDietPlan.protein)}${createMacroItemHTML('碳水化合物', totals.carbs, todayDietPlan.carbs)}${createMacroItemHTML('脂肪', totals.fat, todayDietPlan.fat)}</div>`; }
+    function createMacroItemHTML(name, current, target) { const percentage = target > 0 ? (current / target) * 100 : 0; const isOver = current > target; return `<div class="macro-item"><div class="label">${name} (克)</div><div class="values">${current.toFixed(1)} / ${target}</div><div class="progress-bar"><div class="progress-bar-inner ${isOver ? 'over' : ''}" style="width: ${Math.min(percentage, 100)}%;"></div></div></div>`; }
+    function renderDietLogList() { const listContainer = document.getElementById('diet-log-list'); listContainer.innerHTML = ''; const todayKey = getTodayKey(); const todayLogs = dietLog[todayKey] || []; if (todayLogs.length === 0) { listContainer.innerHTML = '<li>尚未新增任何飲食紀錄...</li>'; return; } todayLogs.forEach((item, index) => { const li = document.createElement('li'); li.className = 'diet-log-item'; li.innerHTML = `<span>${item.name}</span><span>${item.protein.toFixed(1)}g P</span><span>${item.carbs.toFixed(1)}g C</span><span>${item.fat.toFixed(1)}g F</span><button class="delete-diet-btn" onclick="deleteDietLog(${index})">刪除</button>`; listContainer.appendChild(li); }); }
+    
+    function searchLocalFood() {
+        const searchInput = document.getElementById('food-search-input');
+        if (foodDatabase.length === 0) { alert('在地食物資料庫仍在載入中，請稍候...'); return; }
+        const query = searchInput.value.trim();
+        if (!query) { return; }
+        const results = foodDatabase.filter(food => food.name.includes(query));
+        displaySearchResults(results, 'local');
+    }
+    
+    async function searchOnlineFood() {
+        const query = document.getElementById('food-search-input').value.trim();
+        const resultsList = document.getElementById('search-results');
+        if (!query) return;
+        resultsList.innerHTML = '<li>線上搜尋中...</li>';
+        try {
+            const response = await fetch(`/api/openfoodfacts?food=${encodeURIComponent(query)}`);
+            if (!response.ok) { throw new Error('Network response was not ok'); }
+            const foods = await response.json();
+            displaySearchResults(foods, 'online');
+        } catch (error) {
+            console.error('Error fetching online food data:', error);
+            resultsList.innerHTML = '<li>線上搜尋失敗，請稍後再試。</li>';
+        }
+    }
+    
+    function displaySearchResults(foods, type) {
+        const resultsList = document.getElementById('search-results');
+        resultsList.innerHTML = '';
+        if (foods.length === 0) {
+            resultsList.innerHTML = '<li>找不到相關食物。</li>';
+            return;
+        }
+        foods.slice(0, 10).forEach(food => {
+            const li = document.createElement('li');
+            const sourceText = (type === 'local') ? '在地' : '線上';
+            li.innerHTML = `<strong>${food.name}</strong><small>[${sourceText}] ${food.protein.toFixed(1)}g P / ${food.carbs.toFixed(1)}g C / ${food.fat.toFixed(1)}g F (每100g)</small>`;
+            li.onclick = () => {
+                document.getElementById('food-name').value = food.name;
+                document.getElementById('protein').value = food.protein.toFixed(1);
+                document.getElementById('carbs').value = food.carbs.toFixed(1);
+                document.getElementById('fat').value = food.fat.toFixed(1);
+                document.getElementById('servings').value = '1';
+                resultsList.innerHTML = '';
+            };
+            resultsList.appendChild(li);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        const searchInput = document.getElementById('food-search-input');
+        initDietPage();
+        const loadDietLogPromise = fetch('/api/getData?key=dietLog').then(res => res.json()).then(data => { if (data) { dietLog = data; } }).catch(err => { console.error('Failed to load diet log:', err); alert('讀取雲端飲食紀錄失敗！'); });
+        const loadFoodDbPromise = fetch('/tfda_db.json').then(res => res.json()).then(data => {
+            foodDatabase = data;
+            searchInput.placeholder = '輸入食物關鍵字...';
+            searchInput.disabled = false;
+        }).catch(err => { console.error('Failed to load food database:', err); searchInput.placeholder = '在地資料庫載入失敗'; alert('載入本地食物資料庫失敗！'); });
+        await Promise.all([loadDietLogPromise, loadFoodDbPromise]);
+        renderDietPage();
+    });
+</script>
+</body>
+</html>
