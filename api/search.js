@@ -31,17 +31,25 @@ module.exports = async (req, res) => {
     if (!searchTerm) { return res.status(400).json({ error: 'Food search term is required' }); }
     try {
         const token = await getAccessToken();
-        const searchResponse = await axios.get('https://platform.fatsecret.com/rest/server.api', { params: { method: 'foods.search', search_expression: searchTerm, format: 'json' }, headers: { 'Authorization': `Bearer ${token}` } });
+        const searchResponse = await axios.get('https://platform.fatsecret.com/rest/server.api', {
+            params: {
+                method: 'foods.search',
+                search_expression: searchTerm,
+                format: 'json',
+                // ✅ 關鍵修改！在這裡告訴 API 我們在台灣地區
+                region: 'TW' 
+            },
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
         
-        // ✅ **關鍵修正！**
-        // 先安全地檢查 'foods' 和 'foods.food' 是否存在
         const foodsContainer = searchResponse.data.foods;
         if (!foodsContainer || !foodsContainer.food) {
-            // 如果不存在，就回傳一個空的陣列，告訴前端「找不到結果」
             return res.status(200).json([]);
         }
 
-        const foods = foodsContainer.food;
+        const foods = Array.isArray(foodsContainer.food) ? foodsContainer.food : [foodsContainer.food];
 
         const simplifiedFoods = foods.map(food => {
             const nutrition = Array.isArray(food.servings.serving) ? food.servings.serving[0] : food.servings.serving;
