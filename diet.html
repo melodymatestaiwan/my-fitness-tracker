@@ -28,7 +28,6 @@
         #search-results li { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; }
         #search-results li:hover { background-color: #e8eaf6; }
         #search-results li small { color: #666; display: block; }
-        /* ✅ MODIFIED: 調整手動輸入表單以容納新欄位 */
         #diet-entry-form { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 0.8fr auto; gap: 10px; align-items: center; margin-bottom: 20px; }
         #diet-entry-form input { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
         #diet-entry-form button, #food-search-form button { padding: 8px 15px; font-size: 14px; background-color: #4caf50; color: white; border: none; border-radius: 5px; cursor: pointer;}
@@ -52,7 +51,7 @@
             <div id="diet-summary"></div>
             <h3>搜尋食物 (台灣食品資料庫)</h3>
             <div id="food-search-form">
-                <input type="text" id="food-search-input" placeholder="載入資料庫中...">
+                <input type="text" id="food-search-input" placeholder="載入資料庫中..." disabled>
                 <button onclick="searchFood()">搜尋</button>
             </div>
             <ul id="search-results"></ul>
@@ -71,7 +70,7 @@
     </div>
 
 <script>
-    let foodDatabase = []; // 資料庫預設為空，等待載入
+    let foodDatabase = [];
     const dietPlan = {
         monday:    { name: "低碳日", protein: 130, carbs: 150, fat: 98 },
         tuesday:   { name: "低碳日", protein: 130, carbs: 150, fat: 98 },
@@ -98,35 +97,28 @@
 
     function getTodayKey() { return new Date().toISOString().split('T')[0]; }
 
-    // ✅ MODIFIED: addDietLog 函數現在會計算份數
     async function addDietLog() {
         const name = document.getElementById('food-name').value;
         const protein = parseFloat(document.getElementById('protein').value) || 0;
         const carbs = parseFloat(document.getElementById('carbs').value) || 0;
         const fat = parseFloat(document.getElementById('fat').value) || 0;
         const servings = parseFloat(document.getElementById('servings').value) || 1;
-
         if (!name) { alert('請輸入品項名稱！'); return; }
-
         const todayKey = getTodayKey();
         if (!dietLog[todayKey]) { dietLog[todayKey] = []; }
-
         dietLog[todayKey].push({
-            name: `${name} (${servings * 100}g)`, // 在名稱中標示總克數
+            name: `${name} (${(servings * 100).toFixed(0)}g)`,
             protein: protein * servings,
             carbs: carbs * servings,
             fat: fat * servings
         });
-        
         await saveDietLog();
         renderDietPage();
-        
-        // 清除輸入框
         document.getElementById('food-name').value = '';
         document.getElementById('protein').value = '';
         document.getElementById('carbs').value = '';
         document.getElementById('fat').value = '';
-        document.getElementById('servings').value = '1'; // 份數重設為 1
+        document.getElementById('servings').value = '1';
         document.getElementById('food-name').focus();
     }
 
@@ -137,20 +129,19 @@
         renderDietPage();
     }
     
-    // (其他飲食頁面的 JS 函數保持不變)
-    function initDietPage() { /* ... */ }
-    function renderDietPage() { /* ... */ }
-    function renderDietSummary() { /* ... */ }
-    function createMacroItemHTML(name, current, target) { /* ... */ }
-    function renderDietLogList() { /* ... */ }
+    function initDietPage() { const todayKey = getTodayKey(); if (!dietLog[todayKey]) { dietLog[todayKey] = []; } renderDietPage(); }
+    function renderDietPage() { renderDietSummary(); renderDietLogList(); }
+    function renderDietSummary() { const summaryContainer = document.getElementById('diet-summary'); const today = new Date(); const todayInTaiwan = new Date(today.toLocaleString("en-US", {timeZone: "Asia/Taipei"})); const currentDayKey = dayKeys[todayInTaiwan.getDay()]; const todayDietPlan = dietPlan[currentDayKey]; const todayKey = getTodayKey(); const todayLogs = dietLog[todayKey] || []; const totals = todayLogs.reduce((acc, item) => { acc.protein += item.protein; acc.carbs += item.carbs; acc.fat += item.fat; return acc; }, { protein: 0, carbs: 0, fat: 0 }); summaryContainer.innerHTML = `<h3>今日目標 (${todayDietPlan.name})</h3><div class="macros-grid">${createMacroItemHTML('蛋白質', totals.protein, todayDietPlan.protein)}${createMacroItemHTML('碳水化合物', totals.carbs, todayDietPlan.carbs)}${createMacroItemHTML('脂肪', totals.fat, todayDietPlan.fat)}</div>`; }
+    function createMacroItemHTML(name, current, target) { const percentage = target > 0 ? (current / target) * 100 : 0; const isOver = current > target; return `<div class="macro-item"><div class="label">${name} (克)</div><div class="values">${current.toFixed(1)} / ${target}</div><div class="progress-bar"><div class="progress-bar-inner ${isOver ? 'over' : ''}" style="width: ${Math.min(percentage, 100)}%;"></div></div></div>`; }
+    function renderDietLogList() { const listContainer = document.getElementById('diet-log-list'); listContainer.innerHTML = ''; const todayKey = getTodayKey(); const todayLogs = dietLog[todayKey] || []; if (todayLogs.length === 0) { listContainer.innerHTML = '<li>尚未新增任何飲食紀錄...</li>'; return; } todayLogs.forEach((item, index) => { const li = document.createElement('li'); li.className = 'diet-log-item'; li.innerHTML = `<span>${item.name}</span><span>${item.protein.toFixed(1)}g P</span><span>${item.carbs.toFixed(1)}g C</span><span>${item.fat.toFixed(1)}g F</span><button class="delete-diet-btn" onclick="deleteDietLog(${index})">刪除</button>`; listContainer.appendChild(li); }); }
     
-    // ✅ MODIFIED: 本地資料庫搜尋
     function searchFood() {
+        const searchInput = document.getElementById('food-search-input');
         if (foodDatabase.length === 0) {
             alert('食物資料庫仍在載入中，請稍候...');
             return;
         }
-        const query = document.getElementById('food-search-input').value.trim();
+        const query = searchInput.value.trim();
         const resultsList = document.getElementById('search-results');
         if (!query) {
             resultsList.innerHTML = '';
@@ -175,39 +166,34 @@
                 document.getElementById('protein').value = food.protein.toFixed(1);
                 document.getElementById('carbs').value = food.carbs.toFixed(1);
                 document.getElementById('fat').value = food.fat.toFixed(1);
-                document.getElementById('servings').value = '1'; // 點選後份數自動變為1
+                document.getElementById('servings').value = '1';
                 resultsList.innerHTML = '';
             };
             resultsList.appendChild(li);
         });
     }
 
-    // ✅ MODIFIED: 頁面載入時，從雲端獲取 dietLog，並從本地載入 foodDatabase
     document.addEventListener('DOMContentLoaded', async () => {
-        // 先初始化頁面，讓使用者看到介面
+        const searchInput = document.getElementById('food-search-input');
         initDietPage();
 
-        // 平行處理兩個數據載入
         const loadDietLogPromise = fetch('/api/getData?key=dietLog')
-            .then(res => res.json())
-            .then(data => { if (data) { dietLog = data; } })
-            .catch(err => {
-                console.error('Failed to load diet log:', err);
-                alert('讀取雲端飲食紀錄失敗！');
-            });
+            .then(res => res.json()).then(data => { if (data) { dietLog = data; } })
+            .catch(err => { console.error('Failed to load diet log:', err); alert('讀取雲端飲食紀錄失敗！'); });
 
         const loadFoodDbPromise = fetch('./tfda_db.json')
             .then(res => res.json())
             .then(data => {
                 foodDatabase = data;
-                document.getElementById('food-search-input').placeholder = '例如: 雞胸肉、牛奶、肉圓';
+                searchInput.placeholder = '例如: 雞胸肉、牛奶、肉圓';
+                searchInput.disabled = false;
             })
             .catch(err => {
                 console.error('Failed to load food database:', err);
+                searchInput.placeholder = '資料庫載入失敗';
                 alert('載入本地食物資料庫失敗！');
             });
 
-        // 等待兩個都載入完成後，再渲染一次頁面以顯示正確的數據
         await Promise.all([loadDietLogPromise, loadFoodDbPromise]);
         renderDietPage();
     });
