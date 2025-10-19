@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>飲食紀錄 - 個人健身追蹤器</title>
     <style>
-        /* [所有 CSS 樣式都和之前一樣] */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f0f2f5; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; }
         .container { width: 100%; max-width: 900px; background-color: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         h1, h2, h3 { color: #1a237e; }
@@ -31,7 +30,7 @@
         #search-results li small { color: #666; display: block; }
         #diet-entry-form { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 10px; align-items: center; margin-bottom: 20px; }
         #diet-entry-form input { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
-        #diet-entry-form button, #food-search-form button { padding: 8px 15px; font-size: 14px; }
+        #diet-entry-form button, #food-search-form button { padding: 8px 15px; font-size: 14px; background-color: #4caf50; color: white; border: none; border-radius: 5px; cursor: pointer;}
         #diet-log-list { list-style: none; padding: 0; }
         .diet-log-item { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 10px; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
         .diet-log-item:nth-child(odd) { background-color: #f9f9f9; }
@@ -47,7 +46,6 @@
             <a href="workout.html">今日課表</a>
             <a href="diet.html" class="active">飲食紀錄</a>
         </nav>
-
         <div id="page-diet">
             <h2>飲食紀錄</h2>
             <div id="diet-summary"></div>
@@ -81,32 +79,68 @@
         sunday:    { name: "無碳日", protein: 130, carbs: 40,  fat: 102 },
     };
     const dayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-    let dietLog = JSON.parse(localStorage.getItem('dietLog')) || {};
+    let dietLog = {};
+
+    async function saveDietLog() {
+        try {
+            await fetch('/api/setData', {
+                method: 'POST',
+                body: JSON.stringify({ key: 'dietLog', value: dietLog })
+            });
+        } catch (error) {
+            console.error('Failed to save diet log:', error);
+            alert('飲食紀錄儲存失敗，請檢查網路連線！');
+        }
+    }
 
     function getTodayKey() { return new Date().toISOString().split('T')[0]; }
-    function saveDietLog() { localStorage.setItem('dietLog', JSON.stringify(dietLog)); }
-    function initDietPage() { /* ... 此函數不變 ... */ }
-    function renderDietPage() { /* ... 此函數不變 ... */ }
-    function renderDietSummary() { /* ... 此函數不變 ... */ }
-    function createMacroItemHTML(name, current, target) { /* ... 此函數不變 ... */ }
-    function renderDietLogList() { /* ... 此函數不變 ... */ }
-    function addDietLog() { /* ... 此函數不變 ... */ }
-    function deleteDietLog(index) { /* ... 此函數不變 ... */ }
 
-    // ✅ MODIFIED: 使用 fetch 呼叫後端 API
+    async function addDietLog() {
+        const name = document.getElementById('food-name').value;
+        const protein = parseFloat(document.getElementById('protein').value) || 0;
+        const carbs = parseFloat(document.getElementById('carbs').value) || 0;
+        const fat = parseFloat(document.getElementById('fat').value) || 0;
+        if (!name) { alert('請輸入品項名稱！'); return; }
+        const todayKey = getTodayKey();
+        if (!dietLog[todayKey]) { dietLog[todayKey] = []; }
+        dietLog[todayKey].push({ name, protein, carbs, fat });
+        
+        await saveDietLog();
+        renderDietPage();
+        
+        document.getElementById('food-name').value = '';
+        document.getElementById('protein').value = '';
+        document.getElementById('carbs').value = '';
+        document.getElementById('fat').value = '';
+        document.getElementById('food-name').focus();
+    }
+    async function deleteDietLog(index) {
+        const todayKey = getTodayKey();
+        dietLog[todayKey].splice(index, 1);
+        await saveDietLog();
+        renderDietPage();
+    }
+
+    function initDietPage() {
+        const todayKey = getTodayKey();
+        if (!dietLog[todayKey]) {
+            dietLog[todayKey] = [];
+        }
+        renderDietPage();
+    }
+    function renderDietPage() { renderDietSummary(); renderDietLogList(); }
+    function renderDietSummary() { const summaryContainer = document.getElementById('diet-summary'); const today = new Date(); const todayInTaiwan = new Date(today.toLocaleString("en-US", {timeZone: "Asia/Taipei"})); const currentDayKey = dayKeys[todayInTaiwan.getDay()]; const todayDietPlan = dietPlan[currentDayKey]; const todayKey = getTodayKey(); const todayLogs = dietLog[todayKey] || []; const totals = todayLogs.reduce((acc, item) => { acc.protein += item.protein; acc.carbs += item.carbs; acc.fat += item.fat; return acc; }, { protein: 0, carbs: 0, fat: 0 }); summaryContainer.innerHTML = `<h3>今日目標 (${todayDietPlan.name})</h3><div class="macros-grid">${createMacroItemHTML('蛋白質', totals.protein, todayDietPlan.protein)}${createMacroItemHTML('碳水化合物', totals.carbs, todayDietPlan.carbs)}${createMacroItemHTML('脂肪', totals.fat, todayDietPlan.fat)}</div>`; }
+    function createMacroItemHTML(name, current, target) { const percentage = target > 0 ? (current / target) * 100 : 0; const isOver = current > target; return `<div class="macro-item"><div class="label">${name} (克)</div><div class="values">${current.toFixed(1)} / ${target}</div><div class="progress-bar"><div class="progress-bar-inner ${isOver ? 'over' : ''}" style="width: ${Math.min(percentage, 100)}%;"></div></div></div>`; }
+    function renderDietLogList() { const listContainer = document.getElementById('diet-log-list'); listContainer.innerHTML = ''; const todayKey = getTodayKey(); const todayLogs = dietLog[todayKey] || []; if (todayLogs.length === 0) { listContainer.innerHTML = '<li>尚未新增任何飲食紀錄...</li>'; return; } todayLogs.forEach((item, index) => { const li = document.createElement('li'); li.className = 'diet-log-item'; li.innerHTML = `<span>${item.name}</span><span>${item.protein}g P</span><span>${item.carbs}g C</span><span>${item.fat}g F</span><button class="delete-diet-btn" onclick="deleteDietLog(${index})">刪除</button>`; listContainer.appendChild(li); }); }
+    
     async function searchFood() {
         const query = document.getElementById('food-search-input').value;
         const resultsList = document.getElementById('search-results');
         if (!query) return;
-
         resultsList.innerHTML = '<li>搜尋中...</li>';
-
         try {
-            // 這個請求會送到我們在 Vercel 上的 Serverless Function
             const response = await fetch(`/api/search?food=${encodeURIComponent(query)}`);
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
+            if (!response.ok) { throw new Error('Network response was not ok'); }
             const foods = await response.json();
             displaySearchResults(foods);
         } catch (error) {
@@ -114,22 +148,13 @@
             resultsList.innerHTML = '<li>搜尋失敗，請檢查網路連線或稍後再試。</li>';
         }
     }
-
     function displaySearchResults(foods) {
         const resultsList = document.getElementById('search-results');
         resultsList.innerHTML = '';
-
-        if (foods.length === 0) {
-            resultsList.innerHTML = '<li>找不到相關食物。</li>';
-            return;
-        }
-
+        if (foods.length === 0) { resultsList.innerHTML = '<li>找不到相關食物。</li>'; return; }
         foods.slice(0, 10).forEach(food => {
             const li = document.createElement('li');
-            li.innerHTML = `
-                <strong>${food.name}</strong>
-                <small>${food.protein.toFixed(1)}g P / ${food.carbs.toFixed(1)}g C / ${food.fat.toFixed(1)}g F (每份)</small>
-            `;
+            li.innerHTML = `<strong>${food.name}</strong><small>${food.protein.toFixed(1)}g P / ${food.carbs.toFixed(1)}g C / ${food.fat.toFixed(1)}g F (每份)</small>`;
             li.onclick = () => {
                 document.getElementById('food-name').value = food.name;
                 document.getElementById('protein').value = food.protein.toFixed(1);
@@ -141,7 +166,15 @@
         });
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            const response = await fetch('/api/getData?key=dietLog');
+            const data = await response.json();
+            if (data) { dietLog = data; }
+        } catch (error) {
+            console.error('Failed to load diet log:', error);
+            alert('讀取雲端飲食紀錄失敗，請重新整理頁面！');
+        }
         initDietPage();
     });
 </script>
