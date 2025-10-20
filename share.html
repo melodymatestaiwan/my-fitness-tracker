@@ -24,18 +24,18 @@
             padding: 25px;
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            margin-bottom: 5px; /* 核心修正：縮小導航欄下方間距 */
         }
         .page-navbar h1 { color: #1a237e; border-bottom: 2px solid #3f51b5; padding-bottom: 10px; margin-top: 0; }
         .page-navbar nav { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 0; }
         .page-navbar nav a { text-decoration: none; flex-grow: 1; padding: 10px 15px; border: none; background-color: #e8eaf6; color: #3f51b5; cursor: pointer; border-radius: 5px; font-size: 16px; transition: background-color 0.3s; text-align: center; }
         .page-navbar nav a.active { background-color: #3f51b5; color: white; font-weight: bold; }
         
-        /* 圖片容器與按鈕的總區塊 (已優化 Flexbox 佈局) */
+        /* 圖片容器與按鈕的總區塊 */
         .capture-group {
             max-width: 900px;
             width: 100%;
-            margin-bottom: 30px;
+            margin-bottom: 10px; /* 核心修正：縮小總體容器間距 */
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -43,7 +43,7 @@
 
         /* 核心修正: 讓圖片和按鈕緊密結合 */
         .capture-wrapper {
-            margin-bottom: 20px; /* 圖片區塊之間的間距 */
+            margin-bottom: 5px; /* 圖片區塊之間的間距 */
             width: 100%; 
             display: flex;
             flex-direction: column;
@@ -56,12 +56,12 @@
             padding: 80px;
             box-sizing: border-box;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            margin-bottom: 0; /* 移除與下載按鈕間的預設間距 */
+            margin-bottom: 0;
             display: flex;
             flex-direction: column;
             justify-content: center;
+            /* 預覽圖縮放 */
             transform: scale(0.5); 
-            /* 核心修正: 預覽圖置中 */
             transform-origin: top center;
             position: relative;
             background-image: url('./share-background.png'); 
@@ -241,7 +241,7 @@
             allData = {}; 
         }
 
-        // ✅ BUG FIX: 確保將 API 返回的 JSON 字符串轉換為 JavaScript 對象
+        // ✅ 核心修正：確保將 API 返回的 JSON 字符串轉換為 JavaScript 對象
         const fitnessData = allData.fitnessData ? JSON.parse(allData.fitnessData) : [];
         const dietLog = allData.dietLog ? JSON.parse(allData.dietLog) : {};
         const workoutLog = allData.workoutLog ? JSON.parse(allData.workoutLog) : {};
@@ -285,7 +285,7 @@
         // 數據計算
         const totals = logsForDay.reduce((acc, item) => { acc.protein += item.protein; acc.carbs += item.carbs; acc.fat += item.fat; return acc; }, { protein: 0, carbs: 0, fat: 0 });
         
-        // ✅ 數據覆蓋 (如果沒有紀錄，則使用您提供的 MOCK 數據)
+        // 數據覆蓋 (如果沒有紀錄，則使用您提供的 MOCK 數據)
         if (!hasDietLogs) {
              totals.protein = MOCK_DIET_TOTALS.protein;
              totals.carbs = MOCK_DIET_TOTALS.carbs;
@@ -333,7 +333,7 @@
             }
         }
         
-        // ✅ 訓練數據覆蓋 (如果沒有實際紀錄，則使用您提供的 MOCK 數據)
+        // 訓練數據覆蓋 (如果沒有實際紀錄，則使用您提供的 MOCK 數據)
         if (!hasWorkout) {
              workoutHTML = `<u class="blue">胸推</u> 16公斤 1組<br>`;
         }
