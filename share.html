@@ -4,87 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>分享與成果 - 個人健身追蹤器</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap');
-        body {
-            font-family: 'Noto Serif TC', serif;
-            background-color: #f0f2f5;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            margin: 0;
-            color: #333;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f0f2f5; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; }
         .container { width: 100%; max-width: 900px; background-color: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        h1 { color: #1a237e; border-bottom: 2px solid #3f51b5; padding-bottom: 10px; margin-top: 0; }
+        h1, h2, h3 { color: #1a237e; border-bottom: 2px solid #3f51b5; padding-bottom: 10px; margin-top: 20px; }
+        h1 { margin-top: 0; }
         nav { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 5px; }
         nav a { text-decoration: none; flex-grow: 1; padding: 10px 15px; border: none; background-color: #e8eaf6; color: #3f51b5; cursor: pointer; border-radius: 5px; font-size: 16px; transition: background-color 0.3s; text-align: center; }
         nav a.active { background-color: #3f51b5; color: white; font-weight: bold; }
-        
-        .capture-wrapper {
-            margin-bottom: 10px; /* 縮小間距 */
-            text-align: center;
-        }
-        .capture-area {
-            width: 1080px;
-            height: 1350px;
-            padding: 80px 100px;
-            box-sizing: border-box;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            margin-bottom: 0px; /* 移除底部間距 */
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            transform: scale(0.5); 
-            transform-origin: top center;
+        .loading-box { padding: 30px; text-align: center; border: 1px dashed #ccc; margin-top: 20px; color: #f44336; }
+
+        /* --- 分享圖樣式 (Share Card Styles) --- */
+        #share-card-wrapper { display: flex; justify-content: center; margin-top: 30px; }
+        #share-card {
+            width: 375px; /* 模擬手機寬度 */
+            height: 667px; /* 模擬手機高度 */
+            background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+            padding: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            border-radius: 15px;
+            color: #1a237e;
             position: relative;
-            background-image: url('./share-background.png');
-            background-size: cover;
-            background-position: center;
         }
-        .download-btn-group {
-            margin-top: 10px;
-            margin-bottom: 20px;
-        }
-        .download-btn {
-            padding: 10px 20px;
-            font-size: 18px;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background-color: #4caf50;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-        #loading-text { font-size: 24px; font-family: -apple-system, sans-serif; }
-
-        /* 圖一：體重紀錄 */
-        #capture-area-1 {
-            color: #4a4a4a;
-            align-items: flex-start; /* 讓文字靠左 */
-            padding-top: 300px;
-            background-image: url('./share-background.png'); 
-        }
-        #capture-area-1 h1, #capture-area-1 h2 { margin: 20px 0; font-weight: 700; text-align: left; width: 100%; }
-        #capture-area-1 h1 { font-size: 80px; }
-        #capture-area-1 h2 { font-size: 60px; }
-
-        /* 圖二 & 圖三：飲食與運動 */
-        #capture-area-2, #capture-area-3 {
-            background-image: linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url('./share-background.png');
-            align-items: flex-start;
-            padding-top: 250px;
-            color: #333;
-        }
-        .card-header { width: 100%; display: flex; justify-content: space-between; font-size: 28px; color: #555; position: absolute; top: 80px; left: 0; padding: 0 100px; box-sizing: border-box; }
-        .card-title { font-size: 60px; font-weight: 700; margin-bottom: 40px; }
-        .card-content { font-size: 48px; line-height: 1.8; text-align: left; width: 100%; }
-        .card-content u { text-decoration-thickness: 3px; text-underline-offset: 8px; }
-        .card-content u.orange { text-decoration-color: #ff9800; }
-        .card-content u.blue { text-decoration-color: #2196F3; }
-        .total-calories { margin-top: 40px; }
+        .card-header { text-align: center; margin-bottom: 20px; }
+        .card-header h2 { margin: 0; font-size: 24px; border-bottom: none; color: #3f51b5; }
+        .card-header p { margin: 5px 0 0; font-size: 14px; color: #5c6bc0; }
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; text-align: center; margin-bottom: 20px; }
+        .stat-item { background-color: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .stat-label { font-size: 12px; color: #3f51b5; font-weight: bold; }
+        .stat-value { font-size: 20px; font-weight: bold; color: #1a237e; }
+        .daily-log-item { background-color: rgba(255, 255, 255, 0.9); padding: 8px 15px; border-radius: 8px; margin-bottom: 8px; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+        .log-macro { font-weight: bold; color: #4caf50; }
+        .log-time { font-size: 10px; color: #999; }
+        .btn-action { text-align: center; margin-top: 20px; }
+        .btn-action button { background-color: #4caf50; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: background-color 0.3s; }
+        .btn-action button:hover { background-color: #45a049; }
+        #image-preview { margin-top: 20px; text-align: center; }
+        #image-preview img { max-width: 100%; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body>
@@ -96,163 +53,259 @@
             <a href="diet.html">飲食紀錄</a>
             <a href="share.html" class="active">分享與成果</a>
         </nav>
-        
+
         <h2>生成每日分享圖</h2>
-
-        <div id="loading-text">讀取今日紀錄中...</div>
-
-        <div class="capture-wrapper" id="wrapper-1" style="display: none;">
-            <div class="capture-area" id="capture-area-1">
-                <h1 id="weight-title">百日減脂計畫</h1>
-                <h2 id="weight-day"></h2>
-                <h2 id="weight-start"></h2>
-                <h2 id="weight-current"></h2>
-            </div>
-            <div class="download-btn-group">
-                <button class="download-btn" onclick="downloadImage('capture-area-1', '百日計畫')">下載第一張圖</button>
-            </div>
+        <div class="loading-box" id="loading-box">
+            讀取雲端資料中...
         </div>
 
-        <div class="capture-wrapper" id="wrapper-2" style="display: none;">
-            <div class="capture-area" id="capture-area-2">
-                <div class="card-header">
-                    <span id="diet-day-of-week"></span>
-                    <span id="diet-date"></span>
+        <div id="share-content" style="display:none;">
+            <p>點擊下方按鈕，將今天的成果轉換為圖片：</p>
+            <div class="btn-action">
+                <button onclick="generateImage()">生成分享圖片</button>
+            </div>
+
+            <div id="share-card-wrapper">
+                <div id="share-card">
+                    <div class="card-header">
+                        <h2>我的今日成果</h2>
+                        <p id="share-date"></p>
+                    </div>
+
+                    <h3>身體數據</h3>
+                    <div class="stat-grid" id="stat-grid-data">
+                        <div class="stat-item"><div class="stat-label">體重</div><div class="stat-value" id="stat-weight">--</div></div>
+                        <div class="stat-item"><div class="stat-label">體脂</div><div class="stat-value" id="stat-bodyfat">--</div></div>
+                        <div class="stat-item"><div class="stat-label">骨骼肌</div><div class="stat-value" id="stat-muscle">--</div></div>
+                    </div>
+
+                    <h3>今日飲食總計</h3>
+                    <div class="stat-grid" id="macro-grid-data">
+                        <div class="stat-item" style="background-color: #fce4ec;"><div class="stat-label">熱量</div><div class="stat-value" id="stat-cal">--</div></div>
+                        <div class="stat-item" style="background-color: #e3f2fd;"><div class="stat-label">蛋白質</div><div class="stat-value" id="stat-protein">--</div></div>
+                        <div class="stat-item" style="background-color: #fffde7;"><div class="stat-label">碳水</div><div class="stat-value" id="stat-carbs">--</div></div>
+                    </div>
+                    
+                    <h3>完成訓練</h3>
+                    <div id="workout-log-list">
+                        <div class="daily-log-item"><span>💪 訓練紀錄載入中...</span></div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 40px; font-size: 14px; color: #5c6bc0;">#健身追蹤器 #ProgressTracker</div>
+                    <div style="text-align: center; font-size: 10px; color: #9fa8da;">Generated by Personal Fitness Tracker</div>
                 </div>
-                <div class="card-title">飲食紀錄</div>
-                <div class="card-content" id="diet-content"></div>
             </div>
-            <div class="download-btn-group">
-                <button class="download-btn" onclick="downloadImage('capture-area-2', '飲食紀錄')">下載第二張圖</button>
-            </div>
+            
+            <div id="image-preview">
+                </div>
         </div>
 
-        <div class="capture-wrapper" id="wrapper-3" style="display: none;">
-            <div class="capture-area" id="capture-area-3">
-                 <div class="card-header">
-                    <span id="workout-day-of-week"></span>
-                    <span id="workout-date"></span>
-                </div>
-                <div class="card-title">今日運動</div>
-                <div class="card-content" id="workout-content"></div>
-            </div>
-            <div class="download-btn-group">
-                <button class="download-btn" onclick="downloadImage('capture-area-3', '訓練紀錄')">下載第三張圖</button>
-            </div>
-        </div>
     </div>
 
 <script>
-    const CHALLENGE_START_DATE = new Date('2025-10-20T00:00:00');
-    const dietPlan = { /* ... 飲食計畫 ... */ };
-    const workoutPlan = { /* ... 訓練計畫 ... */ };
-    const dayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-
-    document.addEventListener('DOMContentLoaded', async () => {
+    // --- 通用日期函數 ---
+    function getTodayKey() {
         const today = new Date();
-        today.setHours(0,0,0,0);
-        const todayKey = today.toISOString().split('T')[0];
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    // --- 雲端讀取 ---
+    async function loadData(key) { 
+        try { 
+            const response = await fetch(`/api/getData?key=${key}`); 
+            const data = await response.json(); 
+            return data || (key === 'workoutLog' || key === 'dietLog' ? {} : []); 
+        } catch (error) { 
+            console.error(`Failed to load ${key}:`, error); 
+            // 如果讀取失敗，拋出錯誤，讓主程序知道
+            throw new Error(`讀取雲端 ${key} 失敗！`);
+        } 
+    }
+
+    // --- 數據處理 ---
+    function processFitnessData(fitnessData) {
+        const todayKey = getTodayKey();
+        // 嘗試獲取最新的早上和晚上數據
+        const morningEntry = fitnessData.filter(d => d.date === todayKey && d.time === 'morning').pop();
+        const eveningEntry = fitnessData.filter(d => d.date === todayKey && d.time === 'evening').pop();
         
-        let allData;
-        try {
-            // ✅ 這裡呼叫的是 getAllData.js
-            const response = await fetch('/api/getAllData'); 
-            if (!response.ok) throw new Error('API request failed');
-            allData = await response.json();
-        } catch (error) {
-            document.getElementById('loading-text').textContent = '讀取雲端資料失敗！請重新整理。';
-            console.error(error);
-            allData = {}; 
+        // 優先顯示早上數據，如果沒有，則使用晚上數據作為最新數據
+        const latestEntry = morningEntry || eveningEntry; 
+        
+        if (latestEntry) {
+            return {
+                weight: latestEntry.weight ? `${latestEntry.weight.toFixed(1)} kg` : '--',
+                bodyfat: latestEntry.bodyfat ? `${latestEntry.bodyfat.toFixed(1)} %` : '--',
+                muscleMass: latestEntry.muscleMass ? `${latestEntry.muscleMass.toFixed(1)} kg` : '--'
+            };
         }
+        return { weight: '--', bodyfat: '--', muscleMass: '--' };
+    }
 
-        const { fitnessData = [], dietLog = {}, workoutLog = {} } = allData;
-
-        // --- 渲染圖一：體重 ---
-        const diffTime = today - CHALLENGE_START_DATE;
-        const challengeDayNum = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-        document.getElementById('weight-day').textContent = `第 ${challengeDayNum} 天`;
-        
-        const startEntry = fitnessData.find(entry => new Date(entry.date) >= CHALLENGE_START_DATE);
-        const startWeight = startEntry ? startEntry.weight.toFixed(1) : '???';
-        document.getElementById('weight-start').textContent = `起始體重 ${startWeight} 公斤`;
-        
-        const todayWeightEntries = fitnessData.filter(entry => entry.date === todayKey);
-        const currentWeight = todayWeightEntries.length > 0 ? todayWeightEntries[todayWeightEntries.length - 1].weight.toFixed(1) : '???';
-        document.getElementById('weight-current').textContent = `今日體重 ${currentWeight} 公斤`;
-
-        // --- 渲染圖二：飲食 ---
-        const dayOfWeekStr = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][today.getDay()];
-        const dateStr = `${today.getMonth() + 1}月${today.getDate()}日`;
-        document.getElementById('diet-day-of-week').textContent = `(${dayOfWeekStr}.)`;
-        document.getElementById('diet-date').textContent = dateStr;
-        
-        const planForDay = dietPlan[dayKeys[today.getDay()]];
+    function processDietData(dietLog) {
+        const todayKey = getTodayKey();
         const logsForDay = dietLog[todayKey] || [];
-        const hasDietLogs = logsForDay.length > 0;
-        const totals = logsForDay.reduce((acc, item) => { acc.protein += item.protein; acc.carbs += item.carbs; acc.fat += item.fat; return acc; }, { protein: 0, carbs: 0, fat: 0 });
-        const currentCalories = (totals.protein * 4) + (totals.carbs * 4) + (totals.fat * 9);
         
-        document.getElementById('diet-content').innerHTML = `
-            <span class="diet-plan-name"><u class="orange">${planForDay.name}</u></span><br><br>
-            蛋白質: ${hasDietLogs ? totals.protein.toFixed(0) : '???'} / ${planForDay.protein} 克<br>
-            碳水化合物: ${hasDietLogs ? totals.carbs.toFixed(0) : '???'} / ${planForDay.carbs} 克<br>
-            脂肪: ${hasDietLogs ? totals.fat.toFixed(0) : '???'} / ${planForDay.fat} 克<br>
-            <div class="total-calories">總熱量 ${hasDietLogs ? currentCalories.toFixed(0) : '???'} 大卡</div>
-        `;
+        const totals = logsForDay.reduce((acc, item) => {
+            acc.protein += item.protein;
+            acc.carbs += item.carbs;
+            acc.fat += item.fat;
+            return acc;
+        }, { protein: 0, carbs: 0, fat: 0 });
 
-        // --- 渲染圖三：運動 ---
-        document.getElementById('workout-day-of-week').textContent = `(${dayOfWeekStr}.)`;
-        document.getElementById('workout-date').textContent = dateStr;
+        const totalCalories = (totals.protein * 4) + (totals.carbs * 4) + (totals.fat * 9);
+        
+        return {
+            cal: Math.round(totalCalories),
+            protein: totals.protein.toFixed(1),
+            carbs: totals.carbs.toFixed(1),
+            fat: totals.fat.toFixed(1)
+        };
+    }
 
-        let workoutHTML = '';
-        const workoutDayKey = dayKeys[today.getDay()];
-        let hasWorkout = false;
-        if(workoutLog && workoutLog[workoutDayKey]) {
-            for (const exName in workoutLog[workoutDayKey]) {
-                const sets = workoutLog[workoutDayKey][exName][todayKey];
-                if (sets && sets.length > 0) {
-                    hasWorkout = true;
-                    const weightSets = sets.filter(s => s.type === 'weight');
-                    const timeSets = sets.filter(s => s.type === 'time');
-                    if (weightSets.length > 0) {
-                        const weight = weightSets[0].weight;
-                        workoutHTML += `<u class="blue">${exName}</u> ${weight}公斤 ${weightSets.length}組<br>`;
-                    }
-                    if (timeSets.length > 0) {
-                        const totalDuration = timeSets.reduce((sum, s) => sum + s.duration, 0);
-                        workoutHTML += `<u class="blue">${exName}</u> ${totalDuration}分鐘<br>`;
-                    }
+    function processWorkoutData(workoutLog) {
+        const todayKey = getTodayKey();
+        const dayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+        const todayDate = new Date();
+        const todayInTaiwan = new Date(todayDate.toLocaleString("en-US", {timeZone: "Asia/Taipei"}));
+        const currentDayKey = dayKeys[todayInTaiwan.getDay()];
+        
+        const logsForDay = workoutLog[currentDayKey] || {};
+        const workoutList = [];
+        
+        // 遍歷當天所有訓練項目 (包括預設和自訂)
+        for (const exerciseName in logsForDay) {
+            const sets = logsForDay[exerciseName][todayKey] || [];
+            if (sets.length > 0) {
+                 // 統計組數和代表數據
+                const count = sets.length;
+                const weightSets = sets.filter(s => s.type === 'weight');
+                const timeSets = sets.filter(s => s.type === 'time');
+                let summary = `共 ${count} 組`;
+
+                if (weightSets.length > 0) {
+                     // 找到最大重量
+                    const maxWeight = Math.max(...weightSets.map(s => s.weight));
+                    summary = `${maxWeight}kg / 共 ${weightSets.length} 組`;
+                } else if (timeSets.length > 0) {
+                     // 統計總時長
+                    const totalDuration = timeSets.reduce((sum, s) => sum + s.duration, 0);
+                    summary = `${totalDuration} 分鐘`;
                 }
+
+                workoutList.push({ name: exerciseName, summary });
             }
         }
-        document.getElementById('workout-content').innerHTML = hasWorkout ? workoutHTML : '今日未記錄 ???';
+        return workoutList;
+    }
 
-        // --- 顯示所有內容 ---
-        document.getElementById('loading-text').style.display = 'none';
-        document.getElementById('wrapper-1').style.display = 'block';
-        document.getElementById('wrapper-2').style.display = 'block';
-        document.getElementById('wrapper-3').style.display = 'block';
-    });
-
-    function downloadImage(elementId, fileNamePrefix) {
-        const todayKey = new Date().toISOString().split('T')[0];
-        const element = document.getElementById(elementId);
+    // --- 渲染數據到卡片 ---
+    function renderCardData(data) {
+        document.getElementById('share-date').textContent = getTodayKey();
         
-        element.style.transform = 'scale(1)';
+        // 身體數據
+        document.getElementById('stat-weight').textContent = data.fitness.weight;
+        document.getElementById('stat-bodyfat').textContent = data.fitness.bodyfat;
+        document.getElementById('stat-muscle').textContent = data.fitness.muscleMass;
 
-        html2canvas(element, { 
-            useCORS: true,
-            scale: 1, 
-            backgroundColor: null
-        }).then(canvas => {
-            const link = document.createElement('a');
-            link.download = `${fileNamePrefix}_${todayKey}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
+        // 飲食數據
+        document.getElementById('stat-cal').textContent = `${data.diet.cal} 大卡`;
+        document.getElementById('stat-protein').textContent = `${data.diet.protein} g`;
+        document.getElementById('stat-carbs').textContent = `${data.diet.carbs} g`;
+        
+        // 訓練數據
+        const workoutListEl = document.getElementById('workout-log-list');
+        workoutListEl.innerHTML = '';
 
-            element.style.transform = 'scale(0.5)';
+        if (data.workout.length === 0) {
+            workoutListEl.innerHTML = `<div class="daily-log-item"><span>💪 今天還沒紀錄訓練哦！</span></div>`;
+            return;
+        }
+
+        data.workout.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'daily-log-item';
+            div.innerHTML = `
+                <span>${item.name}</span>
+                <span class="log-macro">${item.summary}</span>
+            `;
+            workoutListEl.appendChild(div);
         });
     }
+
+    // --- 主初始化程序 ---
+    async function initSharePage() {
+        const loadingBox = document.getElementById('loading-box');
+        const shareContent = document.getElementById('share-content');
+        
+        loadingBox.textContent = '讀取雲端資料中...';
+        
+        try {
+            // 一次讀取所有必要的數據
+            const fitnessData = await loadData('fitnessData');
+            const dietLog = await loadData('dietLog');
+            const workoutLog = await loadData('workoutLog');
+
+            // 處理數據
+            const fitnessResults = processFitnessData(fitnessData);
+            const dietResults = processDietData(dietLog);
+            const workoutResults = processWorkoutData(workoutLog);
+
+            // 渲染卡片
+            renderCardData({
+                fitness: fitnessResults,
+                diet: dietResults,
+                workout: workoutResults
+            });
+
+            // 顯示內容並隱藏加載框
+            shareContent.style.display = 'block';
+            loadingBox.style.display = 'none';
+
+        } catch (error) {
+            console.error(error);
+            loadingBox.textContent = `讀取雲端資料失敗！請檢查您的 Vercel API 或重新整理。錯誤: ${error.message}`;
+            loadingBox.style.color = '#f44336';
+            loadingBox.style.borderColor = '#f44336';
+        }
+    }
+
+    // --- 圖片生成函數 ---
+    function generateImage() {
+        const card = document.getElementById('share-card');
+        const preview = document.getElementById('image-preview');
+        preview.innerHTML = '生成中...';
+
+        html2canvas(card, {
+            backgroundColor: null, // 保持透明背景
+            useCORS: true // 允許跨域圖像（如果有）
+        }).then(canvas => {
+            preview.innerHTML = '';
+            const img = document.createElement('img');
+            img.src = canvas.toDataURL('image/png');
+            img.alt = '每日分享圖片';
+            preview.appendChild(img);
+            
+            // 提供下載連結
+            const downloadLink = document.createElement('a');
+            downloadLink.href = img.src;
+            downloadLink.download = `Fitness_Daily_Share_${getTodayKey()}.png`;
+            downloadLink.textContent = '點擊下載圖片';
+            downloadLink.style.display = 'block';
+            downloadLink.style.marginTop = '15px';
+            preview.appendChild(downloadLink);
+            
+            alert('圖片已成功生成！');
+        }).catch(err => {
+            console.error('圖片生成失敗:', err);
+            preview.innerHTML = `<p style="color:red;">圖片生成失敗。請嘗試重新整理頁面。</p>`;
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', initSharePage);
 </script>
 </body>
 </html>
