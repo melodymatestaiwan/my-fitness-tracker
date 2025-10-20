@@ -1,17 +1,23 @@
-// api/getData.js
 const { kv } = require('@vercel/kv');
 
 module.exports = async (req, res) => {
-    const key = req.query.key; // 從前端請求的網址中獲取要讀取的 key
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    if (req.method === 'OPTIONS') { return res.status(200).end(); }
+    
+    const key = req.query.key;
     if (!key) {
         return res.status(400).json({ error: 'Key is required' });
     }
+
     try {
-        // 從 Vercel KV 雲端資料庫中讀取數據
         const data = await kv.get(key);
-        // 回傳數據給前端 (如果沒數據，回傳 null)
-        res.status(200).json(data);
+        
+        // 返回數據，如果為 null 則返回空
+        res.status(200).json(data || null);
+
     } catch (error) {
+        console.error("Error in getData:", error);
         res.status(500).json({ error: error.message });
     }
 };
