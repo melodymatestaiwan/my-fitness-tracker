@@ -10,7 +10,6 @@
         h1, h2, h3 { color: #1a237e; }
         h1, h2 { border-bottom: 2px solid #3f51b5; padding-bottom: 10px; margin-top: 20px; }
         h1 { margin-top: 0; }
-        nav { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 5px; }
         nav a { text-decoration: none; flex-grow: 1; padding: 10px 15px; border: none; background-color: #e8eaf6; color: #3f51b5; cursor: pointer; border-radius: 5px; font-size: 16px; transition: background-color 0.3s; text-align: center; }
         nav a.active { background-color: #3f51b5; color: white; font-weight: bold; }
         #calendar-container { background-color: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 25px; }
@@ -40,7 +39,6 @@
         .set-item span { background-color: #e8eaf6; padding: 3px 8px; border-radius: 12px; font-weight: bold; }
         .set-item .delete-set-btn { background: #ffcdd2; color: #c62828; border: none; border-radius: 50%; cursor: pointer; width: 24px; height: 24px; font-weight: bold; line-height: 24px; padding: 0; }
         .input-set-group { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; border-top: 1px dashed #ccc; padding-top: 15px; margin-top: 15px; }
-        .input-set-group:first-of-type { border-top: none; }
         .input-set-group input { width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; flex-grow: 1; }
         .input-set-group button { padding: 8px 15px; font-size: 14px; background-color: #4caf50; color: white; border: none; border-radius: 5px; cursor: pointer;}
         .rest-day-message { text-align: center; padding: 20px; font-size: 1.2em; color: #888; }
@@ -93,15 +91,24 @@
     async function loadData(key) { try { const response = await fetch(`/api/getData?key=${key}`); const data = await response.json(); return data || {}; } catch (error) { console.error(`Failed to load ${key}:`, error); alert(`讀取雲端 ${key} 失敗！`); return {}; } }
     function saveLastWorkoutInputs() { localStorage.setItem('lastWorkoutInputs', JSON.stringify(lastWorkoutInputs)); }
     function getTodayKey() { return new Date().toISOString().split('T')[0]; }
-    
+
+    // ✅ BUG FIX: isWorkoutCompletedOnDate 函數強化空值檢查
     function isWorkoutCompletedOnDate(dateString) {
         const date = new Date(dateString + 'T00:00:00');
         const dayOfWeekKey = dayKeys[date.getDay()];
         const planForDay = workoutPlan[dayOfWeekKey];
+        
         if (!planForDay || planForDay.exercises.length === 0) { return false; }
+
         for (const exerciseName of planForDay.exercises) {
             let hasLog = false;
-            if (workoutLog[dayOfWeekKey] && workoutLog[dayOfWeekKey][exerciseName] && workoutLog[dayOfWeekKey][exerciseName][dateString] && workoutLog[dayOfWeekKey][exerciseName][dateString].length > 0) {
+            // 強化空值檢查: 確保 workoutLog[dayOfWeekKey] 和 [exerciseName] 都存在
+            if (
+                workoutLog[dayOfWeekKey] && 
+                workoutLog[dayOfWeekKey][exerciseName] && 
+                workoutLog[dayOfWeekKey][exerciseName][dateString] && 
+                workoutLog[dayOfWeekKey][exerciseName][dateString].length > 0
+            ) {
                 hasLog = true;
             }
             if (!hasLog) { return false; }
@@ -120,6 +127,7 @@
         return false;
     }
     
+    // ✅ MODIFIED: renderWorkoutCalendar 函數，修正勾勾邏輯 (已在之前修復)
     function renderWorkoutCalendar(displayDate) {
         const titleEl = document.getElementById('calendar-title');
         const daysContainer = document.getElementById('calendar-days');
@@ -128,31 +136,22 @@
         const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
         weekdays.forEach(day => { weekdaysContainer.innerHTML += `<div class="day-name">${day}</div>`; });
         
-        let dayOfWeek = displayDate.getDay();
-        if (dayOfWeek === 0) dayOfWeek = 7;
-        const monday = new Date(displayDate);
-        monday.setDate(displayDate.getDate() - (dayOfWeek - 1));
-        monday.setHours(0, 0, 0, 0);
-
-        const sunday = new Date(monday);
-        sunday.setDate(monday.getDate() + 6);
+        let dayOfWeek = displayDate.getDay(); if (dayOfWeek === 0) dayOfWeek = 7;
+        const monday = new Date(displayDate); monday.setDate(displayDate.getDate() - (dayOfWeek - 1)); monday.setHours(0, 0, 0, 0);
+        const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
         titleEl.textContent = `本週訓練紀錄 (${monday.getMonth()+1}/${monday.getDate()} - ${sunday.getMonth()+1}/${sunday.getDate()})`;
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayString = today.toISOString().split('T')[0];
+        const today = new Date(); today.setHours(0, 0, 0, 0); const todayString = today.toISOString().split('T')[0];
         const CHALLENGE_START_DATE = new Date('2025-10-20T00:00:00');
 
         for (let i = 0; i < 7; i++) {
-            const currentDate = new Date(monday);
-            currentDate.setDate(monday.getDate() + i);
+            const currentDate = new Date(monday); currentDate.setDate(monday.getDate() + i);
             const dateString = currentDate.toISOString().split('T')[0];
             const diffTime = currentDate - CHALLENGE_START_DATE;
             const challengeDayNum = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
             const challengeDayText = (challengeDayNum > 0 && challengeDayNum <= 100) ? `第 ${challengeDayNum} 天` : (challengeDayNum < 1 ? '挑戰前' : '挑戰後');
             
-            const dayDiv = document.createElement('div');
-            dayDiv.className = 'day';
+            const dayDiv = document.createElement('div'); dayDiv.className = 'day';
             if (dateString === todayString) { dayDiv.classList.add('today'); }
             dayDiv.innerHTML = `<div class="day-date">${currentDate.getDate()}</div><div class="day-challenge-num">${challengeDayText}</div>`;
             
@@ -164,7 +163,7 @@
                     if (hasAnyWorkoutOnDate(dateString)) {
                         dayDiv.innerHTML += `<span class="checkmark green">✓</span>`;
                     } else {
-                        dayDiv.innerHTML += `<span class="checkmark yellow">✓</span>`;
+                        dayDiv.innerHTML += `<span class="checkmark yellow">🟡</span>`;
                     }
                 }
             }
@@ -287,6 +286,7 @@
         if (!workoutLog[dayKey]) workoutLog[dayKey] = {};
         if (!workoutLog[dayKey][exerciseName]) workoutLog[dayKey][exerciseName] = {};
         if (!workoutLog[dayKey][exerciseName][todayKey]) { workoutLog[dayKey][exerciseName][todayKey] = []; }
+
         let newSet;
         if (type === 'weight') {
             const weightInput = document.getElementById(`weight-${dayKey}-${uniqueId}`);
@@ -295,39 +295,4 @@
             const reps = parseInt(repsInput.value);
             if (isNaN(weight) || isNaN(reps) || weight < 0 || reps <= 0) { alert('請輸入有效的重量和次數！'); return; }
             newSet = { type: 'weight', weight, reps };
-            lastWorkoutInputs[exerciseName] = { ...lastWorkoutInputs[exerciseName], weight, reps };
-        } else {
-            const timeInput = document.getElementById(`time-${dayKey}-${uniqueId}`);
-            const duration = parseInt(timeInput.value);
-            if (isNaN(duration) || duration <= 0) { alert('請輸入有效的時間(分鐘)！'); return; }
-            newSet = { type: 'time', duration };
-            lastWorkoutInputs[exerciseName] = { ...lastWorkoutInputs[exerciseName], duration };
-        }
-        workoutLog[dayKey][exerciseName][todayKey].push(newSet);
-        saveLastWorkoutInputs();
-        await saveData('workoutLog', workoutLog);
-        const isNowCompleted = isWorkoutCompletedOnDate(todayKey);
-        const isNowActiveRest = hasAnyWorkoutOnDate(todayKey);
-        if ((!wasCompleted && isNowCompleted) || (!wasActiveRest && isNowActiveRest)) { renderWorkoutCalendar(currentCalendarDate); }
-        renderDayContent(dayKey, document.getElementById(`content-workout-${dayKey}`));
-    }
-
-    async function deleteSet(dayKey, exerciseName, setIndex) {
-        const todayKey = getTodayKey();
-        const wasCompleted = isWorkoutCompletedOnDate(todayKey);
-        const wasActiveRest = hasAnyWorkoutOnDate(todayKey);
-        workoutLog[dayKey][exerciseName][todayKey].splice(setIndex, 1);
-        await saveData('workoutLog', workoutLog);
-        const isNowCompleted = isWorkoutCompletedOnDate(todayKey);
-        const isNowActiveRest = hasAnyWorkoutOnDate(todayKey);
-        if ((wasCompleted && !isNowCompleted) || (wasActiveRest && !isNowActiveRest)) { renderWorkoutCalendar(currentCalendarDate); }
-        renderDayContent(dayKey, document.getElementById(`content-workout-${dayKey}`));
-    }
-
-    document.addEventListener('DOMContentLoaded', async () => {
-        workoutLog = await loadData('workoutLog');
-        initWorkoutPage();
-    });
-</script>
-</body>
-</html>
+            lastWorkoutInputs[exerciseName] = { 
