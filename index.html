@@ -114,8 +114,7 @@
             const response = await fetch('/api/getData?key=fitnessData');
             if (!response.ok) throw new Error('Failed to fetch fitnessData');
             const data = await response.json();
-            // 由於 KV 返回的數據已經是 JSON 格式，這裡無需再次 JSON.parse()
-            // 如果 API 沒設置好，返回的可能是字串，這裡加上防呆檢查
+            // KV 返回的數據可能是字串，確保解析為物件
             return data && typeof data === 'string' ? JSON.parse(data) : (data || []); 
         } catch (e) {
             console.error("Error reading from cloud:", e);
@@ -126,7 +125,6 @@
 
     async function saveDataToCloud() {
         try {
-            // 由於 KV 每次寫入都覆蓋，所以不需要 Promise.all
             await fetch('/api/setData', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -162,21 +160,24 @@
             muscleMass: isNaN(muscleMass) ? null : muscleMass,
             timestamp: new Date().toISOString()
         };
-
-        // 從全域變數 fitnessData 獲取當前數據
-        // ✅ 核心修正：使用 date 和 time 組合進行精準查找，避免覆蓋
-        const existingIndex = fitnessData.findIndex(item => item.date === date && item.time === time);
         
-        if (existingIndex > -1) {
-             // 如果找到，更新該筆數據
-             newData.timestamp = fitnessData[existingIndex].timestamp;
-             fitnessData[existingIndex] = newData;
-        } else {
-             // 如果沒找到，新增數據
-             fitnessData.push(newData);
-        }
+        // 1. 從全域變數 fitnessData 獲取當前數據
+        // 確保 fitnessData 已經是最新狀態 (由 init() 載入)
+        
+        // 2. 移除所有相同 date + time 的舊紀錄 (實現唯一性)
+        const updatedData = fitnessData.filter(item => !(item.date === date && item.time === time));
+        updatedData.push(newData);
+        
+        // 3. 使用 ChatGPT 建議的去重 + 排序邏輯 (確保數據結構乾淨)
+        fitnessData = Object.values(
+            updatedData.reduce((acc, item) => {
+                const key = `${item.date}-${item.time}`;
+                // 使用 timestamp 確保後續排序依賴唯一的時間點
+                acc[key] = item;
+                return acc;
+            }, {})
+        );
 
-        // 排序，確保圖表正確
         fitnessData.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
         await saveDataToCloud(); // 儲存到雲端
