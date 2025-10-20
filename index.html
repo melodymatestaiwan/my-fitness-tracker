@@ -16,40 +16,9 @@
         nav a.active { background-color: #3f51b5; color: white; font-weight: bold; }
         #countdown-container { background-color: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 25px; }
         #countdown-container h2 { margin-top: 0; text-align: center; border-bottom: none; padding-bottom: 0; font-size: 1.5em; }
-        
-        /* 進度條樣式 */
-        .progress-track { position: relative; background-color: #e0e0e0; border-radius: 15px; height: 25px; margin-top: 20px; border: 1px solid #ccc; overflow: visible; }
-        .progress-track::before, .progress-track::after {
-            content: attr(data-start);
-            position: absolute;
-            top: -20px;
-            font-size: 0.9em;
-            color: #555;
-            font-weight: bold;
-        }
-        .progress-track::before { content: '起始 ' attr(data-start); left: 0; transform: translateX(-10px); }
-        .progress-track::after { content: '目標 ' attr(data-target); right: 0; transform: translateX(10px); }
-        
-        .time-bar { background-color: #4caf50; height: 100%; width: 0%; transition: width 0.5s ease-in-out; border-radius: 15px 0 0 15px; }
-        .weight-icon { 
-            position: absolute; 
-            top: 50%; 
-            left: 0%; 
-            transform: translate(-50%, -50%); 
-            width: 32px; 
-            height: 32px; 
-            background-color: #3f51b5; /* Icon Background */
-            color: white;
-            border-radius: 50%; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 20px; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3); 
-            transition: left 0.5s ease-in-out; 
-            z-index: 2; /* 確保圖標在上方 */
-        }
-        
+        .progress-track { position: relative; background-color: #e0e0e0; border-radius: 15px; height: 25px; margin-top: 20px; border: 1px solid #ccc; overflow: hidden; }
+        .time-bar { background-color: #4caf50; height: 100%; width: 0%; transition: width 0.5s ease-in-out; }
+        .weight-icon { position: absolute; top: 50%; left: 0%; transform: translate(-50%, -50%); width: 32px; height: 32px; background-color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: left 0.5s ease-in-out; }
         .progress-details { display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.9em; color: #555; padding: 0 5px; flex-wrap: wrap; }
         #data-entry-form { background-color: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
         .form-row { display: flex; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 15px; }
@@ -127,7 +96,6 @@
     const CHALLENGE_TOTAL_DAYS = 100;
     const CHALLENGE_START_DATE_STRING = '2025-10-20T00:00:00'; 
     const CHALLENGE_START_DATE = new Date(CHALLENGE_START_DATE_STRING); 
-    // ✅ 新增體重目標常數
     const START_WEIGHT = 83.1;
     const TARGET_WEIGHT = 75.0;
 
@@ -148,8 +116,8 @@
             const response = await fetch('/api/getData?key=fitnessData');
             if (!response.ok) throw new Error('Failed to fetch fitnessData');
             const data = await response.json();
-            // KV 返回的數據可能是字串，確保解析為物件
-            return data && typeof data === 'string' ? JSON.parse(data) : (data || []); 
+            // KV 返回的數據已經是 JSON 格式（物件或陣列）
+            return data || []; 
         } catch (e) {
             console.error("Error reading from cloud:", e);
             alert("數據同步失敗，請檢查 Vercel KV 連線。");
@@ -424,7 +392,7 @@
             <h2>${statusText}</h2>
             <div class="progress-track" data-start="${START_WEIGHT.toFixed(1)}kg" data-target="${TARGET_WEIGHT.toFixed(1)}kg">
                 <div class="time-bar" style="width: ${progressPercent}%;"></div>
-                <div class="weight-icon" style="left: ${weightProgressPercent}%;">💪</div>
+                <div class="weight-icon" style="left: ${weightProgressPercent}%;">🏋️</div>
             </div>
             <div class="progress-details">
                 <span>當前體重: ${lastWeight.toFixed(1)}kg</span>
