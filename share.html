@@ -24,7 +24,7 @@
             padding: 25px;
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            margin-bottom: 5px;
+            margin-bottom: 5px; 
         }
         .page-navbar h1 { color: #1a237e; border-bottom: 2px solid #3f51b5; padding-bottom: 10px; margin-top: 0; }
         .page-navbar nav { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 0; }
@@ -41,33 +41,33 @@
             align-items: center;
         }
 
-        /* 核心修正: 按鈕群組的樣式 */
-        #top-download-group {
+        /* 日期選擇器樣式 */
+        #date-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
             width: 100%;
             max-width: 900px;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 20px;
             margin-bottom: 20px;
         }
-        .download-btn {
-            padding: 10px 20px;
-            font-size: 16px;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background-color: #4caf50;
-            color: white;
+        #date-controls button {
+            background: none;
             border: none;
-            border-radius: 8px;
+            font-size: 30px;
+            color: #3f51b5;
             cursor: pointer;
-            flex-grow: 1;
-            min-width: 250px;
+            padding: 0 10px;
+        }
+        #date-controls #current-date-display {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a237e;
+            margin: 0 15px;
         }
 
-        /* 圖片預覽區域樣式 */
+        /* 核心修正: 讓圖片和按鈕緊密結合 */
         .capture-wrapper {
-            margin-bottom: 10px; 
+            margin-bottom: 10px; /* 圖片區塊之間的間距 */
             width: 100%; 
             display: flex;
             flex-direction: column;
@@ -91,7 +91,17 @@
             background-size: cover;
             background-position: center;
         }
-        
+        .download-btn {
+            padding: 10px 20px;
+            font-size: 18px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 5px;
+        }
         #loading-text { font-size: 24px; font-family: -apple-system, sans-serif; }
 
         /* 圖一：體重紀錄 */
@@ -164,13 +174,13 @@
 
     <div id="loading-text">讀取今日紀錄中...</div>
 
-    <div id="top-download-group">
-        <button class="download-btn" onclick="downloadImage('capture-area-1', '百日計畫')">下載第一張圖 (體重)</button>
-        <button class="download-btn" onclick="downloadImage('capture-area-2', '飲食紀錄')">下載第二張圖 (飲食)</button>
-        <button class="download-btn" onclick="downloadImage('capture-area-3', '訓練紀錄')">下載第三張圖 (訓練)</button>
-    </div>
-
     <div class="capture-group">
+        <div id="date-controls">
+            <button onclick="changeDate(-1)">‹</button>
+            <span id="current-date-display"></span>
+            <button onclick="changeDate(1)">›</button>
+        </div>
+
         <div class="capture-wrapper" id="wrapper-1" style="display: none;">
             <div class="capture-area" id="capture-area-1">
                 <h1 id="weight-title">百日減脂計畫</h1>
@@ -178,6 +188,7 @@
                 <h2 id="weight-start"></h2>
                 <h2 id="weight-current"></h2>
             </div>
+            <button class="download-btn" onclick="downloadImage('capture-area-1', '百日計畫')">下載第一張圖</button>
         </div>
 
         <div class="capture-wrapper" id="wrapper-2" style="display: none;">
@@ -189,6 +200,7 @@
                 <div class="card-title" style="margin-top: 150px;">飲食紀錄</div>
                 <div class="card-content" id="diet-content"></div>
             </div>
+            <button class="download-btn" onclick="downloadImage('capture-area-2', '飲食紀錄')">下載第二張圖</button>
         </div>
 
         <div class="capture-wrapper" id="wrapper-3" style="display: none;">
@@ -200,6 +212,7 @@
                 <div class="card-title" style="margin-top: 150px;">今日運動</div>
                 <div class="card-content" id="workout-content"></div>
             </div>
+            <button class="download-btn" onclick="downloadImage('capture-area-3', '訓練紀錄')">下載第三張圖</button>
         </div>
     </div>
 
@@ -223,12 +236,15 @@
         sunday:    { name: "無碳日", protein: 160, carbs: 40,  fat: 98 },
     };
     const dayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    let allDataCache = {};
+    let currentDisplayDate = new Date();
 
-    function getTodayKey() {
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
+
+    // ✅ 獲取無時區的 YYYY-MM-DD 字符串 (統一格式)
+    function getFormattedDateString(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     }
     
@@ -241,61 +257,66 @@
         return `${date.getMonth() + 1}月${date.getDate()}日`;
     }
 
-    document.addEventListener('DOMContentLoaded', async () => {
-        const today = new Date();
-        today.setHours(0,0,0,0);
-        const todayKey = getTodayKey(); 
+    // 數據載入和渲染主函數
+    async function loadAndRenderData(date) {
+        const dateKey = getFormattedDateString(date);
         
-        let allData;
-        try {
-            const response = await fetch('/api/getAllData');
-            if (!response.ok) throw new Error('API request failed');
-            allData = await response.json();
-        } catch (error) {
-            document.getElementById('loading-text').textContent = '讀取雲端資料失敗！請重新整理。';
-            console.error(error);
-            allData = {}; 
+        // 確保顯示日期正確
+        document.getElementById('current-date-display').textContent = `${dateKey} (${getDayOfWeekStr(date)}.)`;
+        document.getElementById('loading-text').textContent = `正在讀取 ${dateKey} 的數據...`;
+        
+        // 讀取數據 (假設數據已緩存，如果沒有則從 API 獲取)
+        if (Object.keys(allDataCache).length === 0) {
+            try {
+                const response = await fetch('/api/getAllData');
+                if (!response.ok) throw new Error('API request failed');
+                const data = await response.json();
+                
+                // ✅ 核心修正：確保將 API 返回的 JSON 字符串轉換為 JavaScript 對象
+                allDataCache.fitnessData = data.fitnessData ? JSON.parse(data.fitnessData) : [];
+                allDataCache.dietLog = data.dietLog ? JSON.parse(data.dietLog) : {};
+                allDataCache.workoutLog = data.workoutLog ? JSON.parse(data.workoutLog) : {};
+            } catch (error) {
+                document.getElementById('loading-text').textContent = '讀取雲端資料失敗！請重新整理。';
+                console.error(error);
+                return;
+            }
         }
-
-        // ✅ 核心修正：確保將 API 返回的 JSON 字符串轉換為 JavaScript 對象
-        const fitnessData = allData.fitnessData ? JSON.parse(allData.fitnessData) : [];
-        const dietLog = allData.dietLog ? JSON.parse(allData.dietLog) : {};
-        const workoutLog = allData.workoutLog ? JSON.parse(allData.workoutLog) : {};
+        
+        const { fitnessData, dietLog, workoutLog } = allDataCache;
+        const today = new Date(); today.setHours(0,0,0,0);
 
 
         // --- 渲染圖一：體重 ---
-        const diffTime = today - CHALLENGE_START_DATE;
+        const diffTime = date - CHALLENGE_START_DATE;
         const challengeDayNum = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
         document.getElementById('weight-day').textContent = `第 ${challengeDayNum} 天`;
         
         // 1. 起始體重 (使用固定值)
         document.getElementById('weight-start').textContent = `起始體重 ${STARTING_WEIGHT.toFixed(1)} 公斤`;
         
-        // 2. 今日體重 (優先使用早上數據，否則使用最新數據)
-        const todayWeightEntries = fitnessData.filter(entry => entry.date === todayKey && entry.weight !== null);
-        const morningEntry = todayWeightEntries.find(entry => entry.time === 'morning');
-        const latestEntry = todayWeightEntries[todayWeightEntries.length - 1]; 
+        // 2. 今日體重 (獲取該日期最新的體重紀錄)
+        const dayWeightEntries = fitnessData.filter(entry => entry.date === dateKey && entry.weight !== null);
+        const latestEntry = dayWeightEntries[dayWeightEntries.length - 1]; 
 
         let currentWeightDisplay = '???';
-        if (morningEntry) {
-            currentWeightDisplay = morningEntry.weight.toFixed(1);
-        } else if (latestEntry) {
+        if (latestEntry) {
             currentWeightDisplay = latestEntry.weight.toFixed(1);
         } else {
-            // 如果沒有任何紀錄，則顯示起始體重
-            currentWeightDisplay = STARTING_WEIGHT.toFixed(1); 
+             // 如果當天沒有任何紀錄，顯示 ???
+             currentWeightDisplay = '???';
         }
 
         document.getElementById('weight-current').textContent = `今日體重 ${currentWeightDisplay} 公斤`;
 
         // --- 渲染圖二：飲食 ---
-        const dayOfWeekStr = getDayOfWeekStr(today);
-        const dateStr = getDateStr(today);
+        const dayOfWeekStr = getDayOfWeekStr(date);
+        const dateStr = getDateStr(date);
         document.getElementById('diet-day-of-week').textContent = `(${dayOfWeekStr}.)`;
         document.getElementById('diet-date').textContent = dateStr;
         
-        const planForDay = dietPlan[dayKeys[today.getDay()]];
-        const logsForDay = dietLog[todayKey] || [];
+        const planForDay = dietPlan[dayKeys[date.getDay()]];
+        const logsForDay = dietLog[dateKey] || [];
         const hasDietLogs = logsForDay.length > 0;
         
         // 數據計算
@@ -327,12 +348,12 @@
         document.getElementById('workout-date').textContent = dateStr;
 
         let workoutHTML = '';
-        const workoutDayKey = dayKeys[today.getDay()];
+        const workoutDayKey = dayKeys[date.getDay()];
         let hasWorkout = false;
         
         if(workoutLog && workoutLog[workoutDayKey]) {
             for (const exName in workoutLog[workoutDayKey]) {
-                const sets = workoutLog[workoutDayKey][exName][todayKey];
+                const sets = workoutLog[workoutDayKey][exName][dateKey];
                 if (sets && sets.length > 0) {
                     hasWorkout = true;
                     const weightSets = sets.filter(s => s.type === 'weight');
@@ -350,8 +371,12 @@
         }
         
         // 訓練數據覆蓋 (如果沒有實際紀錄，則使用您提供的 MOCK 數據)
-        if (!hasWorkout) {
-             workoutHTML = `<u class="blue">胸推</u> 16公斤 1組<br>`;
+        if (!hasWorkout && dateKey === getFormattedDateString(new Date())) { // 只在今天沒有紀錄時才顯示 '今日未記錄'
+             workoutHTML = '今日未記錄 ???';
+        } else if (!hasWorkout && dateKey !== getFormattedDateString(new Date())) {
+            workoutHTML = '當日無紀錄';
+        } else if (hasWorkout) {
+             // 確保即使有紀錄，也能正確顯示
         }
         
         document.getElementById('workout-content').innerHTML = workoutHTML;
@@ -361,10 +386,18 @@
         document.getElementById('wrapper-1').style.display = 'block';
         document.getElementById('wrapper-2').style.display = 'block';
         document.getElementById('wrapper-3').style.display = 'block';
-    });
+    }
+
+    function changeDate(days) {
+        const newDate = new Date(currentDisplayDate);
+        newDate.setDate(currentDisplayDate.getDate() + days);
+        currentDisplayDate = newDate;
+        loadAndRenderData(currentDisplayDate);
+    }
+
 
     function downloadImage(elementId, fileNamePrefix) {
-        const todayKey = getTodayKey();
+        const dateKey = getFormattedDateString(currentDisplayDate);
         const element = document.getElementById(elementId);
         
         element.style.transform = 'scale(1)';
@@ -375,13 +408,21 @@
             backgroundColor: null 
         }).then(canvas => {
             const link = document.createElement('a');
-            link.download = `${fileNamePrefix}_${todayKey}.png`;
+            link.download = `${fileNamePrefix}_${dateKey}.png`;
             link.href = canvas.toDataURL('image/png');
             link.click();
 
             element.style.transform = 'scale(0.5)';
         });
     }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // 頁面加載時，使用台灣時區的今天來初始化
+        const twDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+        currentDisplayDate = new Date(twDate.getFullYear(), twDate.getMonth(), twDate.getDate());
+        
+        loadAndRenderData(currentDisplayDate);
+    });
 </script>
 </body>
 </html>
