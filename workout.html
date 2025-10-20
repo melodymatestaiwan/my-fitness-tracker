@@ -97,7 +97,7 @@
         // 確保使用台灣時區 (UTC+8) 的日期
         const dateParts = today.toLocaleString('en-US', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).split('/');
         // 格式化為 YYYY-MM-DD 格式
-        return `${dateParts[2].split(' ')[0]}-${dateParts[0]}-${dateParts[1]}`;
+        return `${dateParts[2].split(',')[0].trim()}-${dateParts[0].trim()}-${dateParts[1].trim()}`;
     }
 
     function isWorkoutCompletedOnDate(dateString) {
@@ -124,7 +124,6 @@
     }
     
     function hasAnyWorkoutOnDate(dateString) {
-        // 遍歷所有星期的 log，檢查該日期是否有紀錄
         for (const key of dayKeys) {
             if (workoutLog[key]) {
                 for (const exName in workoutLog[key]) {
@@ -151,8 +150,7 @@
         titleEl.textContent = `本週訓練紀錄 (${monday.getMonth()+1}/${monday.getDate()} - ${sunday.getMonth()+1}/${sunday.getDate()})`;
 
         const today = new Date(); today.setHours(0, 0, 0, 0); 
-        // 使用修正後的日期字串來做比較
-        const todayString = getTodayKey();
+        const todayString = getTodayKey(); // 確保 TW 日期字串
         const CHALLENGE_START_DATE = new Date('2025-10-20T00:00:00');
 
         for (let i = 0; i < 7; i++) {
@@ -163,21 +161,20 @@
             const challengeDayText = (challengeDayNum > 0 && challengeDayNum <= 100) ? `第 ${challengeDayNum} 天` : (challengeDayNum < 1 ? '挑戰前' : '挑戰後');
             
             const dayDiv = document.createElement('div'); dayDiv.className = 'day';
-            // BUG FIX: 比較 dateString (UTC) 和 todayString (TW) 才能正確點亮 'today'
+            // BUG FIX: 使用 TW 日期字串來做比較
             if (dateString === todayString) { dayDiv.classList.add('today'); } 
             dayDiv.innerHTML = `<div class="day-date">${currentDate.getDate()}</div><div class="day-challenge-num">${challengeDayText}</div>`;
             
-            // 由於 currentDate 是 UTC 基準，我們需要用 todayString (TW) 來檢查紀錄
             if (currentDate <= today && currentDate >= CHALLENGE_START_DATE) {
                 const planForDay = workoutPlan[dayKeys[currentDate.getDay()]];
                 
                 if (isWorkoutCompletedOnDate(dateString)) {
-                    dayDiv.innerHTML += `<span class="checkmark green">✓</span>`; // 綠勾勾 (完成預設)
-                } else if (planForDay && planForDay.exercises.length === 0) { // 如果是休息日
+                    dayDiv.innerHTML += `<span class="checkmark green">✓</span>`;
+                } else if (planForDay && planForDay.exercises.length === 0) {
                     if (hasAnyWorkoutOnDate(dateString)) {
-                        dayDiv.innerHTML += `<span class="checkmark green">✓</span>`; // 綠勾勾 (休息日有運動)
+                        dayDiv.innerHTML += `<span class="checkmark green">✓</span>`;
                     } else {
-                        dayDiv.innerHTML += `<span class="checkmark yellow">🟡</span>`; // 黃勾勾 (真正休息)
+                        dayDiv.innerHTML += `<span class="checkmark yellow">🟡</span>`;
                     }
                 }
             }
