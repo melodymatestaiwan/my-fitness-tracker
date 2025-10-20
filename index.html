@@ -50,9 +50,9 @@
             <a href="index.html" class="active">數據追蹤</a>
             <a href="workout.html">今日課表</a>
             <a href="diet.html">飲食紀錄</a>
+            <a href="share.html">分享與成果</a>
         </nav>
         
-        <a href="share.html" style="display:block; text-align:center; padding:12px; background-color:#2196f3; color:white; border-radius:8px; text-decoration:none; font-size:18px; font-weight:bold; margin-bottom:20px;">一鍵生圖</a>
         <div id="countdown-container"></div>
 
         <div id="page-tracker">
@@ -99,6 +99,7 @@
     const CHALLENGE_START_DATE = new Date(CHALLENGE_START_DATE_STRING); 
 
     let myCharts = {};
+    let fitnessData = []; // 將數據初始化為空陣列，等待雲端載入
 
     function getFormattedDate(date) {
         const year = date.getFullYear();
@@ -107,24 +108,31 @@
         return `${year}-${month}-${day}`;
     }
     
-    // ---------------------- 資料存取與處理 ----------------------
-    function getData() {
+    // ---------------------- 資料存取與處理 (改為雲端存取) ----------------------
+    
+    async function getDataFromCloud() {
         try {
-            // ✅ 使用 localStorage 讀取數據 (您目前的版本)
-            const data = localStorage.getItem('fitnessData');
-            return data ? JSON.parse(data) : [];
+            const response = await fetch('/api/getData?key=fitnessData');
+            if (!response.ok) throw new Error('Failed to fetch fitnessData');
+            const data = await response.json();
+            // KV 返回的數據可能是字串，確保解析為物件
+            return data ? (typeof data === 'string' ? JSON.parse(data) : data) : [];
         } catch (e) {
-            console.error("Error reading from localStorage:", e);
+            console.error("Error reading from cloud:", e);
             return [];
         }
     }
 
-    function saveData(data) {
+    async function saveDataToCloud() {
         try {
-            // ✅ 使用 localStorage 儲存數據
-            localStorage.setItem('fitnessData', JSON.stringify(data));
+            await fetch('/api/setData', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key: 'fitnessData', value: fitnessData })
+            });
         } catch (e) {
-            console.error("Error writing to localStorage:", e);
+            console.error("Error writing to cloud:", e);
+            alert('數據儲存失敗！請檢查 Vercel KV 連線。');
         }
     }
 
@@ -140,7 +148,7 @@
             return;
         }
 
-        // ✅ 數據記憶: 保存本次輸入到 localStorage
+        // 數據記憶: 保存本次輸入到 localStorage
         const lastInputs = { weight, bodyfat, muscleMass };
         localStorage.setItem('lastFitnessInputs', JSON.stringify(lastInputs));
 
@@ -153,33 +161,34 @@
             timestamp: new Date().toISOString()
         };
 
-        let data = getData();
-        const existingIndex = data.findIndex(item => item.date === date && item.time === time);
+        // 從全域變數 fitnessData 獲取當前數據
+        const existingIndex = fitnessData.findIndex(item => item.date === date && item.time === time);
         if (existingIndex > -1) {
              // 確保保留舊的 timestamp，以維持原始數據表的順序
-             newData.timestamp = data[existingIndex].timestamp;
-             data[existingIndex] = newData;
+             newData.timestamp = fitnessData[existingIndex].timestamp;
+             fitnessData[existingIndex] = newData;
         } else {
-             data.push(newData);
+             fitnessData.push(newData);
         }
 
-        data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        fitnessData.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-        saveData(data);
+        await saveDataToCloud(); // 儲存到雲端
         alert('紀錄新增成功！');
 
-        init(); 
+        init(); // 重新載入數據並渲染所有組件
     }
 
-    function deleteData(timestamp) {
+    async function deleteData(timestamp) {
         if (!confirm('確定要刪除這筆紀錄嗎？')) return;
 
-        let data = getData();
-        const initialLength = data.length;
-        data = data.filter(item => item.timestamp !== timestamp);
+        const initialLength = fitnessData.length;
+        // 使用 timestamp 進行精確刪除
+        const updatedData = fitnessData.filter(item => item.timestamp !== timestamp);
+        fitnessData = updatedData;
 
-        if (data.length < initialLength) {
-            saveData(data);
+        if (fitnessData.length < initialLength) {
+            await saveDataToCloud(); // 儲存到雲端
             alert('紀錄刪除成功！');
             init(); 
         } else {
@@ -187,9 +196,8 @@
         }
     }
     
-    function editRawData(timestamp) {
-        let data = getData();
-        const entry = data.find(d => d.timestamp === timestamp);
+    async function editRawData(timestamp) {
+        const entry = fitnessData.find(d => d.timestamp === timestamp);
         if (!entry) { alert("找不到該紀錄"); return; }
         
         const newWeight = prompt("請輸入新的體重 (kg):", entry.weight);
@@ -209,7 +217,7 @@
         entry.bodyfat = bodyfat;
         entry.muscleMass = muscleMass;
         
-        saveData(data);
+        await saveDataToCloud(); // 儲存到雲端
         init();
     }
 
@@ -326,7 +334,7 @@
         if (myCharts['bodyfatChart']) myCharts['bodyfatChart'].destroy();
         if (myCharts['muscleMassChart']) myCharts['muscleMassChart'].destroy();
 
-        const rawData = getData();
+        const rawData = fitnessData; // 從全域變數獲取數據
         const aggregated = aggregateData(rawData, mode);
 
         // 繪製三個獨立圖表
@@ -378,7 +386,7 @@
     // ---------------------- 原始數據表格 ----------------------
 
     function renderRawDataTable() {
-        const data = getData();
+        const data = fitnessData; // 從全域變數獲取數據
         const tbody = document.querySelector('#raw-data-table tbody');
         tbody.innerHTML = '';
 
@@ -407,8 +415,11 @@
 
     // ---------------------- 初始化 ----------------------
 
-    function init() {
-        // ✅ 數據記憶: 載入上次輸入值並填入欄位
+    async function init() {
+        // 1. 從雲端載入數據到全域變數
+        fitnessData = await getDataFromCloud();
+
+        // 2. 數據記憶: 載入上次輸入值並填入欄位
         const lastInputs = JSON.parse(localStorage.getItem('lastFitnessInputs'));
         if (lastInputs) {
             document.getElementById('weight').value = lastInputs.weight || '';
@@ -418,6 +429,7 @@
         
         document.getElementById('entry-date').value = getFormattedDate(new Date());
         
+        // 3. 渲染所有組件
         updateCountdown();
         renderRawDataTable();
         renderAllCharts('daily');
@@ -427,4 +439,3 @@
 </script>
 </body>
 </html>
-
