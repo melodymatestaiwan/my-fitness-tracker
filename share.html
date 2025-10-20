@@ -41,12 +41,9 @@
             align-items: center;
         }
 
-        /* 縮排修正：修正圖片與按鈕的間距 */
+        /* 縮排修正：修正圖片預覽與下載按鈕之間的間隙 */
         .capture-wrapper {
-            margin-bottom: 5px; 
-            text-align: center;
-            /* 讓縮小的預覽圖置中，而不是偏左 */
-            margin-left: 0; 
+            margin-bottom: 10px; /* 增加底部間距 */
             width: 100%; 
             display: flex;
             flex-direction: column;
@@ -59,7 +56,7 @@
             padding: 80px;
             box-sizing: border-box;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            margin-bottom: 5px; /* 縮小與下載按鈕的間距 */
+            margin-bottom: 0; /* 移除與下載按鈕間的預設間距 */
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -79,7 +76,7 @@
             border: none;
             border-radius: 8px;
             cursor: pointer;
-            margin-top: 5px; /* 縮小與圖片的間距 */
+            margin-top: 5px; /* 縮小按鈕與圖片的間距 */
         }
         #loading-text { font-size: 24px; font-family: -apple-system, sans-serif; }
 
@@ -189,7 +186,6 @@
         </div>
     </div>
 
-
 <script>
     const CHALLENGE_START_DATE = new Date('2025-10-20T00:00:00');
     const dietPlan = {
@@ -203,10 +199,19 @@
     };
     const dayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 
+    // ✅ BUG FIX: 新的日期獲取函數，以確保在所有時區都能得到正確的 "今天" 字符串
+    function getTodayKey() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+    
     document.addEventListener('DOMContentLoaded', async () => {
         const today = new Date();
-        today.setHours(0,0,0,0);
-        const todayKey = today.toISOString().split('T')[0];
+        // 我們依賴 getTodayKey() 獲取無時區的日期字符串
+        const todayKey = getTodayKey(); 
         
         let allData;
         try {
@@ -222,22 +227,22 @@
 
         const { fitnessData = [], dietLog = {}, workoutLog = {} } = allData;
 
-        // --- 渲染圖一：體重 (BUG FIX: 確保數據被讀取) ---
+        // --- 渲染圖一：體重 (BUG FIX: 數據讀取邏輯) ---
         const diffTime = today - CHALLENGE_START_DATE;
         const challengeDayNum = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
         document.getElementById('weight-day').textContent = `第 ${challengeDayNum} 天`;
         
         // 找到挑戰開始日或之後的第一筆紀錄作為起始體重
         const startEntry = fitnessData.find(entry => new Date(entry.date) >= CHALLENGE_START_DATE);
-        const startWeight = startEntry ? startEntry.weight.toFixed(1) : '???';
+        const startWeight = startEntry && startEntry.weight !== null ? startEntry.weight.toFixed(1) : '???';
         document.getElementById('weight-start').textContent = `起始體重 ${startWeight} 公斤`;
         
         // 找到今日最新的體重紀錄 (只找今日數據的最後一筆)
-        const todayWeightEntries = fitnessData.filter(entry => entry.date === todayKey);
+        const todayWeightEntries = fitnessData.filter(entry => entry.date === todayKey && entry.weight !== null);
         const currentWeight = todayWeightEntries.length > 0 ? todayWeightEntries[todayWeightEntries.length - 1].weight.toFixed(1) : '???';
         document.getElementById('weight-current').textContent = `今日體重 ${currentWeight} 公斤`;
 
-        // --- 渲染圖二：飲食 (BUG FIX: 確保數據被讀取) ---
+        // --- 渲染圖二：飲食 (BUG FIX: 數據讀取邏輯) ---
         const dayOfWeekStr = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][today.getDay()];
         const dateStr = `${today.getMonth() + 1}月${today.getDate()}日`;
         document.getElementById('diet-day-of-week').textContent = `(${dayOfWeekStr}.)`;
@@ -261,7 +266,7 @@
             <div class="total-calories">總熱量 ${hasDietLogs ? currentCalories.toFixed(0) : '???'} 大卡</div>
         `;
 
-        // --- 渲染圖三：運動 (BUG FIX: 修正讀取路徑) ---
+        // --- 渲染圖三：運動 (BUG FIX: 數據讀取路徑) ---
         document.getElementById('workout-day-of-week').textContent = `(${dayOfWeekStr}.)`;
         document.getElementById('workout-date').textContent = dateStr;
 
@@ -270,7 +275,7 @@
         let hasWorkout = false;
         
         if(workoutLog && workoutLog[workoutDayKey]) {
-            // ✅ BUG FIX: 修正了讀取路徑，確保能正確找到訓練紀錄
+            // 遍歷該星期的所有訓練項目 (包括預設和自訂)
             for (const exName in workoutLog[workoutDayKey]) {
                 const sets = workoutLog[workoutDayKey][exName][todayKey]; // 正確路徑：workoutLog[dayKey][exerciseName][dateString]
                 if (sets && sets.length > 0) {
@@ -298,7 +303,7 @@
     });
 
     function downloadImage(elementId, fileNamePrefix) {
-        const todayKey = new Date().toISOString().split('T')[0];
+        const todayKey = getTodayKey();
         const element = document.getElementById(elementId);
         
         element.style.transform = 'scale(1)';
