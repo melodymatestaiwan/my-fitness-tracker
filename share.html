@@ -28,8 +28,8 @@
         }
         .page-navbar h1 { color: #1a237e; border-bottom: 2px solid #3f51b5; padding-bottom: 10px; margin-top: 0; }
         .page-navbar nav { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 0; }
-        .page-navbar nav a { text-decoration: none; flex-grow: 1; padding: 10px 15px; border: none; background-color: #e8eaf6; color: #3f51b5; cursor: pointer; border-radius: 5px; font-size: 16px; transition: background-color 0.3s; text-align: center; }
-        .page-navbar nav a.active { background-color: #3f51b5; color: white; font-weight: bold; }
+        nav a { text-decoration: none; flex-grow: 1; padding: 10px 15px; border: none; background-color: #e8eaf6; color: #3f51b5; cursor: pointer; border-radius: 5px; font-size: 16px; transition: background-color 0.3s; text-align: center; }
+        nav a.active { background-color: #3f51b5; color: white; font-weight: bold; }
         
         /* 圖片容器與按鈕的總區塊 */
         .capture-group {
@@ -67,7 +67,7 @@
 
         /* 核心修正: 讓圖片和按鈕緊密結合 */
         .capture-wrapper {
-            margin-bottom: 10px; 
+            margin-bottom: 10px; /* 圖片區塊之間的間距 */
             width: 100%; 
             display: flex;
             flex-direction: column;
@@ -280,9 +280,7 @@
         }
         
         const { fitnessData, dietLog, workoutLog } = allDataCache;
-        const today = new Date(); today.setHours(0,0,0,0);
-
-
+        
         // --- 渲染圖一：體重 ---
         const diffTime = date - CHALLENGE_START_DATE;
         const challengeDayNum = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
@@ -322,7 +320,7 @@
         const totals = logsForDay.reduce((acc, item) => { acc.protein += item.protein; acc.carbs += item.carbs; acc.fat += item.fat; return acc; }, { protein: 0, carbs: 0, fat: 0 });
         
         // 數據覆蓋 (如果沒有紀錄，則使用您提供的 MOCK 數據)
-        if (!hasDietLogs) {
+        if (!hasDietLogs && dateKey === getFormattedDateString(new Date())) { 
              totals.protein = MOCK_DIET_TOTALS.protein;
              totals.carbs = MOCK_DIET_TOTALS.carbs;
              totals.fat = MOCK_DIET_TOTALS.fat;
@@ -334,12 +332,12 @@
             <u class="orange plan-name">${planForDay.name}</u>
             <br>
             <br>
-            蛋白質: ${totals.protein.toFixed(0)} / ${planForDay.protein} 克
+            蛋白質: ${hasDietLogs ? totals.protein.toFixed(0) : '???'} / ${planForDay.protein} 克
             <br>
-            碳水化合物: ${totals.carbs.toFixed(0)} / ${planForDay.carbs} 克
+            碳水化合物: ${hasDietLogs ? totals.carbs.toFixed(0) : '???'} / ${planForDay.carbs} 克
             <br>
-            脂肪: ${totals.fat.toFixed(0)} / ${planForDay.fat} 克
-            <div class="total-calories">總熱量 ${currentCalories.toFixed(0)} 大卡</div>
+            脂肪: ${hasDietLogs ? totals.fat.toFixed(0) : '???'} / ${planForDay.fat} 克
+            <div class="total-calories">總熱量 ${hasDietLogs ? currentCalories.toFixed(0) : '???'} 大卡</div>
         `;
 
         // --- 渲染圖三：運動 ---
@@ -371,10 +369,8 @@
         
         // 訓練數據覆蓋 (如果沒有實際紀錄，則使用您提供的 MOCK 數據)
         if (!hasWorkout && dateKey === getFormattedDateString(new Date())) { 
-             // 只有今天沒有紀錄時，才顯示 MOCK 數據
              workoutHTML = `<u class="blue">胸推</u> 16公斤 1組<br>`;
         } else if (!hasWorkout && dateKey !== getFormattedDateString(new Date())) {
-            // 過去日期沒有紀錄，顯示 '當日無紀錄'
             workoutHTML = '當日無紀錄';
         }
         
@@ -392,6 +388,26 @@
         newDate.setDate(currentDisplayDate.getDate() + days);
         currentDisplayDate = newDate;
         loadAndRenderData(currentDisplayDate);
+    }
+
+    function downloadImage(elementId, fileNamePrefix) {
+        const dateKey = getFormattedDateString(currentDisplayDate);
+        const element = document.getElementById(elementId);
+        
+        element.style.transform = 'scale(1)';
+
+        html2canvas(element, { 
+            useCORS: true,
+            scale: 1, 
+            backgroundColor: null 
+        }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `${fileNamePrefix}_${dateKey}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+
+            element.style.transform = 'scale(0.5)';
+        });
     }
 
     document.addEventListener('DOMContentLoaded', () => {
