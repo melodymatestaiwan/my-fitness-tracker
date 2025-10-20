@@ -10,6 +10,7 @@
         h1, h2, h3 { color: #1a237e; }
         h1, h2 { border-bottom: 2px solid #3f51b5; padding-bottom: 10px; margin-top: 20px; }
         h1 { margin-top: 0; }
+        nav { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 5px; }
         nav a { text-decoration: none; flex-grow: 1; padding: 10px 15px; border: none; background-color: #e8eaf6; color: #3f51b5; cursor: pointer; border-radius: 5px; font-size: 16px; transition: background-color 0.3s; text-align: center; }
         nav a.active { background-color: #3f51b5; color: white; font-weight: bold; }
         #calendar-container { background-color: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 25px; }
@@ -87,12 +88,32 @@
     let lastWorkoutInputs = JSON.parse(localStorage.getItem('lastWorkoutInputs')) || {};
     let currentCalendarDate = new Date();
 
-    async function saveData(key, value) { try { await fetch('/api/setData', { method: 'POST', body: JSON.stringify({ key, value }) }); } catch (error) { console.error(`Failed to save ${key}:`, error); alert(`${key} 儲存失敗！`); } }
-    async function loadData(key) { try { const response = await fetch(`/api/getData?key=${key}`); const data = await response.json(); return data || {}; } catch (error) { console.error(`Failed to load ${key}:`, error); alert(`讀取雲端 ${key} 失敗！`); return {}; } }
+    async function saveData(key, value) { 
+        try { 
+            await fetch('/api/setData', { method: 'POST', body: JSON.stringify({ key, value }) }); 
+        } catch (error) { 
+            console.error(`Failed to save ${key}:`, error); 
+            // alert(`${key} 儲存失敗！`); // 移除 alert 以免影響用戶體驗
+        } 
+    }
+
+    async function loadData(key) { 
+        try { 
+            const response = await fetch(`/api/getData?key=${key}`); 
+            const data = await response.json(); 
+            // 由於 Vercel KV 讀取到的可能是 JSON 字串，我們需要確保它是物件
+            return data ? (typeof data === 'string' ? JSON.parse(data) : data) : {};
+        } catch (error) { 
+            console.error(`Failed to load ${key}:`, error); 
+            // alert(`讀取雲端 ${key} 失敗！`); 
+            return {}; 
+        } 
+    }
+    
     function saveLastWorkoutInputs() { localStorage.setItem('lastWorkoutInputs', JSON.stringify(lastWorkoutInputs)); }
     function getTodayKey() { return new Date().toISOString().split('T')[0]; }
 
-    // ✅ BUG FIX: isWorkoutCompletedOnDate 函數強化空值檢查
+    // ✅ MODIFIED: 修正了 isWorkoutCompletedOnDate 函數的邏輯，使其更健壯
     function isWorkoutCompletedOnDate(dateString) {
         const date = new Date(dateString + 'T00:00:00');
         const dayOfWeekKey = dayKeys[date.getDay()];
@@ -102,7 +123,7 @@
 
         for (const exerciseName of planForDay.exercises) {
             let hasLog = false;
-            // 強化空值檢查: 確保 workoutLog[dayOfWeekKey] 和 [exerciseName] 都存在
+            // 核心修正: 確保 workoutLog[dayOfWeekKey] 和 [exerciseName] 都存在且該日期有紀錄
             if (
                 workoutLog[dayOfWeekKey] && 
                 workoutLog[dayOfWeekKey][exerciseName] && 
@@ -127,7 +148,7 @@
         return false;
     }
     
-    // ✅ MODIFIED: renderWorkoutCalendar 函數，修正勾勾邏輯 (已在之前修復)
+    // ✅ MODIFIED: renderWorkoutCalendar 函數，修正勾勾邏輯
     function renderWorkoutCalendar(displayDate) {
         const titleEl = document.getElementById('calendar-title');
         const daysContainer = document.getElementById('calendar-days');
@@ -222,8 +243,23 @@
                 lastLogHTML = `<strong>上次紀錄 (${lastDate}):</strong> ${lastSets}`;
             }
             
-            let inputGroupsHTML = `<div class="input-set-group"><input type="number" id="weight-${dayKey}-${uniqueId}" placeholder="重量(kg)" value="${lastInput.weight || ''}"><input type="number" id="reps-${dayKey}-${uniqueId}" placeholder="次數" value="${lastInput.reps || ''}"><button onclick="addSet('${dayKey}', '${exerciseName}', 'weight')">新增組數</button></div>`;
-            if (isCustom) { inputGroupsHTML += `<div class="input-set-group"><input type="number" id="time-${dayKey}-${uniqueId}" placeholder="時間(分鐘)" value="${lastInput.duration || ''}"><button onclick="addSet('${dayKey}', '${exerciseName}', 'time')">新增時間</button></div>`; }
+            // 預設項目只顯示重量/次數
+            let inputGroupsHTML = `
+                <div class="input-set-group">
+                    <input type="number" id="weight-${dayKey}-${uniqueId}" placeholder="重量(kg)" value="${lastInput.weight || ''}">
+                    <input type="number" id="reps-${dayKey}-${uniqueId}" placeholder="次數" value="${lastInput.reps || ''}">
+                    <button onclick="addSet('${dayKey}', '${exerciseName}', 'weight')">新增組數</button>
+                </div>
+            `;
+            // 自訂項目加上時間選項
+            if (isCustom) {
+                inputGroupsHTML += `
+                    <div class="input-set-group">
+                        <input type="number" id="time-${dayKey}-${uniqueId}" placeholder="時間(分鐘)" value="${lastInput.duration || ''}">
+                        <button onclick="addSet('${dayKey}', '${exerciseName}', 'time')">新增時間</button>
+                    </div>
+                `;
+            }
 
             const card = document.createElement('div');
             card.className = 'exercise-card';
@@ -283,6 +319,7 @@
         const todayKey = getTodayKey();
         const wasCompleted = isWorkoutCompletedOnDate(todayKey);
         const wasActiveRest = hasAnyWorkoutOnDate(todayKey);
+
         if (!workoutLog[dayKey]) workoutLog[dayKey] = {};
         if (!workoutLog[dayKey][exerciseName]) workoutLog[dayKey][exerciseName] = {};
         if (!workoutLog[dayKey][exerciseName][todayKey]) { workoutLog[dayKey][exerciseName][todayKey] = []; }
@@ -295,4 +332,49 @@
             const reps = parseInt(repsInput.value);
             if (isNaN(weight) || isNaN(reps) || weight < 0 || reps <= 0) { alert('請輸入有效的重量和次數！'); return; }
             newSet = { type: 'weight', weight, reps };
-            lastWorkoutInputs[exerciseName] = { 
+            lastWorkoutInputs[exerciseName] = { ...lastWorkoutInputs[exerciseName], weight, reps };
+        } else { // type === 'time'
+            const timeInput = document.getElementById(`time-${dayKey}-${uniqueId}`);
+            const duration = parseInt(timeInput.value);
+            if (isNaN(duration) || duration <= 0) { alert('請輸入有效的時間(分鐘)！'); return; }
+            newSet = { type: 'time', duration };
+            lastWorkoutInputs[exerciseName] = { ...lastWorkoutInputs[exerciseName], duration };
+        }
+        
+        workoutLog[dayKey][exerciseName][todayKey].push(newSet);
+        saveLastWorkoutInputs();
+        await saveData('workoutLog', workoutLog);
+        
+        const isNowCompleted = isWorkoutCompletedOnDate(todayKey);
+        const isNowActiveRest = hasAnyWorkoutOnDate(todayKey);
+
+        if ((!wasCompleted && isNowCompleted) || (!wasActiveRest && isNowActiveRest)) {
+            renderWorkoutCalendar(currentCalendarDate);
+        }
+        renderDayContent(dayKey, document.getElementById(`content-workout-${dayKey}`));
+    }
+
+    async function deleteSet(dayKey, exerciseName, setIndex) {
+        const todayKey = getTodayKey();
+        const wasCompleted = isWorkoutCompletedOnDate(todayKey);
+        const wasActiveRest = hasAnyWorkoutOnDate(todayKey);
+
+        workoutLog[dayKey][exerciseName][todayKey].splice(setIndex, 1);
+        await saveData('workoutLog', workoutLog);
+
+        const isNowCompleted = isWorkoutCompletedOnDate(todayKey);
+        const isNowActiveRest = hasAnyWorkoutOnDate(todayKey);
+
+        if ((wasCompleted && !isNowCompleted) || (wasActiveRest && !isNowActiveRest)) {
+            renderWorkoutCalendar(currentCalendarDate);
+        }
+        renderDayContent(dayKey, document.getElementById(`content-workout-${dayKey}`));
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        workoutLog = await loadData('workoutLog');
+        initWorkoutPage();
+    });
+</script>
+</body>
+</html>
