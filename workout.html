@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>飲食紀錄 - 個人健身追蹤器</title>
+    <title>今日課表 - 個人健身追蹤器</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f0f2f5; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; }
         .container { width: 100%; max-width: 900px; background-color: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
@@ -13,85 +13,40 @@
         nav { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 5px; }
         nav a { text-decoration: none; flex-grow: 1; padding: 10px 15px; border: none; background-color: #e8eaf6; color: #3f51b5; cursor: pointer; border-radius: 5px; font-size: 16px; transition: background-color 0.3s; text-align: center; }
         nav a.active { background-color: #3f51b5; color: white; font-weight: bold; }
-        #diet-summary { background-color: #e8eaf6; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        .summary-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;}
-        .summary-header button { background: none; border: none; cursor: pointer; font-size: 28px; color: #3f51b5; padding: 0 10px; }
-        .summary-header .title-container { text-align: center; }
-        .summary-header #date-title { font-size: 1.3em; font-weight: bold; color: #1a237e; margin: 0; }
-        .summary-header #back-to-today-btn { font-size: 14px; background-color: #fff; border: 1px solid #3f51b5; border-radius: 15px; padding: 4px 12px; cursor: pointer; margin-top: 5px; }
-        .macros-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
-        .macro-item { text-align: center; }
-        .macro-item .label { font-size: 0.9em; color: #3f51b5; }
-        .macro-item .values { font-size: 1.2em; font-weight: bold; }
-        .progress-bar { background-color: #c5cae9; border-radius: 10px; height: 10px; margin-top: 5px; overflow: hidden; }
-        .progress-bar-inner { background-color: #3f51b5; height: 100%; width: 0%; transition: width 0.3s ease-in-out; }
-        .progress-bar-inner.over { background-color: #f44336; }
-        #favorite-foods-container { margin-bottom: 20px; background-color: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; }
-        #favorite-foods-container h3 { margin-top:0; }
-        .favorite-item-btn { background-color: #e0e0e0; color: #333; border: 1px solid #ccc; border-radius: 15px; padding: 5px 12px; margin: 3px; cursor: pointer; font-size: 14px; display: inline-flex; align-items: center;}
-        .favorite-item-btn:hover { background-color: #d0d0d0; }
-        .delete-fav-btn { color: #f44336; margin-left: 8px; font-weight: bold; cursor: pointer; }
-        .search-container { margin-bottom: 20px; }
-        .search-form { display: flex; gap: 10px; margin-bottom: 10px; }
-        .search-form input { flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
-        .search-form button { padding: 8px 15px; font-size: 14px; color: white; border: none; border-radius: 5px; cursor: pointer; white-space: nowrap; }
-        .search-form .local-search-btn { background-color: #3f51b5; }
-        .search-form .online-search-btn { background-color: #ff9800; }
-        .search-results { list-style: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; }
-        .search-results li { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; }
-        .search-results li:hover { background-color: #e8eaf6; }
-        .search-results li small { color: #666; display: block; }
-        
-        /* Desktop Grid Structure */
-        #diet-entry-form { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr 0.8fr 1fr auto auto; gap: 10px; align-items: center; margin-bottom: 20px; }
-        #diet-entry-form input, #diet-entry-form select { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; height: 40px; }
-        #diet-entry-form button { padding: 8px 15px; font-size: 14px; color: white; border: none; border-radius: 5px; cursor: pointer; white-space: nowrap; height: 40px;}
-        #add-diet-btn { background-color: #4caf50; }
-        #save-favorite-btn { background-color: #2196F3; }
-        #diet-log-container { list-style: none; padding: 0; }
-        .meal-group { margin-bottom: 20px; }
-        .meal-group h4 { margin: 0 0 10px 0; padding-bottom: 5px; border-bottom: 1px solid #eee; color: #555; display: flex; justify-content: space-between; align-items: center; }
-        .meal-group h4 .meal-calories { font-size: 0.9em; font-weight: normal; color: #1a237e; }
-        .log-header { font-weight: bold; color: #3f51b5; font-size: 0.9em; padding: 5px 0; border-bottom: 2px solid #e0e0e0; }
-        .diet-log-item { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
-        .diet-log-item:last-child { border-bottom: none; }
-        .diet-log-item span:first-child { font-weight: bold; }
-        .delete-diet-btn { background-color: #ffcdd2; color: #c62828; padding: 5px 10px; font-size: 12px; border: none; border-radius: 5px; cursor: pointer; }
-        
-        /* ✅ MODIFIED: 手機版優化 - 確保輸入框不會擠在一起 */
-        @media (max-width: 768px) {
-            /* 輸入表單調整為兩欄佈局 */
-            #diet-entry-form {
-                grid-template-columns: 1fr 1fr;
-                gap: 12px;
-            }
-            /* 食物名稱佔滿整行 */
-            #diet-entry-form #food-name {
-                grid-column: 1 / -1;
-            }
-            /* 調整營養素和份數的排列 */
-            #diet-entry-form #protein, #diet-entry-form #carbs,
-            #diet-entry-form #fat, #diet-entry-form #servings {
-                grid-column: auto; /* 允許正常兩欄排列 */
-            }
-            /* 餐別選擇和按鈕佔滿整行 */
-            #diet-entry-form #meal-type,
-            #diet-entry-form #add-diet-btn,
-            #diet-entry-form #save-favorite-btn {
-                grid-column: 1 / -1;
-            }
-            /* 讓按鈕在手機上變大、易於點擊 */
-            #diet-entry-form button {
-                width: 100%;
-                margin-top: 0;
-            }
-            /* 紀錄列表在手機上調整寬度 */
-            .diet-log-item, .log-header {
-                grid-template-columns: 2.5fr repeat(5, 1fr);
-                font-size: 0.8em; /* 稍微縮小字體 */
-                gap: 5px;
-            }
-        }
+        #calendar-container { background-color: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 25px; }
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .calendar-header button { background: none; border: none; cursor: pointer; font-size: 24px; color: #3f51b5; padding: 0 10px; }
+        #calendar-title { font-size: 1.2em; font-weight: bold; color: #1a237e; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
+        .calendar-grid .day-name { font-weight: bold; font-size: 0.9em; color: #555; padding-bottom: 5px; }
+        .calendar-grid .day { position: relative; padding: 8px 0; border-radius: 8px; transition: background-color 0.2s; border: 1px solid #ddd; }
+        .calendar-grid .day.today { border: 2px solid #3f51b5; background-color: #e8eaf6; }
+        .day .day-date { font-size: 1.2em; font-weight: bold; }
+        .day .day-challenge-num { font-size: 0.8em; color: #888; }
+        .day .checkmark { position: absolute; top: -2px; right: 2px; font-size: 1.5em; }
+        .day .checkmark.green { color: #4caf50; }
+        .day .checkmark.yellow { color: #FFC107; }
+        .workout-nav { display: flex; flex-wrap: wrap; gap: 5px; border-bottom: 2px solid #eee; margin-bottom: 20px; }
+        .workout-nav button { flex: 1; background-color: transparent; border: none; padding: 12px 5px; font-size: 14px; color: #555; border-bottom: 3px solid transparent; border-radius: 0; margin: 0; }
+        .workout-nav button.active { color: #3f51b5; border-bottom-color: #3f51b5; font-weight: bold; }
+        .workout-day-content { display: none; } .workout-day-content.active { display: block; }
+        .exercise-card { background-color: #fdfdfd; border: 1px solid #eaeaea; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+        .exercise-card h3 { margin-top: 0; margin-bottom: 10px; font-size: 1.2em; color: #333; display: flex; justify-content: space-between; align-items: center; }
+        .delete-custom-btn { color: #f44336; font-size: 1.2em; font-weight: bold; cursor: pointer; padding: 0 5px; }
+        .last-log { background-color: #f0f2f5; border-radius: 5px; padding: 8px; margin-bottom: 15px; font-size: 0.9em; color: #666; }
+        .last-log strong { color: #1a237e; }
+        .sets-log-today { margin-top: 10px; font-size: 0.95em; }
+        .set-item { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
+        .set-item span { background-color: #e8eaf6; padding: 3px 8px; border-radius: 12px; font-weight: bold; }
+        .set-item .delete-set-btn { background: #ffcdd2; color: #c62828; border: none; border-radius: 50%; cursor: pointer; width: 24px; height: 24px; font-weight: bold; line-height: 24px; padding: 0; }
+        .input-set-group { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; border-top: 1px dashed #ccc; padding-top: 15px; margin-top: 15px; }
+        .input-set-group:first-of-type { border-top: none; }
+        .input-set-group input { width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; flex-grow: 1; }
+        .input-set-group button { padding: 8px 15px; font-size: 14px; background-color: #4caf50; color: white; border: none; border-radius: 5px; cursor: pointer;}
+        .rest-day-message { text-align: center; padding: 20px; font-size: 1.2em; color: #888; }
+        .add-exercise-form { display: flex; gap: 10px; margin-top: 25px; padding: 15px; background-color: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; }
+        .add-exercise-form input { flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        .add-exercise-form button { background-color: #2196F3; white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -99,303 +54,279 @@
         <h1>個人健身追蹤器</h1>
         <nav>
             <a href="index.html">數據追蹤</a>
-            <a href="workout.html">今日課表</a>
-            <a href="diet.html" class="active">飲食紀錄</a>
+            <a href="workout.html" class="active">今日課表</a>
+            <a href="diet.html">飲食紀錄</a>
         </nav>
-        <div id="page-diet">
-            <h2>飲食紀錄</h2>
-            <div id="diet-summary">
-                <div class="summary-header">
-                    <button id="prev-day-btn">‹</button>
-                    <div class="title-container">
-                        <h3 id="date-title"></h3>
-                        <button id="back-to-today-btn">返回今天</button>
-                    </div>
-                    <button id="next-day-btn">›</button>
-                </div>
-                <div class="macros-grid" id="macros-grid-container"></div>
-            </div>
-            
-            <div id="favorite-foods-container">
-                <h3>我的常用食物</h3>
-                <div id="favorite-foods-list">讀取中...</div>
-            </div>
 
-            <div class="search-container">
-                <h3>搜尋食物</h3>
-                <div class="search-form">
-                    <input type="text" id="food-search-input" placeholder="載入資料庫中..." disabled>
-                    <button class="local-search-btn" onclick="searchLocalFood()">搜尋在地食物</button>
-                    <button class="online-search-btn" onclick="searchOnlineFood()">線上搜尋加工品</button>
+        <div id="page-checklist">
+            <h2>我的課表</h2>
+            <div id="calendar-container">
+                <div class="calendar-header">
+                    <button id="prev-week-btn">‹</button>
+                    <h3 id="calendar-title"></h3>
+                    <button id="next-week-btn">›</button>
                 </div>
-                <ul class="search-results" id="search-results"></ul>
+                <div class="calendar-grid" id="calendar-weekdays"></div>
+                <div class="calendar-grid" id="calendar-days"></div>
             </div>
-
-            <h3 id="entry-form-title">新增食物</h3>
-            <div id="diet-entry-form">
-                <input type="text" id="food-name" placeholder="食物名稱">
-                <input type="number" id="protein" placeholder="蛋白質(g)">
-                <input type="number" id="carbs" placeholder="碳水(g)">
-                <input type="number" id="fat" placeholder="脂肪(g)">
-                <input type="number" id="servings" value="1" step="0.1" placeholder="份數">
-                <select id="meal-type">
-                    <option value="breakfast">早餐</option>
-                    <option value="lunch">午餐</option>
-                    <option value="dinner">晚餐</option>
-                    <option value="snack">點心</option>
-                </select>
-                <button id="add-diet-btn" onclick="addDietLog()">新增</button>
-                <button id="save-favorite-btn" onclick="saveFavoriteFood()">⭐ 存為常用</button>
-            </div>
-            <h3 id="log-list-title">今日紀錄列表</h3>
-            <div id="diet-log-container"></div>
+            <div class="workout-nav" id="workout-nav"></div>
+            <div id="workout-content-container"></div>
         </div>
     </div>
 
 <script>
-    let foodDatabase = [];
-    const dietPlan = {
-        monday:    { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
-        tuesday:   { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
-        wednesday: { name: "高碳日", protein: 160, carbs: 230, fat: 51 },
-        thursday:  { name: "無碳日", protein: 160, carbs: 40,  fat: 98 },
-        friday:    { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
-        saturday:  { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
-        sunday:    { name: "無碳日", protein: 160, carbs: 40,  fat: 98 },
+    const workoutPlan = {
+        monday: { dayName: "星期一：胸部訓練", exercises: ["地板啞鈴胸推", "上斜啞鈴胸推 (地板式)", "啞鈴Squeeze握推", "臀橋式啞鈴胸推", "窄距/鑽石伏地挺身"] },
+        tuesday: { dayName: "星期二：背部訓練", exercises: ["單臂啞鈴划船", "啞鈴上拉 (Dumbbell Pullover)", "俯身啞鈴划船 (雙手)", "鳥狗式"] },
+        wednesday: { dayName: "星期三：腿部訓練", exercises: ["保加利亞分腿蹲", "高腳杯箱式深蹲", "啞鈴負重臀橋", "站姿啞鈴提踵"] },
+        thursday: { dayName: "星期四：休息日", exercises: [] },
+        friday: { dayName: "星期五：肩部訓練", exercises: ["坐姿啞鈴肩推", "超級組：坐姿啞鈴側平舉 + 坐姿啞鈴前平舉", "俯身啞鈴反向飛鳥", "啞鈴聳肩"] },
+        saturday: { dayName: "星期六：手臂訓練", exercises: ["超級組：啞鈴二頭彎舉 + 坐姿過頭三頭伸展", "超級組：啞鈴鎚式彎舉 + 啞鈴頸後臂屈伸", "超級組：集中彎舉 + 窄距伏地挺身"] },
+        sunday: { dayName: "星期日：休息日", exercises: [] },
     };
     const dayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-    let dietLog = {};
-    let favoriteFoods = [];
-    let currentDisplayDate = new Date();
+    let workoutLog = {};
+    let lastWorkoutInputs = JSON.parse(localStorage.getItem('lastWorkoutInputs')) || {};
+    let currentCalendarDate = new Date();
 
     async function saveData(key, value) { try { await fetch('/api/setData', { method: 'POST', body: JSON.stringify({ key, value }) }); } catch (error) { console.error(`Failed to save ${key}:`, error); alert(`${key} 儲存失敗！`); } }
-    async function loadData(key) { try { const response = await fetch(`/api/getData?key=${key}`); const data = await response.json(); return data || (key === 'favoriteFoods' ? [] : {}); } catch (error) { console.error(`Failed to load ${key}:`, error); alert(`讀取雲端 ${key} 失敗！`); return (key === 'favoriteFoods' ? [] : {}); } }
+    async function loadData(key) { try { const response = await fetch(`/api/getData?key=${key}`); const data = await response.json(); return data || {}; } catch (error) { console.error(`Failed to load ${key}:`, error); alert(`讀取雲端 ${key} 失敗！`); return {}; } }
+    function saveLastWorkoutInputs() { localStorage.setItem('lastWorkoutInputs', JSON.stringify(lastWorkoutInputs)); }
+    function getTodayKey() { return new Date().toISOString().split('T')[0]; }
     
-    function formatDate(date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    }
-
-    async function addDietLog() {
-        const dateKey = formatDate(currentDisplayDate);
-        const name = document.getElementById('food-name').value;
-        const protein = parseFloat(document.getElementById('protein').value) || 0;
-        const carbs = parseFloat(document.getElementById('carbs').value) || 0;
-        const fat = parseFloat(document.getElementById('fat').value) || 0;
-        const servings = parseFloat(document.getElementById('servings').value) || 1;
-        const meal = document.getElementById('meal-type').value;
-        if (!name) { alert('請輸入品項名稱！'); return; }
-        if (!dietLog[dateKey]) { dietLog[dateKey] = []; }
-        dietLog[dateKey].push({ name: `${name} (${(servings * 100).toFixed(0)}g)`, protein: protein * servings, carbs: carbs * servings, fat: fat * servings, meal: meal });
-        await saveData('dietLog', dietLog);
-        renderPageForDate(currentDisplayDate);
-        document.getElementById('food-name').value = ''; document.getElementById('protein').value = '';
-        document.getElementById('carbs').value = ''; document.getElementById('fat').value = '';
-        document.getElementById('servings').value = '1'; document.getElementById('food-name').focus();
-    }
-
-    async function deleteDietLog(index) {
-        const dateKey = formatDate(currentDisplayDate);
-        dietLog[dateKey].splice(index, 1);
-        await saveData('dietLog', dietLog);
-        renderPageForDate(currentDisplayDate);
-    }
-    
-    async function saveFavoriteFood() {
-        const name = document.getElementById('food-name').value.trim();
-        const protein = parseFloat(document.getElementById('protein').value) || 0;
-        const carbs = parseFloat(document.getElementById('carbs').value) || 0;
-        const fat = parseFloat(document.getElementById('fat').value) || 0;
-        if (!name) { alert('請先輸入或搜尋食物名稱！'); return; }
-        const existingIndex = favoriteFoods.findIndex(f => f.name === name);
-        if (existingIndex > -1) { favoriteFoods[existingIndex] = { name, protein, carbs, fat }; } else { favoriteFoods.push({ name, protein, carbs, fat }); }
-        await saveData('favoriteFoods', favoriteFoods);
-        renderFavoriteFoods();
-        alert(`"${name}" 已儲存至常用食物！`);
-    }
-
-    async function deleteFavoriteFood(index) {
-        if (confirm(`確定要從常用清單中刪除 "${favoriteFoods[index].name}" 嗎？`)) {
-            favoriteFoods.splice(index, 1);
-            await saveData('favoriteFoods', favoriteFoods);
-            renderFavoriteFoods();
-        }
-    }
-
-    function renderFavoriteFoods() {
-        const listContainer = document.getElementById('favorite-foods-list');
-        listContainer.innerHTML = '';
-        if (favoriteFoods.length === 0) { listContainer.innerHTML = '尚無常用食物...'; return; }
-        favoriteFoods.forEach((food, index) => {
-            const btn = document.createElement('button');
-            btn.className = 'favorite-item-btn';
-            btn.textContent = food.name;
-            btn.onclick = () => {
-                document.getElementById('food-name').value = food.name;
-                document.getElementById('protein').value = food.protein;
-                document.getElementById('carbs').value = food.carbs;
-                document.getElementById('fat').value = food.fat;
-                document.getElementById('servings').value = '1';
-            };
-            const delBtn = document.createElement('span');
-            delBtn.className = 'delete-fav-btn';
-            delBtn.textContent = 'x';
-            delBtn.onclick = (e) => { e.stopPropagation(); deleteFavoriteFood(index); };
-            btn.appendChild(delBtn);
-            listContainer.appendChild(btn);
-        });
-    }
-
-    function renderPageForDate(date) {
-        renderDietSummary(date);
-        renderDietLogList(date);
-    }
-    
-    function renderDietSummary(date) {
-        const dateTitleEl = document.getElementById('date-title');
-        const macrosContainer = document.getElementById('macros-grid-container');
-        const dateKey = formatDate(date);
-        const dayOfWeek = date.getDay();
-        const planForDay = dietPlan[dayKeys[dayOfWeek]];
-        const todayKey = formatDate(new Date());
-        let dateString = `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
-        if (dateKey === todayKey) { dateString = "今天"; }
-        dateTitleEl.innerHTML = `${dateString} (${planForDay.name})`;
-        const logsForDay = dietLog[dateKey] || [];
-        const totals = logsForDay.reduce((acc, item) => { acc.protein += item.protein; acc.carbs += item.carbs; acc.fat += item.fat; return acc; }, { protein: 0, carbs: 0, fat: 0 });
-        const currentCalories = (totals.protein * 4) + (totals.carbs * 4) + (totals.fat * 9);
-        const targetCalories = (planForDay.protein * 4) + (planForDay.carbs * 4) + (planForDay.fat * 9);
-        macrosContainer.innerHTML = `
-            ${createMacroItemHTML('蛋白質', totals.protein, planForDay.protein, '克')}
-            ${createMacroItemHTML('碳水化合物', totals.carbs, planForDay.carbs, '克')}
-            ${createMacroItemHTML('脂肪', totals.fat, planForDay.fat, '克')}
-            ${createMacroItemHTML('總熱量', currentCalories, targetCalories, '大卡')}
-        `;
-    }
-
-    function createMacroItemHTML(name, current, target, unit = '克') { const percentage = target > 0 ? (current / target) * 100 : 0; const isOver = current > target; const displayCurrent = (unit === '大卡') ? Math.round(current) : current.toFixed(1); const displayTarget = (unit === '大卡') ? `~${Math.round(target)}` : target; return `<div class="macro-item"><div class="label">${name} (${unit})</div><div class="values">${displayCurrent} / ${displayTarget}</div><div class="progress-bar"><div class="progress-bar-inner ${isOver ? 'over' : ''}" style="width: ${Math.min(percentage, 100)}%;"></div></div></div>`; }
-    
-    function renderDietLogList(date) {
-        const container = document.getElementById('diet-log-container');
-        const listTitle = document.getElementById('log-list-title');
-        const dateKey = formatDate(date);
-        const todayKey = formatDate(new Date());
-        listTitle.textContent = (dateKey === todayKey) ? "今日紀錄列表" : `${dateKey} 的紀錄列表`;
-        container.innerHTML = '';
-        const logsForDay = dietLog[dateKey] || [];
-        if (logsForDay.length === 0) { container.innerHTML = '尚無紀錄...'; return; }
-        const groupedMeals = { breakfast: [], lunch: [], dinner: [], snack: [], uncategorized: [] };
-        logsForDay.forEach((item, index) => {
-            const itemWithIndex = { ...item, originalIndex: index };
-            const mealType = item.meal || 'uncategorized';
-            groupedMeals[mealType].push(itemWithIndex);
-        });
-        const mealOrder = ['breakfast', 'lunch', 'dinner', 'snack', 'uncategorized'];
-        const mealNames = { breakfast: '早餐', lunch: '午餐', dinner: '晚餐', snack: '點心', uncategorized: '未分類'};
-        let hasContent = false;
-        mealOrder.forEach(mealKey => {
-            const items = groupedMeals[mealKey];
-            if (items.length > 0) {
-                hasContent = true;
-                const mealGroupDiv = document.createElement('div');
-                mealGroupDiv.className = 'meal-group';
-                let mealTotalCalories = 0;
-                let groupItemsHTML = `
-                    <div class="diet-log-item log-header">
-                        <span></span>
-                        <span>蛋白質</span>
-                        <span>碳水</span>
-                        <span>脂肪</span>
-                        <span>熱量</span>
-                        <span></span>
-                    </div>
-                `;
-                items.forEach(item => {
-                    const itemCalories = (item.protein * 4) + (item.carbs * 4) + (item.fat * 9);
-                    mealTotalCalories += itemCalories;
-                    groupItemsHTML += `
-                        <div class="diet-log-item">
-                            <span>${item.name}</span>
-                            <span>${item.protein.toFixed(1)}</span>
-                            <span>${item.carbs.toFixed(1)}</span>
-                            <span>${item.fat.toFixed(1)}</span>
-                            <span>${itemCalories.toFixed(0)}</span>
-                            <button class="delete-diet-btn" onclick="deleteDietLog(${item.originalIndex})">刪除</button>
-                        </div>
-                    `;
-                });
-                mealGroupDiv.innerHTML = `<h4>${mealNames[mealKey]}<span class="meal-calories">總計: ${Math.round(mealTotalCalories)} 大卡</span></h4>` + groupItemsHTML;
-                container.appendChild(mealGroupDiv);
+    function isWorkoutCompletedOnDate(dateString) {
+        const date = new Date(dateString + 'T00:00:00');
+        const dayOfWeekKey = dayKeys[date.getDay()];
+        const planForDay = workoutPlan[dayOfWeekKey];
+        if (!planForDay || planForDay.exercises.length === 0) { return false; }
+        for (const exerciseName of planForDay.exercises) {
+            let hasLog = false;
+            if (workoutLog[dayOfWeekKey] && workoutLog[dayOfWeekKey][exerciseName] && workoutLog[dayOfWeekKey][exerciseName][dateString] && workoutLog[dayOfWeekKey][exerciseName][dateString].length > 0) {
+                hasLog = true;
             }
+            if (!hasLog) { return false; }
+        }
+        return true;
+    }
+    
+    function hasAnyWorkoutOnDate(dateString) {
+        for (const dayKey in workoutLog) {
+            for (const exName in workoutLog[dayKey]) {
+                if (workoutLog[dayKey][exName][dateString] && workoutLog[dayKey][exName][dateString].length > 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    
+    function renderWorkoutCalendar(displayDate) {
+        const titleEl = document.getElementById('calendar-title');
+        const daysContainer = document.getElementById('calendar-days');
+        const weekdaysContainer = document.getElementById('calendar-weekdays');
+        daysContainer.innerHTML = ''; weekdaysContainer.innerHTML = '';
+        const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
+        weekdays.forEach(day => { weekdaysContainer.innerHTML += `<div class="day-name">${day}</div>`; });
+        
+        let dayOfWeek = displayDate.getDay();
+        if (dayOfWeek === 0) dayOfWeek = 7;
+        const monday = new Date(displayDate);
+        monday.setDate(displayDate.getDate() - (dayOfWeek - 1));
+        monday.setHours(0, 0, 0, 0);
+
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        titleEl.textContent = `本週訓練紀錄 (${monday.getMonth()+1}/${monday.getDate()} - ${sunday.getMonth()+1}/${sunday.getDate()})`;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayString = today.toISOString().split('T')[0];
+        const CHALLENGE_START_DATE = new Date('2025-10-20T00:00:00');
+
+        for (let i = 0; i < 7; i++) {
+            const currentDate = new Date(monday);
+            currentDate.setDate(monday.getDate() + i);
+            const dateString = currentDate.toISOString().split('T')[0];
+            const diffTime = currentDate - CHALLENGE_START_DATE;
+            const challengeDayNum = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            const challengeDayText = (challengeDayNum > 0 && challengeDayNum <= 100) ? `第 ${challengeDayNum} 天` : (challengeDayNum < 1 ? '挑戰前' : '挑戰後');
+            
+            const dayDiv = document.createElement('div');
+            dayDiv.className = 'day';
+            if (dateString === todayString) { dayDiv.classList.add('today'); }
+            dayDiv.innerHTML = `<div class="day-date">${currentDate.getDate()}</div><div class="day-challenge-num">${challengeDayText}</div>`;
+            
+            if (currentDate <= today && currentDate >= CHALLENGE_START_DATE) {
+                const planForDay = workoutPlan[dayKeys[currentDate.getDay()]];
+                if (isWorkoutCompletedOnDate(dateString)) {
+                    dayDiv.innerHTML += `<span class="checkmark green">✓</span>`;
+                } else if (planForDay && planForDay.exercises.length === 0) {
+                    if (hasAnyWorkoutOnDate(dateString)) {
+                        dayDiv.innerHTML += `<span class="checkmark green">✓</span>`;
+                    } else {
+                        dayDiv.innerHTML += `<span class="checkmark yellow">✓</span>`;
+                    }
+                }
+            }
+            daysContainer.appendChild(dayDiv);
+        }
+    }
+
+    function initWorkoutPage() {
+        renderWorkoutCalendar(currentCalendarDate);
+        document.getElementById('prev-week-btn').onclick = () => { currentCalendarDate.setDate(currentCalendarDate.getDate() - 7); renderWorkoutCalendar(currentCalendarDate); };
+        document.getElementById('next-week-btn').onclick = () => { currentCalendarDate.setDate(currentCalendarDate.getDate() + 7); renderWorkoutCalendar(currentCalendarDate); };
+        const navContainer = document.getElementById('workout-nav');
+        const contentContainer = document.getElementById('workout-content-container');
+        navContainer.innerHTML = ''; contentContainer.innerHTML = '';
+        Object.entries(workoutPlan).forEach(([key, value]) => {
+            const btn = document.createElement('button'); btn.id = `btn-workout-${key}`; btn.textContent = value.dayName.split('：')[0]; btn.onclick = () => showWorkoutDay(key); navContainer.appendChild(btn);
+            const contentDiv = document.createElement('div'); contentDiv.id = `content-workout-${key}`; contentDiv.className = 'workout-day-content'; contentContainer.appendChild(contentDiv);
         });
-        if (!hasContent) { container.innerHTML = '尚無紀錄...'; }
+        const todayDate = new Date(); const todayInTaiwan = new Date(todayDate.toLocaleString("en-US", {timeZone: "Asia/Taipei"}));
+        const currentDayKey = dayKeys[todayInTaiwan.getDay()];
+        showWorkoutDay(currentDayKey);
     }
     
-    function searchLocalFood() {
-        const searchInput = document.getElementById('food-search-input');
-        if (foodDatabase.length === 0) { alert('在地食物資料庫仍在載入中，請稍候...'); return; }
-        const query = searchInput.value.trim();
-        if (!query) { return; }
-        const results = foodDatabase.filter(food => food.name.includes(query));
-        displaySearchResults(results, 'local');
+    function showWorkoutDay(dayKey) {
+        document.querySelectorAll('.workout-nav button').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.workout-day-content').forEach(div => div.classList.remove('active'));
+        document.getElementById(`btn-workout-${dayKey}`).classList.add('active');
+        const contentDiv = document.getElementById(`content-workout-${dayKey}`);
+        contentDiv.classList.add('active');
+        renderDayContent(dayKey, contentDiv);
     }
     
-    async function searchOnlineFood() {
-        const query = document.getElementById('food-search-input').value.trim();
-        const resultsList = document.getElementById('search-results');
-        if (!query) return;
-        resultsList.innerHTML = '<li>線上搜尋中...</li>';
-        try {
-            const response = await fetch(`/api/openfoodfacts?food=${encodeURIComponent(query)}`);
-            if (!response.ok) { throw new Error('Network response was not ok'); }
-            const foods = await response.json();
-            displaySearchResults(foods, 'online');
-        } catch (error) {
-            console.error('Error fetching online food data:', error);
-            resultsList.innerHTML = '<li>線上搜尋失敗，請稍後再試。</li>';
+    function renderDayContent(dayKey, container) {
+        container.innerHTML = '';
+        const dayData = workoutPlan[dayKey];
+        const todayKey = getTodayKey();
+        const exercisesToShow = new Set(dayData.exercises);
+        if (workoutLog[dayKey]) { for (const exName in workoutLog[dayKey]) { if (workoutLog[dayKey][exName][todayKey]) { exercisesToShow.add(exName); } } }
+        const exerciseList = Array.from(exercisesToShow);
+        
+        if (exerciseList.length === 0 && dayData.exercises.length === 0) { container.innerHTML = `<div class="rest-day-message">今天是休息日，但您仍可以新增活動紀錄。</div>`; }
+        
+        exerciseList.forEach((exerciseName) => {
+            const uniqueId = exerciseName.replace(/[\s\W]/g, '-');
+            const isCustom = !dayData.exercises.includes(exerciseName);
+            if (!workoutLog[dayKey]) workoutLog[dayKey] = {};
+            if (!workoutLog[dayKey][exerciseName]) workoutLog[dayKey][exerciseName] = {};
+            const exerciseLogs = workoutLog[dayKey][exerciseName];
+            const todayLogs = exerciseLogs[todayKey] || [];
+            const lastInput = lastWorkoutInputs[exerciseName] || {};
+            const logDates = Object.keys(exerciseLogs).filter(date => date !== todayKey).sort().reverse();
+            let lastLogHTML = '<strong>上次紀錄:</strong> 尚無紀錄';
+            if (logDates.length > 0) {
+                const lastDate = logDates[0];
+                const lastSets = exerciseLogs[lastDate].map(set => (set.type === 'time') ? `${set.duration} 分鐘` : `${set.weight}kg x ${set.reps}次`).join(' / ');
+                lastLogHTML = `<strong>上次紀錄 (${lastDate}):</strong> ${lastSets}`;
+            }
+            
+            let inputGroupsHTML = `<div class="input-set-group"><input type="number" id="weight-${dayKey}-${uniqueId}" placeholder="重量(kg)" value="${lastInput.weight || ''}"><input type="number" id="reps-${dayKey}-${uniqueId}" placeholder="次數" value="${lastInput.reps || ''}"><button onclick="addSet('${dayKey}', '${exerciseName}', 'weight')">新增組數</button></div>`;
+            if (isCustom) { inputGroupsHTML += `<div class="input-set-group"><input type="number" id="time-${dayKey}-${uniqueId}" placeholder="時間(分鐘)" value="${lastInput.duration || ''}"><button onclick="addSet('${dayKey}', '${exerciseName}', 'time')">新增時間</button></div>`; }
+
+            const card = document.createElement('div');
+            card.className = 'exercise-card';
+            const deleteBtnHTML = isCustom ? `<span class="delete-custom-btn" onclick="deleteCustomExercise('${dayKey}', '${exerciseName}')">×</span>` : '';
+            card.innerHTML = `<h3><span>${exerciseName} ${isCustom ? '<span style="color:#ff9800; font-size:0.8em;">(自訂)</span>' : ''}</span> ${deleteBtnHTML}</h3><div class="last-log">${lastLogHTML}</div><div class="sets-log-today" id="sets-today-${uniqueId}"></div>${inputGroupsHTML}`;
+            container.appendChild(card);
+            renderTodaySets(dayKey, exerciseName, uniqueId, todayLogs);
+        });
+
+        const addForm = document.createElement('div');
+        addForm.className = 'add-exercise-form';
+        addForm.innerHTML = `<input type="text" id="new-exercise-input-${dayKey}" placeholder="輸入新的運動名稱..."><button onclick="addCustomExercise('${dayKey}')">✚ 新增自訂項目</button>`;
+        container.appendChild(addForm);
+    }
+
+    function renderTodaySets(dayKey, exerciseName, uniqueId, sets) {
+        const container = document.getElementById(`sets-today-${uniqueId}`);
+        container.innerHTML = '<strong>今日紀錄:</strong>';
+        if (!sets || sets.length === 0) { container.innerHTML += ' 尚未記錄'; return; }
+        sets.forEach((set, setIndex) => {
+            const setEl = document.createElement('div');
+            setEl.className = 'set-item';
+            const setText = (set.type === 'time') ? `${set.duration} 分鐘` : `${set.weight} kg x ${set.reps} 次`;
+            setEl.innerHTML = `<span>第 ${setIndex + 1} 組</span><div>${setText}</div><button class="delete-set-btn" onclick="deleteSet('${dayKey}', '${exerciseName}', ${setIndex})">X</button>`;
+            container.appendChild(setEl);
+        });
+    }
+
+    async function addCustomExercise(dayKey) {
+        const input = document.getElementById(`new-exercise-input-${dayKey}`);
+        const newExerciseName = input.value.trim();
+        if (!newExerciseName) { alert('請輸入運動名稱！'); return; }
+        const dayData = workoutPlan[dayKey];
+        if (dayData.exercises.includes(newExerciseName)) { alert('此項目已在您的預設課表中！'); return; }
+        const todayKey = getTodayKey();
+        if (!workoutLog[dayKey]) workoutLog[dayKey] = {};
+        if (!workoutLog[dayKey][newExerciseName]) workoutLog[dayKey][newExerciseName] = {};
+        if (!workoutLog[dayKey][newExerciseName][todayKey]) { workoutLog[dayKey][newExerciseName][todayKey] = []; }
+        renderDayContent(dayKey, document.getElementById(`content-workout-${dayKey}`));
+        input.value = '';
+    }
+
+    async function deleteCustomExercise(dayKey, exerciseName) {
+        if (confirm(`確定要從今天移除 "${exerciseName}" 這個項目嗎？(只會移除今天的紀錄)`)) {
+            const todayKey = getTodayKey();
+            if (workoutLog[dayKey] && workoutLog[dayKey][exerciseName] && workoutLog[dayKey][exerciseName][todayKey]) {
+                delete workoutLog[dayKey][exerciseName][todayKey];
+                await saveData('workoutLog', workoutLog);
+            }
+            renderDayContent(dayKey, document.getElementById(`content-workout-${dayKey}`));
+            renderWorkoutCalendar(currentCalendarDate);
         }
     }
     
-    function displaySearchResults(foods, type) {
-        const resultsList = document.getElementById('search-results');
-        resultsList.innerHTML = '';
-        if (foods.length === 0) { resultsList.innerHTML = '<li>找不到相關食物。</li>'; return; }
-        foods.slice(0, 10).forEach(food => {
-            const li = document.createElement('li');
-            const sourceText = (type === 'local') ? '在地' : '線上';
-            li.innerHTML = `<strong>${food.name}</strong><small>[${sourceText}] ${food.protein.toFixed(1)}g P / ${food.carbs.toFixed(1)}g C / ${food.fat.toFixed(1)}g F (每100g)</small>`;
-            li.onclick = () => {
-                document.getElementById('food-name').value = food.name;
-                document.getElementById('protein').value = food.protein.toFixed(1);
-                document.getElementById('carbs').value = food.carbs.toFixed(1);
-                document.getElementById('fat').value = food.fat.toFixed(1);
-                document.getElementById('servings').value = '1';
-                resultsList.innerHTML = '';
-            };
-            resultsList.appendChild(li);
-        });
+    async function addSet(dayKey, exerciseName, type) {
+        const uniqueId = exerciseName.replace(/[\s\W]/g, '-');
+        const todayKey = getTodayKey();
+        const wasCompleted = isWorkoutCompletedOnDate(todayKey);
+        const wasActiveRest = hasAnyWorkoutOnDate(todayKey);
+        if (!workoutLog[dayKey]) workoutLog[dayKey] = {};
+        if (!workoutLog[dayKey][exerciseName]) workoutLog[dayKey][exerciseName] = {};
+        if (!workoutLog[dayKey][exerciseName][todayKey]) { workoutLog[dayKey][exerciseName][todayKey] = []; }
+        let newSet;
+        if (type === 'weight') {
+            const weightInput = document.getElementById(`weight-${dayKey}-${uniqueId}`);
+            const repsInput = document.getElementById(`reps-${dayKey}-${uniqueId}`);
+            const weight = parseFloat(weightInput.value);
+            const reps = parseInt(repsInput.value);
+            if (isNaN(weight) || isNaN(reps) || weight < 0 || reps <= 0) { alert('請輸入有效的重量和次數！'); return; }
+            newSet = { type: 'weight', weight, reps };
+            lastWorkoutInputs[exerciseName] = { ...lastWorkoutInputs[exerciseName], weight, reps };
+        } else {
+            const timeInput = document.getElementById(`time-${dayKey}-${uniqueId}`);
+            const duration = parseInt(timeInput.value);
+            if (isNaN(duration) || duration <= 0) { alert('請輸入有效的時間(分鐘)！'); return; }
+            newSet = { type: 'time', duration };
+            lastWorkoutInputs[exerciseName] = { ...lastWorkoutInputs[exerciseName], duration };
+        }
+        workoutLog[dayKey][exerciseName][todayKey].push(newSet);
+        saveLastWorkoutInputs();
+        await saveData('workoutLog', workoutLog);
+        const isNowCompleted = isWorkoutCompletedOnDate(todayKey);
+        const isNowActiveRest = hasAnyWorkoutOnDate(todayKey);
+        if ((!wasCompleted && isNowCompleted) || (!wasActiveRest && isNowActiveRest)) { renderWorkoutCalendar(currentCalendarDate); }
+        renderDayContent(dayKey, document.getElementById(`content-workout-${dayKey}`));
+    }
+
+    async function deleteSet(dayKey, exerciseName, setIndex) {
+        const todayKey = getTodayKey();
+        const wasCompleted = isWorkoutCompletedOnDate(todayKey);
+        const wasActiveRest = hasAnyWorkoutOnDate(todayKey);
+        workoutLog[dayKey][exerciseName][todayKey].splice(setIndex, 1);
+        await saveData('workoutLog', workoutLog);
+        const isNowCompleted = isWorkoutCompletedOnDate(todayKey);
+        const isNowActiveRest = hasAnyWorkoutOnDate(todayKey);
+        if ((wasCompleted && !isNowCompleted) || (wasActiveRest && !isNowActiveRest)) { renderWorkoutCalendar(currentCalendarDate); }
+        renderDayContent(dayKey, document.getElementById(`content-workout-${dayKey}`));
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
-        const searchInput = document.getElementById('food-search-input');
-        document.getElementById('prev-day-btn').onclick = () => { currentDisplayDate.setDate(currentDisplayDate.getDate() - 1); renderPageForDate(currentDisplayDate); };
-        document.getElementById('next-day-btn').onclick = () => { currentDisplayDate.setDate(currentDisplayDate.getDate() + 1); renderPageForDate(currentDisplayDate); };
-        document.getElementById('back-to-today-btn').onclick = () => { currentDisplayDate = new Date(); renderPageForDate(currentDisplayDate); };
-        const loadDietLogPromise = loadData('dietLog').then(data => { dietLog = data; });
-        const loadFavoritesPromise = loadData('favoriteFoods').then(data => { favoriteFoods = data; });
-        const loadFoodDbPromise = fetch('/tfda_db.json').then(res => res.json()).then(data => {
-            foodDatabase = data;
-            searchInput.placeholder = '輸入食物關鍵字...';
-            searchInput.disabled = false;
-        }).catch(err => {
-            console.error('Failed to load food database:', err);
-            searchInput.placeholder = '在地資料庫載入失敗';
-        });
-        await Promise.all([loadDietLogPromise, loadFavoritesPromise, loadFoodDbPromise]);
-        renderPageForDate(currentDisplayDate);
-        renderFavoriteFoods();
+        workoutLog = await loadData('workoutLog');
+        initWorkoutPage();
     });
 </script>
 </body>
