@@ -99,7 +99,7 @@
     const CHALLENGE_START_DATE = new Date(CHALLENGE_START_DATE_STRING); 
 
     let myCharts = {};
-    let fitnessData = []; // 將數據初始化為空陣列，等待雲端載入
+    let fitnessData = []; 
 
     function getFormattedDate(date) {
         const year = date.getFullYear();
@@ -116,15 +116,26 @@
             if (!response.ok) throw new Error('Failed to fetch fitnessData');
             const data = await response.json();
             // KV 返回的數據可能是字串，確保解析為物件
+            // 注意：這裡只檢查了外部的 response，KV 內部數據結構仍依賴 setData.js 的邏輯
             return data ? (typeof data === 'string' ? JSON.parse(data) : data) : [];
         } catch (e) {
             console.error("Error reading from cloud:", e);
+            // 由於這是核心功能，如果雲端讀取失敗，則嘗試讀取本地備份
+            const localData = localStorage.getItem('fitnessData');
+            if (localData) {
+                 alert('雲端數據載入失敗，已切換至本地備份數據。');
+                 return JSON.parse(localData);
+            }
             return [];
         }
     }
 
     async function saveDataToCloud() {
         try {
+            // 1. 先同步寫入本地存儲 (作為備份)
+            localStorage.setItem('fitnessData', JSON.stringify(fitnessData));
+
+            // 2. 寫入雲端
             await fetch('/api/setData', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
