@@ -95,19 +95,18 @@
     function getTodayKey() {
         const today = new Date();
         // 確保使用台灣時區 (UTC+8) 的日期
-        const dateParts = today.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).split('/');
-        // 將 MM/DD/YYYY 轉換為 YYYY-MM-DD 格式
+        const dateParts = today.toLocaleString('en-US', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).split('/');
+        // 格式化為 YYYY-MM-DD 格式
         return `${dateParts[2].split(' ')[0]}-${dateParts[0]}-${dateParts[1]}`;
     }
 
     function isWorkoutCompletedOnDate(dateString) {
-        // BUG FIX: 這裡必須使用當天是星期幾的邏輯，而不是 dateString
         const date = new Date(dateString + 'T00:00:00');
         const dayOfWeekKey = dayKeys[date.getDay()];
         const planForDay = workoutPlan[dayOfWeekKey];
         
         if (!planForDay || planForDay.exercises.length === 0) { return false; }
-
+        
         for (const exerciseName of planForDay.exercises) {
             let hasLog = false;
             // 核心檢查：確保 logs 存在且長度大於 0
@@ -164,19 +163,21 @@
             const challengeDayText = (challengeDayNum > 0 && challengeDayNum <= 100) ? `第 ${challengeDayNum} 天` : (challengeDayNum < 1 ? '挑戰前' : '挑戰後');
             
             const dayDiv = document.createElement('div'); dayDiv.className = 'day';
-            if (dateString === todayString) { dayDiv.classList.add('today'); }
+            // BUG FIX: 比較 dateString (UTC) 和 todayString (TW) 才能正確點亮 'today'
+            if (dateString === todayString) { dayDiv.classList.add('today'); } 
             dayDiv.innerHTML = `<div class="day-date">${currentDate.getDate()}</div><div class="day-challenge-num">${challengeDayText}</div>`;
             
+            // 由於 currentDate 是 UTC 基準，我們需要用 todayString (TW) 來檢查紀錄
             if (currentDate <= today && currentDate >= CHALLENGE_START_DATE) {
                 const planForDay = workoutPlan[dayKeys[currentDate.getDay()]];
                 
                 if (isWorkoutCompletedOnDate(dateString)) {
-                    dayDiv.innerHTML += `<span class="checkmark green">✓</span>`;
+                    dayDiv.innerHTML += `<span class="checkmark green">✓</span>`; // 綠勾勾 (完成預設)
                 } else if (planForDay && planForDay.exercises.length === 0) { // 如果是休息日
                     if (hasAnyWorkoutOnDate(dateString)) {
-                        dayDiv.innerHTML += `<span class="checkmark green">✓</span>`;
+                        dayDiv.innerHTML += `<span class="checkmark green">✓</span>`; // 綠勾勾 (休息日有運動)
                     } else {
-                        dayDiv.innerHTML += `<span class="checkmark yellow">🟡</span>`;
+                        dayDiv.innerHTML += `<span class="checkmark yellow">🟡</span>`; // 黃勾勾 (真正休息)
                     }
                 }
             }
@@ -196,7 +197,6 @@
             const contentDiv = document.createElement('div'); contentDiv.id = `content-workout-${key}`; contentDiv.className = 'workout-day-content'; contentContainer.appendChild(contentDiv);
         });
         const todayDate = new Date(); 
-        // 修正：使用 getDay() 獲取本地星期，這才是正確的 tab 定位邏輯
         const currentDayKey = dayKeys[todayDate.getDay()];
         showWorkoutDay(currentDayKey);
     }
