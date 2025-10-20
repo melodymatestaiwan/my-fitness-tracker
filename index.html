@@ -50,10 +50,10 @@
             <a href="index.html" class="active">數據追蹤</a>
             <a href="workout.html">今日課表</a>
             <a href="diet.html">飲食紀錄</a>
+            <a href="share.html">分享與成果</a>
         </nav>
         
-        <a href="share.html" style="display:block; text-align:center; padding:10px; background-color:#ff9800; color:white; border-radius:5px; text-decoration:none; margin-bottom:20px;">🖼️ 產生每日分享圖 (三張)</a>
-
+        <a href="share.html" style="display:block; text-align:center; padding:12px; background-color:#2196f3; color:white; border-radius:8px; text-decoration:none; font-size:18px; font-weight:bold; margin-bottom:20px;">一鍵生圖</a>
         <div id="countdown-container"></div>
 
         <div id="page-tracker">
@@ -95,114 +95,327 @@
     </div>
 
 <script>
-    let weightChart, bodyfatChart, muscleMassChart;
-    let fitnessData = [];
+    const CHALLENGE_TOTAL_DAYS = 100;
+    const CHALLENGE_START_DATE = new Date('2025-10-20T00:00:00'); // 這是您上次提供的起始日期
+    let myCharts = {};
 
-    async function saveData(key, value) { try { await fetch('/api/setData', { method: 'POST', body: JSON.stringify({ key, value }) }); } catch (error) { console.error(`Failed to save ${key}:`, error); alert(`${key} 儲存失敗！`); } }
-    async function loadData(key) { try { const response = await fetch(`/api/getData?key=${key}`); const data = await response.json(); return data || []; } catch (error) { console.error(`Failed to load ${key}:`, error); alert(`讀取雲端 ${key} 失敗！`); return []; } }
+    function getFormattedDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    // 初始化日期輸入欄位為今天
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('entry-date').value = getFormattedDate(new Date());
+    });
+
+    // ---------------------- 資料存取與處理 ----------------------
+    function getData() {
+        try {
+            const data = localStorage.getItem('fitnessData');
+            return data ? JSON.parse(data) : [];
+        } catch (e) {
+            console.error("Error reading from localStorage:", e);
+            return [];
+        }
+    }
+
+    function saveData(data) {
+        try {
+            localStorage.setItem('fitnessData', JSON.stringify(data));
+        } catch (e) {
+            console.error("Error writing to localStorage:", e);
+        }
+    }
 
     async function addData() {
         const date = document.getElementById('entry-date').value;
-        const timeOfDay = document.querySelector('input[name="time-of-day"]:checked').value;
+        const time = document.querySelector('input[name="time-of-day"]:checked').value;
         const weight = parseFloat(document.getElementById('weight').value);
         const bodyfat = parseFloat(document.getElementById('bodyfat').value);
         const muscleMass = parseFloat(document.getElementById('muscle-mass').value);
-        if (!date || isNaN(weight) || isNaN(bodyfat) || isNaN(muscleMass)) { alert('請輸入有效的數據！'); return; }
-        const lastInputs = { weight, bodyfat, muscleMass };
-        localStorage.setItem('lastFitnessInputs', JSON.stringify(lastInputs));
-        const newEntry = { date, time: timeOfDay, weight, bodyfat, muscleMass };
-        const existingIndex = fitnessData.findIndex(d => d.date === date && d.time === timeOfDay);
-        if (existingIndex > -1) { fitnessData[existingIndex] = newEntry; } else { fitnessData.push(newEntry); }
-        fitnessData.sort((a, b) => new Date(`${a.date} ${a.time === 'morning' ? '08:00' : '20:00'}`) - new Date(`${b.date} ${b.time === 'morning' ? '08:00' : '20:00'}`));
-        await saveData('fitnessData', fitnessData);
-        renderAllCharts();
-        renderRawDataTable();
-        renderCountdown();
+
+        if (!date || (isNaN(weight) && isNaN(bodyfat) && isNaN(muscleMass))) {
+            alert('請至少輸入日期和一項數據！');
+            return;
+        }
+
+        const newData = {
+            date,
+            time,
+            weight: isNaN(weight) ? null : weight,
+            bodyfat: isNaN(bodyfat) ? null : bodyfat,
+            muscleMass: isNaN(muscleMass) ? null : muscleMass,
+            timestamp: new Date().toISOString()
+        };
+
+        let data = getData();
+        data.push(newData);
+        // 按照日期和時間戳排序，確保最新數據在後
+        data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+        saveData(data);
+        alert('紀錄新增成功！');
+
+        // 清空輸入欄位 (保留日期)
+        document.getElementById('weight').value = '';
+        document.getElementById('bodyfat').value = '';
+        document.getElementById('muscle-mass').value = '';
+
+        init(); // 重新載入數據並渲染所有組件
     }
-    
-    async function deleteRawData(index) {
-        if (confirm('確定要刪除這筆數據嗎？')) {
-            fitnessData.splice(index, 1);
-            await saveData('fitnessData', fitnessData);
-            renderAllCharts(); renderRawDataTable(); renderCountdown();
+
+    function deleteData(timestamp) {
+        if (!confirm('確定要刪除這筆紀錄嗎？')) return;
+
+        let data = getData();
+        const initialLength = data.length;
+        data = data.filter(item => item.timestamp !== timestamp);
+
+        if (data.length < initialLength) {
+            saveData(data);
+            alert('紀錄刪除成功！');
+            init(); // 重新載入數據並渲染所有組件
+        } else {
+            alert('找不到該紀錄。');
         }
     }
-    async function editRawData(index) {
-        const entry = fitnessData[index];
-        const newWeight = prompt("請輸入新的體重 (kg):", entry.weight);
-        const newBodyfat = prompt("請輸入新的體脂 (%):", entry.bodyfat);
-        const newMuscleMass = prompt("請輸入新的骨骼肌 (kg):", entry.muscleMass);
-        const weight = parseFloat(newWeight), bodyfat = parseFloat(newBodyfat), muscleMass = parseFloat(newMuscleMass);
-        if (isNaN(weight) || isNaN(bodyfat) || isNaN(muscleMass)) { alert("輸入無效"); return; }
-        fitnessData[index].weight = weight;
-        fitnessData[index].bodyfat = bodyfat;
-        fitnessData[index].muscleMass = muscleMass;
-        await saveData('fitnessData', fitnessData);
-        renderAllCharts(); renderRawDataTable(); renderCountdown();
+
+    // ---------------------- 數據統計與分組 ----------------------
+
+    function aggregateData(data, mode) {
+        if (data.length === 0) return { labels: [], weight: [], bodyfat: [], muscleMass: [] };
+
+        const groups = {};
+
+        data.forEach(item => {
+            const itemDate = new Date(item.date + 'T00:00:00');
+            let groupKey;
+
+            if (mode === 'daily') {
+                groupKey = item.date;
+            } else if (mode === 'weekly') {
+                const day = itemDate.getDay(); // 0 (Sun) to 6 (Sat)
+                // 從週一 (1) 開始計算週數
+                const diff = itemDate.getDate() - day + (day === 0 ? -6 : 1); 
+                const weekStart = new Date(itemDate.setDate(diff));
+                groupKey = getFormattedDate(weekStart); // 以週一日期作為 Key
+            } else if (mode === 'monthly') {
+                groupKey = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, '0')}-01`;
+            }
+
+            if (!groups[groupKey]) {
+                groups[groupKey] = {
+                    count: 0,
+                    weightSum: 0,
+                    bodyfatSum: 0,
+                    muscleMassSum: 0,
+                    weightCount: 0,
+                    bodyfatCount: 0,
+                    muscleMassCount: 0,
+                    label: groupKey
+                };
+            }
+            
+            if (item.weight !== null) {
+                groups[groupKey].weightSum += item.weight;
+                groups[groupKey].weightCount++;
+            }
+            if (item.bodyfat !== null) {
+                groups[groupKey].bodyfatSum += item.bodyfat;
+                groups[groupKey].bodyfatCount++;
+            }
+            if (item.muscleMass !== null) {
+                groups[groupKey].muscleMassSum += item.muscleMass;
+                groups[groupKey].muscleMassCount++;
+            }
+        });
+
+        const sortedKeys = Object.keys(groups).sort();
+        const result = { labels: [], weight: [], bodyfat: [], muscleMass: [] };
+
+        sortedKeys.forEach(key => {
+            const group = groups[key];
+            
+            result.labels.push(key);
+            result.weight.push(group.weightCount > 0 ? group.weightSum / group.weightCount : null);
+            result.bodyfat.push(group.bodyfatCount > 0 ? group.bodyfatSum / group.bodyfatCount : null);
+            result.muscleMass.push(group.muscleMassCount > 0 ? group.muscleMassSum / group.muscleMassCount : null);
+        });
+
+        return result;
     }
-    
-    function renderCountdown() {
-        const CHALLENGE_START_DATE_STRING = '2025-10-20'; 
-        const CHALLENGE_DURATION = 100;
-        const TARGET_WEIGHT = 75.0;
-        const container = document.getElementById('countdown-container');
-        const MS_PER_DAY = 1000 * 60 * 60 * 24;
-        const startDate = new Date(CHALLENGE_START_DATE_STRING + 'T00:00:00');
+
+
+    // ---------------------- 圖表渲染 ----------------------
+
+    function renderChart(canvasId, title, data, unit, color) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        if (myCharts[canvasId]) {
+            myCharts[canvasId].destroy();
+        }
+
+        const mode = document.querySelector('#chart-controls button.active').id.replace('btn-', '');
+        let tooltipUnit = unit;
+        let timeUnit = 'day';
+        let displayFormat = 'MM-dd';
+
+        if (mode === 'weekly') {
+            tooltipUnit = '平均' + unit;
+            timeUnit = 'week';
+            displayFormat = 'yyyy-MM-dd';
+        } else if (mode === 'monthly') {
+            tooltipUnit = '平均' + unit;
+            timeUnit = 'month';
+            displayFormat = 'yyyy-MM';
+        }
+
+        myCharts[canvasId] = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    label: title,
+                    data: data.values,
+                    borderColor: color,
+                    backgroundColor: `${color}40`,
+                    fill: false,
+                    tension: 0.2,
+                    pointRadius: 5,
+                    borderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: timeUnit,
+                            tooltipFormat: displayFormat,
+                            displayFormats: {
+                                [timeUnit]: displayFormat
+                            }
+                        },
+                        title: { display: true, text: '日期' }
+                    },
+                    y: {
+                        title: { display: true, text: unit },
+                        beginAtZero: false
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: title },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) { label += ': '; }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y.toFixed(1) + ' ' + tooltipUnit;
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderAllCharts(mode) {
+        document.querySelectorAll('#chart-controls button').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`btn-${mode}`).classList.add('active');
+
+        const rawData = getData();
+        const aggregated = aggregateData(rawData, mode);
+
+        renderChart('weightChart', '體重趨勢', { labels: aggregated.labels, values: aggregated.weight }, '公斤(kg)', '#FF6384');
+        renderChart('bodyfatChart', '體脂趨勢', { labels: aggregated.labels, values: aggregated.bodyfat }, '百分比(%)', '#36A2EB');
+        renderChart('muscleMassChart', '骨骼肌趨勢', { labels: aggregated.labels, values: aggregated.muscleMass }, '公斤(kg)', '#FFCD56');
+    }
+
+    // ---------------------- 倒數計時器 ----------------------
+
+    function updateCountdown() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const daysPassed = Math.round((today - startDate) / MS_PER_DAY);
-        let timePercentage = (daysPassed / CHALLENGE_DURATION) * 100;
-        let title = "百日減重挑戰";
-        if (daysPassed < 0) { title = `挑戰將於 ${CHALLENGE_START_DATE_STRING} 開始！`; timePercentage = 0; }
-        else if (daysPassed > CHALLENGE_DURATION) { title = "百日挑戰已結束！"; timePercentage = 100; }
-        let startWeight = null;
-        let currentWeight = null;
-        const startEntry = fitnessData.find(entry => new Date(entry.date) >= new Date(CHALLENGE_START_DATE_STRING));
-        if (startEntry) { startWeight = startEntry.weight; }
-        if (fitnessData.length > 0) { currentWeight = fitnessData[fitnessData.length - 1].weight; }
-        let weightPercentage = 0;
-        let startWeightDisplay = startWeight ? `${startWeight.toFixed(1)}kg` : "N/A";
-        let currentWeightDisplay = currentWeight ? `${currentWeight.toFixed(1)}kg` : "N/A";
-        if (startWeight && currentWeight && startWeight > TARGET_WEIGHT) {
-            const totalToLose = startWeight - TARGET_WEIGHT;
-            const lostSoFar = startWeight - currentWeight;
-            weightPercentage = (lostSoFar / totalToLose) * 100;
-        } else if (startWeight && currentWeight && currentWeight <= TARGET_WEIGHT) { weightPercentage = 100; }
-        timePercentage = Math.max(0, Math.min(100, timePercentage));
-        weightPercentage = Math.max(0, Math.min(100, weightPercentage));
-        container.innerHTML = `
-            <h2>${title}</h2>
+
+        const diffTime = today - CHALLENGE_START_DATE;
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const challengeDayNum = diffDays + 1; // 今天是第幾天
+
+        // 確保起始日不會小於 1
+        const currentDay = Math.max(1, challengeDayNum);
+        
+        const remainingDays = CHALLENGE_TOTAL_DAYS - currentDay;
+        const progressPercent = Math.min(100, (currentDay / CHALLENGE_TOTAL_DAYS) * 100);
+
+        let statusText = `目標日期：${CHALLENGE_TOTAL_DAYS} 天減脂挑戰`;
+        let daysText = `第 ${currentDay} 天 / 共 ${CHALLENGE_TOTAL_DAYS} 天`;
+        if (remainingDays < 0) {
+            statusText = `挑戰已於 ${Math.abs(remainingDays)} 天前結束！恭喜完成！`;
+            daysText = `共 ${CHALLENGE_TOTAL_DAYS} 天 (已超額 ${Math.abs(remainingDays)} 天)`;
+        } else if (remainingDays === 0) {
+            statusText = `今天是最後一天！衝刺！`;
+        }
+
+        document.getElementById('countdown-container').innerHTML = `
+            <h2>${statusText}</h2>
             <div class="progress-track">
-                <div class="time-bar" style="width: ${timePercentage.toFixed(0)}%;"></div>
-                <div class="weight-icon" style="left: ${weightPercentage.toFixed(0)}%;">🏃</div>
+                <div class="time-bar" style="width: ${progressPercent}%;"></div>
+                <div class="weight-icon" style="left: ${progressPercent}%;">🏋️</div>
             </div>
             <div class="progress-details">
-                <span>時間: 第 ${Math.max(0, daysPassed)} / ${CHALLENGE_DURATION} 天</span>
-                <span>體重: ${startWeightDisplay} → ${currentWeightDisplay} (目標 ${TARGET_WEIGHT.toFixed(1)}kg)</span>
+                <span>起始: ${getFormattedDate(CHALLENGE_START_DATE)}</span>
+                <span>${daysText}</span>
+                <span>剩餘: ${Math.max(0, remainingDays)} 天</span>
             </div>
         `;
     }
 
-    function getAggregatedData(period) { if (fitnessData.length === 0) return { labels: [], morning: {}, evening: {} }; const groups = {}; fitnessData.forEach(d => { const date = new Date(d.date); let key; if (period === 'weekly') { const day = date.getDay(); const diff = date.getDate() - day + (day === 0 ? -6 : 1); key = new Date(date.setDate(diff)).toISOString().split('T')[0]; } else { key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; } if (!groups[key]) { groups[key] = { weightsM: [], bodyfatsM: [], musclesM: [], weightsE: [], bodyfatsE: [], musclesE: [] }; } if (d.time === 'morning') { groups[key].weightsM.push(d.weight); groups[key].bodyfatsM.push(d.bodyfat); groups[key].musclesM.push(d.muscleMass); } else { groups[key].weightsE.push(d.weight); groups[key].bodyfatsE.push(d.bodyfat); groups[key].musclesE.push(d.muscleMass); } }); const labels = Object.keys(groups).sort(); const getAverage = arr => arr.length > 0 ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : NaN; return { labels, morning: { weight: labels.map(key => getAverage(groups[key].weightsM)), bodyfat: labels.map(key => getAverage(groups[key].bodyfatsM)), muscleMass: labels.map(key => getAverage(groups[key].musclesM)) }, evening: { weight: labels.map(key => getAverage(groups[key].weightsE)), bodyfat: labels.map(key => getAverage(groups[key].bodyfatsE)), muscleMass: labels.map(key => getAverage(groups[key].musclesE)) } }; }
-    function createChart(canvasId, yAxisLabel, morningData, eveningData, labels, timeUnit) { const ctx = document.getElementById(canvasId).getContext('2d'); ctx.canvas.style.backgroundColor = '#E6F5E6'; return new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [{ label: `早上 (${yAxisLabel.split(' ')[0]})`, data: morningData, pointBackgroundColor: 'rgba(255, 255, 255, 1)', pointBorderColor: 'rgba(0, 0, 0, 1)', pointBorderWidth: 1.5, borderColor: 'rgba(0, 0, 0, 0.6)', tension: 0.1, segment: { borderColor: ctx => ctx.p0.parsed.y === null || ctx.p1.parsed.y === null ? 'transparent' : 'rgba(0, 0, 0, 0.6)' } }, { label: `晚上 (${yAxisLabel.split(' ')[0]})`, data: eveningData, borderColor: 'rgba(0, 0, 0, 1)', backgroundColor: 'rgba(0, 0, 0, 0.1)', pointBackgroundColor: 'rgba(0, 0, 0, 1)', tension: 0.1, segment: { borderColor: ctx => ctx.p0.parsed.y === null || ctx.p1.parsed.y === null ? 'transparent' : 'rgba(0, 0, 0, 1)' } }] }, options: { responsive: true, scales: { x: { type: 'time', time: { unit: timeUnit, tooltipFormat: 'yyyy-MM-dd' }, title: { display: true, text: '日期' } }, y: { position: 'left', title: { display: true, text: yAxisLabel } } } } }); }
-    function renderAllCharts(mode = 'daily') { document.querySelectorAll('#chart-controls button').forEach(btn => btn.classList.remove('active')); document.getElementById(`btn-${mode}`).classList.add('active'); if (weightChart) weightChart.destroy(); if (bodyfatChart) bodyfatChart.destroy(); if (muscleMassChart) muscleMassChart.destroy(); let labels, morningData, eveningData, timeUnit = 'day'; if (mode === 'daily') { labels = fitnessData.map(d => d.date); morningData = { weight: fitnessData.map(d => d.time === 'morning' ? d.weight : NaN), bodyfat: fitnessData.map(d => d.time === 'morning' ? d.bodyfat : NaN), muscleMass: fitnessData.map(d => d.time === 'morning' ? d.muscleMass : NaN) }; eveningData = { weight: fitnessData.map(d => d.time === 'evening' ? d.weight : NaN), bodyfat: fitnessData.map(d => d.time === 'evening' ? d.bodyfat : NaN), muscleMass: fitnessData.map(d => d.time === 'evening' ? d.muscleMass : NaN) }; } else { const aggregated = getAggregatedData(mode); labels = aggregated.labels; morningData = aggregated.morning; eveningData = aggregated.evening; timeUnit = mode === 'weekly' ? 'week' : 'month'; } weightChart = createChart('weightChart', '體重 (kg)', morningData.weight, eveningData.weight, labels, timeUnit); bodyfatChart = createChart('bodyfatChart', '體脂 (%)', morningData.bodyfat, eveningData.bodyfat, labels, timeUnit); muscleMassChart = createChart('muscleMassChart', '骨骼肌 (kg)', morningData.muscleMass, eveningData.muscleMass, labels, timeUnit); }
-    function renderRawDataTable() { const tableBody = document.getElementById('raw-data-table').querySelector('tbody'); tableBody.innerHTML = ''; [...fitnessData].reverse().forEach((entry, reverseIndex) => { const actualIndex = fitnessData.length - 1 - reverseIndex; const row = tableBody.insertRow(); row.setAttribute('data-index', actualIndex); row.innerHTML = `<td>${entry.date}</td><td>${entry.time === 'morning' ? '早上' : '晚上'}</td><td>${entry.weight}</td><td>${entry.bodyfat}</td><td>${entry.muscleMass}</td><td><button onclick="editRawData(${actualIndex})">編輯</button><button class="delete-btn" onclick="deleteRawData(${actualIndex})">刪除</button></td>`; }); }
+    // ---------------------- 原始數據表格 ----------------------
 
-    document.addEventListener('DOMContentLoaded', async () => {
-        fitnessData = await loadData('fitnessData');
+    function renderRawDataTable() {
+        const data = getData();
+        const tbody = document.querySelector('#raw-data-table tbody');
+        tbody.innerHTML = ''; // 清空現有內容
 
-        document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
-        const lastInputs = JSON.parse(localStorage.getItem('lastFitnessInputs'));
-        if (lastInputs) {
-            document.getElementById('weight').value = lastInputs.weight;
-            document.getElementById('bodyfat').value = lastInputs.bodyfat;
-            document.getElementById('muscle-mass').value = lastInputs.muscleMass;
-        }
-        
-        renderCountdown();
-        renderAllCharts();
+        // 倒序顯示，最新紀錄在前
+        [...data].reverse().forEach(item => {
+            const row = tbody.insertRow();
+            
+            // 格式化時間 (早上/晚上)
+            const timeDisplay = item.time === 'morning' ? '早上' : '晚上';
+
+            row.insertCell().textContent = item.date;
+            row.insertCell().textContent = timeDisplay;
+            row.insertCell().textContent = item.weight !== null ? item.weight.toFixed(1) : '-';
+            row.insertCell().textContent = item.bodyfat !== null ? item.bodyfat.toFixed(1) : '-';
+            row.insertCell().textContent = item.muscleMass !== null ? item.muscleMass.toFixed(1) : '-';
+            
+            const actionCell = row.insertCell();
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.textContent = '刪除';
+            deleteBtn.onclick = () => deleteData(item.timestamp);
+            actionCell.appendChild(deleteBtn);
+        });
+    }
+
+    // ---------------------- 初始化 ----------------------
+
+    function init() {
+        updateCountdown();
         renderRawDataTable();
-    });
+        // 預設渲染「每日數據」模式
+        renderAllCharts('daily'); 
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
