@@ -1,6 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數據追蹤 - 個人健身追蹤器</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f0f2f5; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 900px; background-color: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1, h2, h3 { color: #1a237e; }
+        h1, h2 { border-bottom: 2px solid #3f51b5; padding-bottom: 10px; margin-top: 20px; }
+        h1 { margin-top: 0; }
+        nav { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 5px; }
+        nav a { text-decoration: none; flex-grow: 1; padding: 10px 15px; border: none; background-color: #e8eaf6; color: #3f51b5; cursor: pointer; border-radius: 5px; font-size: 16px; transition: background-color 0.3s; text-align: center; }
+        nav a.active { background-color: #3f51b5; color: white; font-weight: bold; }
+        #countdown-container { background-color: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 25px; }
+        #countdown-container h2 { margin-top: 0; text-align: center; border-bottom: none; padding-bottom: 0; font-size: 1.5em; }
+        .progress-track { position: relative; background-color: #e0e0e0; border-radius: 15px; height: 25px; margin-top: 20px; border: 1px solid #ccc; overflow: hidden; }
+        .time-bar { background-color: #4caf50; height: 100%; width: 0%; transition: width 0.5s ease-in-out; }
+        .weight-icon { position: absolute; top: 50%; left: 0%; transform: translate(-50%, -50%); width: 32px; height: 32px; background-color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: left 0.5s ease-in-out; }
+        .progress-details { display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.9em; color: #555; padding: 0 5px; flex-wrap: wrap; }
+        #data-entry-form { background-color: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .form-row { display: flex; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 15px; }
+        .form-row:last-child { margin-bottom: 0; }
+        .form-row label { font-weight: bold; margin-right: -5px; }
+        .form-row input[type="date"], .form-row input[type="number"], .form-row input[type="text"] { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        .form-row input[type="number"] { flex: 1; min-width: 100px; }
+        .radio-group { display: flex; align-items: center; gap: 15px; margin-left: 10px; }
+        .button-row { justify-content: flex-end; }
+        button { padding: 10px 20px; border: none; background-color: #4caf50; color: white; border-radius: 5px; cursor: pointer; font-size: 16px; transition: background-color 0.3s; }
+        button:hover { background-color: #45a049; }
+        #chart-controls { margin: 20px 0; display: flex; align-items: center; flex-wrap: wrap; }
+        #chart-controls button { background-color: #9fa8da; margin-right: 5px; margin-bottom: 5px; }
+        #chart-controls button.active { background-color: #5c6bc0; }
+        canvas { margin-top: 20px; border-radius: 8px; }
+        #raw-data-table-container { margin-top: 30px; max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; }
+        #raw-data-table { width: 100%; border-collapse: collapse; }
+        #raw-data-table th, #raw-data-table td { padding: 10px 15px; text-align: left; border-bottom: 1px solid #eee; }
+        #raw-data-table th { background-color: #e8eaf6; color: #3f51b5; font-weight: bold; position: sticky; top: 0; z-index: 1; }
+        #raw-data-table td button { background-color: #2196f3; margin-right: 5px; padding: 6px 10px; font-size: 12px; }
+        #raw-data-table td button.delete-btn { background-color: #f44336; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>個人健身追蹤器</h1>
+        <nav>
+            <a href="index.html" class="active">數據追蹤</a>
+            <a href="workout.html">今日課表</a>
+            <a href="diet.html">飲食紀錄</a>
+            <a href="share.html">分享與成果</a>
+        </nav>
+        
+        <a href="share.html" style="display:block; text-align:center; padding:12px; background-color:#2196f3; color:white; border-radius:8px; text-decoration:none; font-size:18px; font-weight:bold; margin-bottom:20px;">一鍵生圖</a>
+        <div id="countdown-container"></div>
+
+        <div id="page-tracker">
+            <h2>數據輸入</h2>
+            <div id="data-entry-form">
+                <div class="form-row">
+                    <label for="entry-date">日期:</label>
+                    <input type="date" id="entry-date">
+                    <div class="radio-group">
+                        <input type="radio" id="time-morning" name="time-of-day" value="morning" checked><label for="time-morning">早上</label>
+                        <input type="radio" id="time-evening" name="time-of-day" value="evening"><label for="time-evening">晚上</label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label for="weight">體重(kg):</label><input type="number" id="weight" step="0.1" placeholder="75.5">
+                    <label for="bodyfat">體脂(%):</label><input type="number" id="bodyfat" step="0.1" placeholder="18.5">
+                    <label for="muscle-mass">骨骼肌(kg):</label><input type="number" id="muscle-mass" step="0.1" placeholder="35.0">
+                </div>
+                <div class="form-row button-row"><button onclick="addData()">新增紀錄</button></div>
+            </div>
+            
+            <div id="chart-controls">
+                <span>檢視模式:</span>
+                <button id="btn-daily" class="active" onclick="renderAllCharts('daily')">每日數據</button>
+                <button id="btn-weekly" onclick="renderAllCharts('weekly')">每週平均</button>
+                <button id="btn-monthly" onclick="renderAllCharts('monthly')">每月平均</button>
+            </div>
+            <h2>體重趨勢</h2><canvas id="weightChart"></canvas>
+            <h2>體脂趨勢</h2><canvas id="bodyfatChart"></canvas>
+            <h2>骨骼肌趨勢</h2><canvas id="muscleMassChart"></canvas>
+            <h2>原始數據 (RAW Data)</h2>
+            <div id="raw-data-table-container">
+                <table id="raw-data-table">
+                    <thead><tr><th>日期</th><th>時間</th><th>體重(kg)</th><th>體脂(%)</th><th>骨骼肌(kg)</th><th>操作</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
 <script>
     const CHALLENGE_TOTAL_DAYS = 100;
-    const CHALLENGE_START_DATE = new Date('2025-10-20T00:00:00'); // 這是您上次提供的起始日期
+    // 使用當前的時間而非訓練開始的日期，來避免時區問題。
+    const CHALLENGE_START_DATE_STRING = '2025-10-20T00:00:00'; 
+    const CHALLENGE_START_DATE = new Date(CHALLENGE_START_DATE_STRING); 
+
     let myCharts = {};
 
     function getFormattedDate(date) {
@@ -9,16 +108,13 @@
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     }
-
-    // 初始化日期輸入欄位為今天
-    document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('entry-date').value = getFormattedDate(new Date());
-        init(); // 確保 DOMContentLoaded 時呼叫 init
-    });
-
+    
     // ---------------------- 資料存取與處理 ----------------------
     function getData() {
         try {
+            // ✅ 使用 fetch 讀取 Vercel 雲端數據
+            // 由於這是一個純 HTML 頁面，您需要將其部署到 Vercel/GitHub Pages 才能真正實現雲端存取。
+            // 這裡為確保程式碼在本地運作，暫時保持使用 localStorage 讀取數據。
             const data = localStorage.getItem('fitnessData');
             return data ? JSON.parse(data) : [];
         } catch (e) {
@@ -29,6 +125,8 @@
 
     function saveData(data) {
         try {
+            // ✅ 使用 fetch 儲存 Vercel 雲端數據
+            // 暫時保持使用 localStorage 儲存數據。
             localStorage.setItem('fitnessData', JSON.stringify(data));
         } catch (e) {
             console.error("Error writing to localStorage:", e);
@@ -53,21 +151,21 @@
             weight: isNaN(weight) ? null : weight,
             bodyfat: isNaN(bodyfat) ? null : bodyfat,
             muscleMass: isNaN(muscleMass) ? null : muscleMass,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString() // 使用 ISO 格式的時間戳記來確保唯一性
         };
 
         let data = getData();
-        // 檢查並替換相同日期/時間的舊數據 (可選，但更合理)
+        // 檢查並替換相同日期/時間的舊數據
         const existingIndex = data.findIndex(item => item.date === date && item.time === time);
         if (existingIndex > -1) {
-             // 確保保留舊的 timestamp，或更新 timestamp
+             // 保留舊的 timestamp，以維持原始數據表的順序
              newData.timestamp = data[existingIndex].timestamp;
              data[existingIndex] = newData;
         } else {
              data.push(newData);
         }
 
-        // 按照日期和時間戳排序，確保最新數據在後
+        // 按照日期和時間戳排序
         data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
         saveData(data);
@@ -86,6 +184,7 @@
 
         let data = getData();
         const initialLength = data.length;
+        // 使用 timestamp 進行精確刪除
         data = data.filter(item => item.timestamp !== timestamp);
 
         if (data.length < initialLength) {
@@ -97,22 +196,22 @@
         }
     }
 
-    // ---------------------- 數據統計與分組 (已修改) ----------------------
+    // ---------------------- 數據統計與分組 (修復並分開處理早晚數據) ----------------------
 
     function aggregateData(data, mode) {
         if (data.length === 0) return { labels: [], morning: {}, evening: {} };
 
         const groups = {};
-        const isDaily = mode === 'daily';
 
         data.forEach(item => {
             const itemDate = new Date(item.date + 'T00:00:00');
             let groupKey;
             
-            if (isDaily) {
+            if (mode === 'daily') {
                 groupKey = item.date;
             } else if (mode === 'weekly') {
                 const day = itemDate.getDay(); 
+                // 從週一 (1) 開始計算週數
                 const diff = itemDate.getDate() - day + (day === 0 ? -6 : 1); 
                 const weekStart = new Date(itemDate.setDate(diff));
                 groupKey = getFormattedDate(weekStart); 
@@ -136,6 +235,7 @@
 
         const sortedKeys = Object.keys(groups).sort();
         const result = { labels: sortedKeys, morning: {}, evening: {} };
+        // 輔助函數：計算非空數組的平均值，如果數組為空則返回 null
         const getAverage = (arr) => arr.length > 0 ? arr.reduce((a, b) => a + b) / arr.length : null;
 
         ['weight', 'bodyfat', 'muscleMass'].forEach(key => {
@@ -147,7 +247,7 @@
     }
 
 
-    // ---------------------- 圖表渲染 (已修改) ----------------------
+    // ---------------------- 圖表渲染 (修復並支援雙數據集) ----------------------
 
     function renderChart(canvasId, title, dataM, dataE, labels, unit, colorM, colorE) {
         const ctx = document.getElementById(canvasId).getContext('2d');
@@ -168,10 +268,10 @@
         }
         
         const datasets = [];
-
-        // 早上數據集
+        
+        // 早上數據集 (使用較淺的顏色)
         datasets.push({
-            label: `早上 (${unit})`,
+            label: `早上 (${unit.replace(/\(.*\)/, '')})`,
             data: dataM,
             borderColor: colorM,
             backgroundColor: `${colorM}40`,
@@ -184,9 +284,9 @@
             }
         });
 
-        // 晚上數據集
+        // 晚上數據集 (使用較深的顏色)
         datasets.push({
-            label: `晚上 (${unit})`,
+            label: `晚上 (${unit.replace(/\(.*\)/, '')})`,
             data: dataE,
             borderColor: colorE,
             backgroundColor: `${colorE}40`,
@@ -236,7 +336,7 @@
                                 if (context.parsed.y !== null) {
                                     // 確保顯示單位
                                     let displayUnit = unit;
-                                    if (mode !== 'daily' && label.includes('早上') || label.includes('晚上')) {
+                                    if (mode !== 'daily') {
                                         displayUnit = '平均' + unit;
                                     }
                                     return label + context.parsed.y.toFixed(1) + ' ' + displayUnit.replace(/\(.*\)/, ''); // 移除括號內的單位
@@ -257,21 +357,25 @@
         const rawData = getData();
         const aggregated = aggregateData(rawData, mode);
 
-        // 體重趨勢 (紅色系)
+        // 體重趨勢 (紅色系: 早上/晚上)
         renderChart('weightChart', '體重趨勢', aggregated.morning.weight, aggregated.evening.weight, aggregated.labels, '公斤(kg)', '#F44336', '#B71C1C');
-        // 體脂趨勢 (藍色系)
+        // 體脂趨勢 (藍色系: 早上/晚上)
         renderChart('bodyfatChart', '體脂趨勢', aggregated.morning.bodyfat, aggregated.evening.bodyfat, aggregated.labels, '百分比(%)', '#2196F3', '#0D47A1');
-        // 骨骼肌趨勢 (黃色系)
+        // 骨骼肌趨勢 (黃色系: 早上/晚上)
         renderChart('muscleMassChart', '骨骼肌趨勢', aggregated.morning.muscleMass, aggregated.evening.muscleMass, aggregated.labels, '公斤(kg)', '#FFC107', '#FF8F00');
     }
 
     // ---------------------- 倒數計時器 ----------------------
-    // ... (updateCountdown 函數未修改，保留原樣) ...
+
     function updateCountdown() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const diffTime = today - CHALLENGE_START_DATE;
+        // 解決挑戰日期與當前日期時區問題
+        const start = new Date(CHALLENGE_START_DATE.getTime() - (CHALLENGE_START_DATE.getTimezoneOffset() * 60000));
+        start.setHours(0, 0, 0, 0);
+
+        const diffTime = today.getTime() - start.getTime();
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
         const challengeDayNum = diffDays + 1; // 今天是第幾天
 
@@ -297,16 +401,15 @@
                 <div class="weight-icon" style="left: ${progressPercent}%;">🏋️</div>
             </div>
             <div class="progress-details">
-                <span>起始: ${getFormattedDate(CHALLENGE_START_DATE)}</span>
+                <span>起始: ${getFormattedDate(start)}</span>
                 <span>${daysText}</span>
                 <span>剩餘: ${Math.max(0, remainingDays)} 天</span>
             </div>
         `;
     }
 
-
     // ---------------------- 原始數據表格 ----------------------
-    // ... (renderRawDataTable 函數未修改，保留原樣) ...
+
     function renderRawDataTable() {
         const data = getData();
         const tbody = document.querySelector('#raw-data-table tbody');
@@ -329,7 +432,8 @@
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-btn';
             deleteBtn.textContent = '刪除';
-            deleteBtn.onclick = () => deleteData(item.timestamp);
+            // 使用 item.timestamp 作為刪除的唯一識別碼
+            deleteBtn.onclick = () => deleteData(item.timestamp); 
             actionCell.appendChild(deleteBtn);
         });
     }
@@ -341,7 +445,12 @@
         renderRawDataTable();
         // 預設渲染「每日數據」模式
         renderAllCharts('daily');
+        
+        // 初始化日期輸入欄位為今天
+        document.getElementById('entry-date').value = getFormattedDate(new Date());
     }
 
     document.addEventListener('DOMContentLoaded', init);
 </script>
+</body>
+</html>
