@@ -12,7 +12,6 @@
         h1, h2, h3 { color: #1a237e; }
         h1, h2 { border-bottom: 2px solid #3f51b5; padding-bottom: 10px; margin-top: 20px; }
         h1 { margin-top: 0; }
-        nav { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 5px; }
         nav a { text-decoration: none; flex-grow: 1; padding: 10px 15px; border: none; background-color: #e8eaf6; color: #3f51b5; cursor: pointer; border-radius: 5px; font-size: 16px; transition: background-color 0.3s; text-align: center; }
         nav a.active { background-color: #3f51b5; color: white; font-weight: bold; }
         #countdown-container { background-color: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 25px; }
@@ -116,14 +115,13 @@
             if (!response.ok) throw new Error('Failed to fetch fitnessData');
             const data = await response.json();
             // KV 返回的數據可能是字串，確保解析為物件
-            // 注意：這裡只檢查了外部的 response，KV 內部數據結構仍依賴 setData.js 的邏輯
             return data ? (typeof data === 'string' ? JSON.parse(data) : data) : [];
         } catch (e) {
             console.error("Error reading from cloud:", e);
             // 由於這是核心功能，如果雲端讀取失敗，則嘗試讀取本地備份
             const localData = localStorage.getItem('fitnessData');
             if (localData) {
-                 alert('雲端數據載入失敗，已切換至本地備份數據。');
+                 // alert('雲端數據載入失敗，已切換至本地備份數據。'); // 移除 alert
                  return JSON.parse(localData);
             }
             return [];
@@ -169,11 +167,13 @@
             weight: isNaN(weight) ? null : weight,
             bodyfat: isNaN(bodyfat) ? null : bodyfat,
             muscleMass: isNaN(muscleMass) ? null : muscleMass,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString() // 確保時間戳記是新的
         };
 
         // 從全域變數 fitnessData 獲取當前數據
+        // ✅ 核心修正：使用 date 和 time 組合進行精準查找，避免覆蓋
         const existingIndex = fitnessData.findIndex(item => item.date === date && item.time === time);
+        
         if (existingIndex > -1) {
              // 確保保留舊的 timestamp，以維持原始數據表的順序
              newData.timestamp = fitnessData[existingIndex].timestamp;
@@ -377,76 +377,4 @@
             statusText = `挑戰已於 ${Math.abs(remainingDays)} 天前結束！恭喜完成！`;
             daysText = `共 ${CHALLENGE_TOTAL_DAYS} 天 (已超額 ${Math.abs(remainingDays)} 天)`;
         } else if (remainingDays === 0) {
-            statusText = `今天是最後一天！衝刺！`;
-        }
-
-        document.getElementById('countdown-container').innerHTML = `
-            <h2>${statusText}</h2>
-            <div class="progress-track">
-                <div class="time-bar" style="width: ${progressPercent}%;"></div>
-                <div class="weight-icon" style="left: ${progressPercent}%;">🏋️</div>
-            </div>
-            <div class="progress-details">
-                <span>起始: ${getFormattedDate(start)}</span>
-                <span>${daysText}</span>
-                <span>剩餘: ${Math.max(0, remainingDays)} 天</span>
-            </div>
-        `;
-    }
-
-    // ---------------------- 原始數據表格 ----------------------
-
-    function renderRawDataTable() {
-        const data = fitnessData; // 從全域變數獲取數據
-        const tbody = document.querySelector('#raw-data-table tbody');
-        tbody.innerHTML = '';
-
-        [...data].reverse().forEach(item => {
-            const row = tbody.insertRow();
-            const timeDisplay = item.time === 'morning' ? '早上' : '晚上';
-
-            row.insertCell().textContent = item.date;
-            row.insertCell().textContent = timeDisplay;
-            row.insertCell().textContent = item.weight !== null ? item.weight.toFixed(1) : '-';
-            row.insertCell().textContent = item.bodyfat !== null ? item.bodyfat.toFixed(1) : '-';
-            row.insertCell().textContent = item.muscleMass !== null ? item.muscleMass.toFixed(1) : '-';
-            
-            const actionCell = row.insertCell();
-            const editBtn = document.createElement('button');
-            editBtn.textContent = '編輯';
-            editBtn.onclick = () => editRawData(item.timestamp);
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'delete-btn';
-            deleteBtn.textContent = '刪除';
-            deleteBtn.onclick = () => deleteData(item.timestamp);
-            actionCell.appendChild(editBtn);
-            actionCell.appendChild(deleteBtn);
-        });
-    }
-
-    // ---------------------- 初始化 ----------------------
-
-    async function init() {
-        // 1. 從雲端載入數據到全域變數
-        fitnessData = await getDataFromCloud();
-
-        // 2. 數據記憶: 載入上次輸入值並填入欄位
-        const lastInputs = JSON.parse(localStorage.getItem('lastFitnessInputs'));
-        if (lastInputs) {
-            document.getElementById('weight').value = lastInputs.weight || '';
-            document.getElementById('bodyfat').value = lastInputs.bodyfat || '';
-            document.getElementById('muscle-mass').value = lastInputs.muscleMass || '';
-        }
-        
-        document.getElementById('entry-date').value = getFormattedDate(new Date());
-        
-        // 3. 渲染所有組件
-        updateCountdown();
-        renderRawDataTable();
-        renderAllCharts('daily');
-    }
-
-    document.addEventListener('DOMContentLoaded', init);
-</script>
-</body>
-</html>
+            statusText =
