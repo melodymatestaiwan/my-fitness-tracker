@@ -237,9 +237,9 @@
     };
     const dayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
     let allDataCache = {};
-    let currentDisplayDate = new Date(); // 預設為瀏覽器時間，但會在 init 中修正
+    let currentDisplayDate = new Date(); 
 
-    // ✅ 核心修正函數：獲取台灣時區的 YYYY-MM-DD
+    // ✅ 獲取無時區的 YYYY-MM-DD 字符串 (統一格式)
     function getFormattedDateString(date) {
         // 使用 'en-CA' 確保格式為 YYYY-MM-DD
         return date.toLocaleString('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
@@ -300,7 +300,6 @@
         } else if (latestEntry) {
             currentWeightDisplay = latestEntry.weight.toFixed(1);
         } else {
-            // 如果沒有任何紀錄，則顯示 ???
             currentWeightDisplay = '???';
         }
 
@@ -410,13 +409,4 @@
         });
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        // 頁面加載時，使用台灣時區的今天來初始化
-        const twDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
-        currentDisplayDate = new Date(twDate.getFullYear(), twDate.getMonth(), twDate.getDate());
-        
-        loadAndRenderData(currentDisplayDate);
-    });
-</script>
-</body>
-</html>
+    document
