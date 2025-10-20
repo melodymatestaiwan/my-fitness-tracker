@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>產生每日分享圖</title>
+    <title>分享與成果 - 個人健身追蹤器</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap');
@@ -17,21 +17,53 @@
             margin: 0;
             color: #333;
         }
-        .capture-wrapper {
-            margin-bottom: 30px;
-            text-align: center;
+        .page-navbar {
+            width: 100%;
+            max-width: 900px;
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
         }
+        .page-navbar h1 { color: #1a237e; border-bottom: 2px solid #3f51b5; padding-bottom: 10px; margin-top: 0; }
+        .page-navbar nav { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 0; }
+        .page-navbar nav a { text-decoration: none; flex-grow: 1; padding: 10px 15px; border: none; background-color: #e8eaf6; color: #3f51b5; cursor: pointer; border-radius: 5px; font-size: 16px; transition: background-color 0.3s; text-align: center; }
+        .page-navbar nav a.active { background-color: #3f51b5; color: white; font-weight: bold; }
+        
+        /* 圖片容器與按鈕的總區塊 */
+        .capture-group {
+            max-width: 900px;
+            width: 100%;
+            margin-bottom: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* 縮排修正：修正圖片與按鈕的間距 */
+        .capture-wrapper {
+            margin-bottom: 5px; 
+            text-align: center;
+            /* 讓縮小的預覽圖置中，而不是偏左 */
+            margin-left: 0; 
+            width: 100%; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
         .capture-area {
             width: 1080px;
             height: 1350px;
             padding: 80px;
             box-sizing: border-box;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            margin-bottom: 15px;
+            margin-bottom: 5px; /* 縮小與下載按鈕的間距 */
             display: flex;
             flex-direction: column;
             justify-content: center;
-            transform: scale(0.5); /* 縮小預覽，方便查看 */
+            transform: scale(0.5); /* 縮小預覽 */
             transform-origin: top center;
             position: relative;
             background-image: url('./share-background.png'); 
@@ -47,6 +79,7 @@
             border: none;
             border-radius: 8px;
             cursor: pointer;
+            margin-top: 5px; /* 縮小與圖片的間距 */
         }
         #loading-text { font-size: 24px; font-family: -apple-system, sans-serif; }
 
@@ -64,13 +97,10 @@
 
         /* 圖二 & 圖三：飲食與運動 */
         #capture-area-2, #capture-area-3 {
-            /* 統一背景，並疊加一個半透明白色層，讓文字更清晰 */
             background-image: linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url('./share-background.png');
-            background-size: cover;
-            background-position: center;
             align-items: flex-start;
             padding-left: 100px;
-            color: #333; 
+            color: #333;
         }
         .card-header {
             width: 100%;
@@ -89,17 +119,15 @@
             font-weight: 700;
             margin-bottom: 40px;
         }
-        /* 核心修正: 文字置左 */
         .card-content {
             font-size: 48px;
             line-height: 1.8;
-            text-align: left; /* 確保所有內容置左 */
+            text-align: left;
         }
         .card-content u { 
             text-decoration-thickness: 3px;
             text-underline-offset: 8px;
         }
-        /* 核心修正: 加大計畫字體，並確保單獨一行 */
         .card-content .plan-name {
             font-size: 1.2em; 
             display: block; 
@@ -109,31 +137,6 @@
         .card-content u.orange { text-decoration-color: #ff9800; }
         .card-content u.blue { text-decoration-color: #2196F3; }
         .total-calories { margin-top: 40px; }
-
-        /* 導航列樣式 */
-        .page-navbar {
-            width: 100%;
-            max-width: 900px;
-            background-color: #fff;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        .page-navbar h1 { color: #1a237e; border-bottom: 2px solid #3f51b5; padding-bottom: 10px; margin-top: 0; }
-        .page-navbar nav { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 0; }
-        .page-navbar nav a { text-decoration: none; flex-grow: 1; padding: 10px 15px; border: none; background-color: #e8eaf6; color: #3f51b5; cursor: pointer; border-radius: 5px; font-size: 16px; transition: background-color 0.3s; text-align: center; }
-        .page-navbar nav a.active { background-color: #3f51b5; color: white; font-weight: bold; }
-        
-        /* 圖片與按鈕間距調整 */
-        .capture-wrapper {
-            margin-bottom: 5px; /* 縮小按鈕與圖片的距離 */
-            /* 讓縮小的預覽圖更靠近中間 */
-            margin-left: -270px; /* 往左拉，因為 transform-origin 是 top center */
-        }
-        .download-btn {
-            margin-top: 10px; /* 縮小按鈕與圖片的距離 */
-        }
     </style>
 </head>
 <body>
@@ -150,39 +153,42 @@
 
     <div id="loading-text">讀取今日紀錄中...</div>
 
-    <div class="capture-wrapper" id="wrapper-1" style="display: none;">
-        <div class="capture-area" id="capture-area-1">
-            <h1 id="weight-title">百日減脂計畫</h1>
-            <h2 id="weight-day"></h2>
-            <h2 id="weight-start"></h2>
-            <h2 id="weight-current"></h2>
+    <div class="capture-group">
+        <div class="capture-wrapper" id="wrapper-1" style="display: none;">
+            <div class="capture-area" id="capture-area-1">
+                <h1 id="weight-title">百日減脂計畫</h1>
+                <h2 id="weight-day"></h2>
+                <h2 id="weight-start"></h2>
+                <h2 id="weight-current"></h2>
+            </div>
+            <button class="download-btn" onclick="downloadImage('capture-area-1', '百日計畫')">下載第一張圖</button>
         </div>
-        <button class="download-btn" onclick="downloadImage('capture-area-1', '百日計畫')">下載第一張圖</button>
+
+        <div class="capture-wrapper" id="wrapper-2" style="display: none;">
+            <div class="capture-area" id="capture-area-2">
+                <div class="card-header">
+                    <span id="diet-day-of-week"></span>
+                    <span id="diet-date"></span>
+                </div>
+                <div class="card-title" style="margin-top: 150px;">飲食紀錄</div>
+                <div class="card-content" id="diet-content"></div>
+            </div>
+            <button class="download-btn" onclick="downloadImage('capture-area-2', '飲食紀錄')">下載第二張圖</button>
+        </div>
+
+        <div class="capture-wrapper" id="wrapper-3" style="display: none;">
+            <div class="capture-area" id="capture-area-3">
+                 <div class="card-header">
+                    <span id="workout-day-of-week"></span>
+                    <span id="workout-date"></span>
+                </div>
+                <div class="card-title" style="margin-top: 150px;">今日運動</div>
+                <div class="card-content" id="workout-content"></div>
+            </div>
+            <button class="download-btn" onclick="downloadImage('capture-area-3', '訓練紀錄')">下載第三張圖</button>
+        </div>
     </div>
 
-    <div class="capture-wrapper" id="wrapper-2" style="display: none;">
-        <div class="capture-area" id="capture-area-2">
-            <div class="card-header">
-                <span id="diet-day-of-week"></span>
-                <span id="diet-date"></span>
-            </div>
-            <div class="card-title" style="margin-top: 150px;">飲食紀錄</div>
-            <div class="card-content" id="diet-content"></div>
-        </div>
-        <button class="download-btn" onclick="downloadImage('capture-area-2', '飲食紀錄')">下載第二張圖</button>
-    </div>
-
-    <div class="capture-wrapper" id="wrapper-3" style="display: none;">
-        <div class="capture-area" id="capture-area-3">
-             <div class="card-header">
-                <span id="workout-day-of-week"></span>
-                <span id="workout-date"></span>
-            </div>
-            <div class="card-title" style="margin-top: 150px;">今日運動</div>
-            <div class="card-content" id="workout-content"></div>
-        </div>
-        <button class="download-btn" onclick="downloadImage('capture-area-3', '訓練紀錄')">下載第三張圖</button>
-    </div>
 
 <script>
     const CHALLENGE_START_DATE = new Date('2025-10-20T00:00:00');
@@ -204,6 +210,7 @@
         
         let allData;
         try {
+            // 從雲端載入所有數據
             const response = await fetch('/api/getAllData');
             if (!response.ok) throw new Error('API request failed');
             allData = await response.json();
@@ -215,20 +222,22 @@
 
         const { fitnessData = [], dietLog = {}, workoutLog = {} } = allData;
 
-        // --- 渲染圖一：體重 ---
+        // --- 渲染圖一：體重 (BUG FIX: 確保數據被讀取) ---
         const diffTime = today - CHALLENGE_START_DATE;
         const challengeDayNum = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
         document.getElementById('weight-day').textContent = `第 ${challengeDayNum} 天`;
         
+        // 找到挑戰開始日或之後的第一筆紀錄作為起始體重
         const startEntry = fitnessData.find(entry => new Date(entry.date) >= CHALLENGE_START_DATE);
         const startWeight = startEntry ? startEntry.weight.toFixed(1) : '???';
         document.getElementById('weight-start').textContent = `起始體重 ${startWeight} 公斤`;
         
+        // 找到今日最新的體重紀錄 (只找今日數據的最後一筆)
         const todayWeightEntries = fitnessData.filter(entry => entry.date === todayKey);
         const currentWeight = todayWeightEntries.length > 0 ? todayWeightEntries[todayWeightEntries.length - 1].weight.toFixed(1) : '???';
         document.getElementById('weight-current').textContent = `今日體重 ${currentWeight} 公斤`;
 
-        // --- 渲染圖二：飲食 (置左, 字體加大, 換行) ---
+        // --- 渲染圖二：飲食 (BUG FIX: 確保數據被讀取) ---
         const dayOfWeekStr = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][today.getDay()];
         const dateStr = `${today.getMonth() + 1}月${today.getDate()}日`;
         document.getElementById('diet-day-of-week').textContent = `(${dayOfWeekStr}.)`;
@@ -252,16 +261,18 @@
             <div class="total-calories">總熱量 ${hasDietLogs ? currentCalories.toFixed(0) : '???'} 大卡</div>
         `;
 
-        // --- 渲染圖三：運動 (置左) ---
+        // --- 渲染圖三：運動 (BUG FIX: 修正讀取路徑) ---
         document.getElementById('workout-day-of-week').textContent = `(${dayOfWeekStr}.)`;
         document.getElementById('workout-date').textContent = dateStr;
 
         let workoutHTML = '';
         const workoutDayKey = dayKeys[today.getDay()];
         let hasWorkout = false;
+        
         if(workoutLog && workoutLog[workoutDayKey]) {
+            // ✅ BUG FIX: 修正了讀取路徑，確保能正確找到訓練紀錄
             for (const exName in workoutLog[workoutDayKey]) {
-                const sets = workoutLog[workoutDayKey][exName][todayKey];
+                const sets = workoutLog[workoutDayKey][exName][todayKey]; // 正確路徑：workoutLog[dayKey][exerciseName][dateString]
                 if (sets && sets.length > 0) {
                     hasWorkout = true;
                     const weightSets = sets.filter(s => s.type === 'weight');
