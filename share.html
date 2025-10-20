@@ -188,6 +188,9 @@
 
 <script>
     const CHALLENGE_START_DATE = new Date('2025-10-20T00:00:00');
+    // ✅ 新增起始體重常數
+    const STARTING_WEIGHT = 83.1; 
+
     const dietPlan = {
         monday:    { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
         tuesday:   { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
@@ -199,7 +202,7 @@
     };
     const dayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 
-    // ✅ BUG FIX: 新的日期獲取函數，以確保在所有時區都能得到正確的 "今天" 字符串
+    // ✅ 獲取無時區的 YYYY-MM-DD 字符串
     function getTodayKey() {
         const today = new Date();
         const year = today.getFullYear();
@@ -207,15 +210,14 @@
         const day = String(today.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     }
-    
+
     document.addEventListener('DOMContentLoaded', async () => {
         const today = new Date();
-        // 我們依賴 getTodayKey() 獲取無時區的日期字符串
+        today.setHours(0,0,0,0);
         const todayKey = getTodayKey(); 
         
         let allData;
         try {
-            // 從雲端載入所有數據
             const response = await fetch('/api/getAllData');
             if (!response.ok) throw new Error('API request failed');
             allData = await response.json();
@@ -227,22 +229,25 @@
 
         const { fitnessData = [], dietLog = {}, workoutLog = {} } = allData;
 
-        // --- 渲染圖一：體重 (BUG FIX: 數據讀取邏輯) ---
+        // --- 渲染圖一：體重 ---
         const diffTime = today - CHALLENGE_START_DATE;
         const challengeDayNum = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
         document.getElementById('weight-day').textContent = `第 ${challengeDayNum} 天`;
         
-        // 找到挑戰開始日或之後的第一筆紀錄作為起始體重
-        const startEntry = fitnessData.find(entry => new Date(entry.date) >= CHALLENGE_START_DATE);
-        const startWeight = startEntry && startEntry.weight !== null ? startEntry.weight.toFixed(1) : '???';
-        document.getElementById('weight-start').textContent = `起始體重 ${startWeight} 公斤`;
+        // 1. 起始體重 (使用固定值)
+        document.getElementById('weight-start').textContent = `起始體重 ${STARTING_WEIGHT.toFixed(1)} 公斤`;
         
-        // 找到今日最新的體重紀錄 (只找今日數據的最後一筆)
+        // 2. 今日體重 (計算今日平均值)
         const todayWeightEntries = fitnessData.filter(entry => entry.date === todayKey && entry.weight !== null);
-        const currentWeight = todayWeightEntries.length > 0 ? todayWeightEntries[todayWeightEntries.length - 1].weight.toFixed(1) : '???';
-        document.getElementById('weight-current').textContent = `今日體重 ${currentWeight} 公斤`;
+        let currentWeightDisplay = '???';
+        if (todayWeightEntries.length > 0) {
+            const totalWeight = todayWeightEntries.reduce((sum, entry) => sum + entry.weight, 0);
+            const averageWeight = totalWeight / todayWeightEntries.length;
+            currentWeightDisplay = averageWeight.toFixed(1);
+        }
+        document.getElementById('weight-current').textContent = `今日體重 ${currentWeightDisplay} 公斤`;
 
-        // --- 渲染圖二：飲食 (BUG FIX: 數據讀取邏輯) ---
+        // --- 渲染圖二：飲食 (使用今天總和數據) ---
         const dayOfWeekStr = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][today.getDay()];
         const dateStr = `${today.getMonth() + 1}月${today.getDate()}日`;
         document.getElementById('diet-day-of-week').textContent = `(${dayOfWeekStr}.)`;
@@ -275,9 +280,8 @@
         let hasWorkout = false;
         
         if(workoutLog && workoutLog[workoutDayKey]) {
-            // 遍歷該星期的所有訓練項目 (包括預設和自訂)
             for (const exName in workoutLog[workoutDayKey]) {
-                const sets = workoutLog[workoutDayKey][exName][todayKey]; // 正確路徑：workoutLog[dayKey][exerciseName][dateString]
+                const sets = workoutLog[workoutDayKey][exName][todayKey];
                 if (sets && sets.length > 0) {
                     hasWorkout = true;
                     const weightSets = sets.filter(s => s.type === 'weight');
