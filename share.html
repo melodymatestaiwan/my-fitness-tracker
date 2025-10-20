@@ -239,7 +239,7 @@
     let allDataCache = {};
     let currentDisplayDate = new Date(); 
 
-    // ✅ 獲取無時區的 YYYY-MM-DD 字符串 (統一格式)
+    // ✅ 核心修正函數：獲取台灣時區的 YYYY-MM-DD
     function getFormattedDateString(date) {
         // 使用 'en-CA' 確保格式為 YYYY-MM-DD
         return date.toLocaleString('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
@@ -252,6 +252,19 @@
 
     function getDateStr(date) {
         return `${date.getMonth() + 1}月${date.getDate()}日`;
+    }
+
+    // 輔助函數：安全地解析數據
+    function safeParse(data) {
+        if (typeof data === 'string' && data.startsWith('{') || data.startsWith('[')) {
+            try {
+                return JSON.parse(data);
+            } catch (e) {
+                console.error("Failed to parse JSON string:", e);
+                return data;
+            }
+        }
+        return data;
     }
 
     // 數據載入和渲染主函數
@@ -268,10 +281,10 @@
                 if (!response.ok) throw new Error('API request failed');
                 const data = await response.json();
                 
-                // ✅ 核心修正：確保將 API 返回的 JSON 字符串轉換為 JavaScript 對象
-                allDataCache.fitnessData = data.fitnessData ? JSON.parse(data.fitnessData) : [];
-                allDataCache.dietLog = data.dietLog ? JSON.parse(data.dietLog) : {};
-                allDataCache.workoutLog = data.workoutLog ? JSON.parse(data.workoutLog) : {};
+                // ✅ 核心修正：使用 safeParse 確保數據結構正確
+                allDataCache.fitnessData = safeParse(data.fitnessData) || [];
+                allDataCache.dietLog = safeParse(data.dietLog) || {};
+                allDataCache.workoutLog = safeParse(data.workoutLog) || {};
             } catch (error) {
                 document.getElementById('loading-text').textContent = '讀取雲端資料失敗！請重新整理。';
                 console.error(error);
@@ -409,4 +422,13 @@
         });
     }
 
-    document
+    document.addEventListener('DOMContentLoaded', () => {
+        // 頁面加載時，使用台灣時區的今天來初始化
+        const twDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+        currentDisplayDate = new Date(twDate.getFullYear(), twDate.getMonth(), twDate.getDate());
+        
+        loadAndRenderData(currentDisplayDate);
+    });
+</script>
+</body>
+</html>
