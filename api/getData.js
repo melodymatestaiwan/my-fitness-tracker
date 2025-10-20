@@ -1,3 +1,4 @@
+
 const { kv } = require('@vercel/kv');
 
 module.exports = async (req, res) => {
@@ -11,9 +12,11 @@ module.exports = async (req, res) => {
     }
 
     try {
+        // 使用 kv.get 讀取數據。注意：當使用 Vercel/KV 時，它通常會自動進行 JSON.parse
+        // 如果 data 是 null，則返回預期的空值。
         const data = await kv.get(key);
         
-        // 返回數據，如果為 null 則返回空
+        // 返回數據
         res.status(200).json(data || null);
 
     } catch (error) {
