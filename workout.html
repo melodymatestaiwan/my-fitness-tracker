@@ -91,12 +91,12 @@
     async function loadData(key) { try { const response = await fetch(`/api/getData?key=${key}`); const data = await response.json(); return data || {}; } catch (error) { console.error(`Failed to load ${key}:`, error); alert(`讀取雲端 ${key} 失敗！`); return {}; } }
     function saveLastWorkoutInputs() { localStorage.setItem('lastWorkoutInputs', JSON.stringify(lastWorkoutInputs)); }
     
-    // ✅ 核心時區修正函數：獲取台灣時區的 YYYY-MM-DD (統一格式)
+    // ✅ 核心時區修正函數：獲取台灣時區的 YYYY-MM-DD
     function getTodayKey() {
         const today = new Date();
-        const dateParts = today.toLocaleString('en-US', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).split('/');
-        // 格式化為 YYYY-MM-DD 格式
-        return `${dateParts[2].split(',')[0].trim()}-${dateParts[0].trim()}-${dateParts[1].trim()}`;
+        // 確保使用台灣時區 (UTC+8) 的日期，並格式化為 YYYY-MM-DD
+        const dateParts = today.toLocaleString('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' });
+        return dateParts.replace(/\//g, '-');
     }
 
     function isWorkoutCompletedOnDate(dateString) {
@@ -108,7 +108,7 @@
         
         for (const exerciseName of planForDay.exercises) {
             let hasLog = false;
-            // 核心修正：直接使用 dateString 進行查找 (workoutLog[dayOfWeekKey][exerciseName][dateString])
+            // 核心檢查：確保 logs 存在且長度大於 0
             if (
                 workoutLog[dayOfWeekKey] && 
                 workoutLog[dayOfWeekKey][exerciseName] && 
@@ -154,16 +154,19 @@
 
         for (let i = 0; i < 7; i++) {
             const currentDate = new Date(monday); currentDate.setDate(monday.getDate() + i);
-            const dateString = currentDate.toISOString().split('T')[0];
+            
+            // ✅ 核心修正：統一使用 TW 日期字串來作為鍵和比較
+            const dateString = currentDate.toLocaleString('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
+            
             const diffTime = currentDate - CHALLENGE_START_DATE;
             const challengeDayNum = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
             const challengeDayText = (challengeDayNum > 0 && challengeDayNum <= 100) ? `第 ${challengeDayNum} 天` : (challengeDayNum < 1 ? '挑戰前' : '挑戰後');
             
             const dayDiv = document.createElement('div'); dayDiv.className = 'day';
-            // BUG FIX: 使用 TW 日期字串來做比較
             if (dateString === todayString) { dayDiv.classList.add('today'); } 
             dayDiv.innerHTML = `<div class="day-date">${currentDate.getDate()}</div><div class="day-challenge-num">${challengeDayText}</div>`;
             
+            // 由於 currentDate 是 UTC 基準，我們需要用 todayString (TW) 來檢查紀錄
             if (currentDate <= today && currentDate >= CHALLENGE_START_DATE) {
                 const planForDay = workoutPlan[dayKeys[currentDate.getDay()]];
                 
