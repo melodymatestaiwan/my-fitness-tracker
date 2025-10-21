@@ -50,10 +50,20 @@
         .meal-group { margin-bottom: 20px; }
         .meal-group h4 { margin: 0 0 10px 0; padding-bottom: 5px; border-bottom: 1px solid #eee; color: #555; display: flex; justify-content: space-between; align-items: center; }
         .meal-group h4 .meal-calories { font-size: 0.9em; font-weight: normal; color: #1a237e; }
-        .log-header { font-weight: bold; color: #3f51b5; font-size: 0.9em; padding: 5px 0; border-bottom: 2px solid #e0e0e0; }
-        .diet-log-item { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+        .log-header { font-weight: bold; color: #3f51b5; font-size: 0.9em; padding: 5px 0; border-bottom: 2px solid #e0e0e0; 
+                      /* ✅ 新增總計行樣式 */
+                      display: grid; 
+                      grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto; 
+                      gap: 10px;
+                      align-items: center;
+                      padding: 10px 0;
+                      text-align: right;
+        }
+        .log-header span:first-child { text-align: left; }
+
+        .diet-log-item { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0f0f0; text-align: right; }
         .diet-log-item:last-child { border-bottom: none; }
-        .diet-log-item span:first-child { font-weight: bold; }
+        .diet-log-item span:first-child { font-weight: bold; text-align: left; }
         .delete-diet-btn { background-color: #ffcdd2; color: #c62828; padding: 5px 10px; font-size: 12px; border: none; border-radius: 5px; cursor: pointer; }
         
         @media (max-width: 768px) {
@@ -139,8 +149,10 @@
     const dietPlan = {
         monday:    { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
         tuesday:   { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
-        wednesday: { name: "高碳日", protein: 160, carbs: 230, fat: 51 },
-        thursday:  { name: "無碳日", protein: 160, carbs: 40,  fat: 98 },
+        // ✅ 核心修正：對調 週三 和 週四 的飲食計畫
+        wednesday: { name: "無碳日", protein: 160, carbs: 40,  fat: 98 }, // 原本是高碳日
+        thursday:  { name: "高碳日", protein: 160, carbs: 230, fat: 51 }, // 原本是無碳日
+        // ----------------------------------------------------
         friday:    { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
         saturday:  { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
         sunday:    { name: "無碳日", protein: 160, carbs: 40,  fat: 98 },
@@ -156,7 +168,6 @@
     // ✅ 修正時差：採用與時區無關的 YYYY-MM-DD 字串作為日期鍵
     function formatDate(date) {
         const d = new Date(date);
-        // 確保日期是基於本地日期，避免 UTC 時差影響
         const year = d.getFullYear();
         const month = String(d.getMonth() + 1).padStart(2, '0');
         const day = String(d.getDate()).padStart(2, '0');
@@ -292,19 +303,24 @@
                 const mealGroupDiv = document.createElement('div');
                 mealGroupDiv.className = 'meal-group';
                 let mealTotalCalories = 0;
+                
+                // 計算每餐總計
+                const mealTotals = items.reduce((acc, item) => { acc.protein += item.protein; acc.carbs += item.carbs; acc.fat += item.fat; return acc; }, { protein: 0, carbs: 0, fat: 0 });
+                mealTotalCalories = (mealTotals.protein * 4) + (mealTotals.carbs * 4) + (mealTotals.fat * 9);
+                
                 let groupItemsHTML = `
                     <div class="diet-log-item log-header">
-                        <span></span>
-                        <span>蛋白質</span>
-                        <span>碳水</span>
-                        <span>脂肪</span>
-                        <span>熱量</span>
+                        <span>總計:</span>
+                        <span>${mealTotals.protein.toFixed(1)}</span>
+                        <span>${mealTotals.carbs.toFixed(1)}</span>
+                        <span>${mealTotals.fat.toFixed(1)}</span>
+                        <span>${Math.round(mealTotalCalories)}</span>
                         <span></span>
                     </div>
                 `;
+                
                 items.forEach(item => {
                     const itemCalories = (item.protein * 4) + (item.carbs * 4) + (item.fat * 9);
-                    mealTotalCalories += itemCalories;
                     groupItemsHTML += `
                         <div class="diet-log-item">
                             <span>${item.name}</span>
@@ -316,6 +332,7 @@
                         </div>
                     `;
                 });
+                // 修正：將餐別總熱量移到標題
                 mealGroupDiv.innerHTML = `<h4>${mealNames[mealKey]}<span class="meal-calories">總計: ${Math.round(mealTotalCalories)} 大卡</span></h4>` + groupItemsHTML;
                 container.appendChild(mealGroupDiv);
             }
@@ -338,7 +355,7 @@
         if (!query) return;
         resultsList.innerHTML = '<li>線上搜尋中...</li>';
         try {
-            const response = await fetch(`/api/openfoodfacts?food=${encodeURIComponent(query)}`);
+            const response = await fetch(`/api/search?food=${encodeURIComponent(query)}`);
             if (!response.ok) { throw new Error('Network response was not ok'); }
             const foods = await response.json();
             displaySearchResults(foods, 'online');
@@ -371,9 +388,22 @@
     document.addEventListener('DOMContentLoaded', async () => {
         const searchInput = document.getElementById('food-search-input');
         
-        document.getElementById('prev-day-btn').onclick = () => { currentDisplayDate.setDate(currentDisplayDate.getDate() - 1); renderPageForDate(currentDisplayDate); };
-        document.getElementById('next-day-btn').onclick = () => { currentDisplayDate.setDate(currentDisplayDate.getDate() + 1); renderPageForDate(currentDisplayDate); };
-        document.getElementById('back-to-today-btn').onclick = () => { currentDisplayDate = new Date(); renderPageForDate(currentDisplayDate); };
+        document.getElementById('prev-day-btn').onclick = () => { 
+            const newDate = new Date(currentDisplayDate);
+            newDate.setDate(currentDisplayDate.getDate() - 1);
+            currentDisplayDate = newDate;
+            renderPageForDate(currentDisplayDate); 
+        };
+        document.getElementById('next-day-btn').onclick = () => { 
+            const newDate = new Date(currentDisplayDate);
+            newDate.setDate(currentDisplayDate.getDate() + 1);
+            currentDisplayDate = newDate;
+            renderPageForDate(currentDisplayDate); 
+        };
+        document.getElementById('back-to-today-btn').onclick = () => { 
+            currentDisplayDate = new Date(); 
+            renderPageForDate(currentDisplayDate); 
+        };
         
         const loadDietLogPromise = loadData('dietLog').then(data => { dietLog = data; });
         const loadFavoritesPromise = loadData('favoriteFoods').then(data => { favoriteFoods = data; });
