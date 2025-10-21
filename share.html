@@ -256,7 +256,8 @@
 
     // 輔助函數：安全地解析數據
     function safeParse(data) {
-        if (typeof data === 'string' && data.startsWith('{') || data.startsWith('[')) {
+        // 只有當數據是字串且看起來像 JSON 時才解析
+        if (typeof data === 'string' && (data.startsWith('{') || data.startsWith('['))) {
             try {
                 return JSON.parse(data);
             } catch (e) {
@@ -277,6 +278,7 @@
         // 讀取數據 (假設數據已緩存，如果沒有則從 API 獲取)
         if (Object.keys(allDataCache).length === 0 || !allDataCache.fitnessData) {
             try {
+                // 讀取 API
                 const response = await fetch('/api/getAllData');
                 if (!response.ok) throw new Error('API request failed');
                 const data = await response.json();
@@ -353,8 +355,8 @@
         `;
 
         // --- 渲染圖三：運動 ---
-        document.getElementById('workout-day-of-week').textContent = `(${dayOfWeekStr}.)`;
-        document.getElementById('workout-date').textContent = dateStr;
+        document.getElementById('workout-day-of-week').textContent = `(${getDayOfWeekStr(date)}.)`;
+        document.getElementById('workout-date').textContent = getDateStr(date);
 
         let workoutHTML = '';
         const workoutDayKey = dayKeys[date.getDay()]; // 確保使用當前顯示日期的星期
