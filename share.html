@@ -1,872 +1,442 @@
-
 <!DOCTYPE html>
-
 <html lang="zh-Hant">
 
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>分享與成果 - 個人健身追蹤器</title>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
-
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap');
 
         body {
-
             font-family: 'Noto Serif TC', serif;
-
             background-color: #f0f2f5;
-
             display: flex;
-
             flex-direction: column;
-
             align-items: center;
-
             padding: 20px;
-
             margin: 0;
-
             color: #333;
-
         }
 
         .page-navbar {
-
             width: 100%;
-
             max-width: 900px;
-
             background-color: #fff;
-
             padding: 25px;
-
             border-radius: 10px;
-
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-
-            margin-bottom: 5px; /* 縮小導航欄下方間距 */
-
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 5px;
         }
 
-        .page-navbar h1 { color: #1a237e; border-bottom: 2px solid #3f51b5; padding-bottom: 10px; margin-top: 0; }
+        .page-navbar h1 {
+            color: #1a237e;
+            border-bottom: 2px solid #3f51b5;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
 
-        .page-navbar nav { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 0; }
-
-        nav a { text-decoration: none; flex-grow: 1; padding: 10px 15px; border: none; background-color: #e8eaf6; color: #3f51b5; cursor: pointer; border-radius: 5px; font-size: 16px; transition: background-color 0.3s; text-align: center; }
-
-        nav a.active { background-color: #3f51b5; color: white; font-weight: bold; }
-
-        
-
-        /* 圖片容器與按鈕的總區塊 */
-
-        .capture-group {
-
-            max-width: 900px;
-
-            width: 100%;
-
-            margin-bottom: 30px;
-
+        .page-navbar nav {
             display: flex;
-
-            flex-direction: column;
-
-            align-items: center;
-
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 0;
         }
 
+        nav a {
+            text-decoration: none;
+            flex-grow: 1;
+            padding: 10px 15px;
+            border: none;
+            background-color: #e8eaf6;
+            color: #3f51b5;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            text-align: center;
+        }
 
+        nav a.active {
+            background-color: #3f51b5;
+            color: white;
+            font-weight: bold;
+        }
 
-        /* 日期選擇器樣式 */
-
+        /* 日期選擇器 */
         #date-controls {
-
             display: flex;
-
             align-items: center;
-
             justify-content: center;
-
             width: 100%;
-
             max-width: 900px;
-
             margin-bottom: 20px;
-
         }
 
         #date-controls button {
-
             background: none;
-
             border: none;
-
             font-size: 30px;
-
             color: #3f51b5;
-
             cursor: pointer;
-
             padding: 0 10px;
-
         }
 
         #date-controls #current-date-display {
-
             font-size: 24px;
-
             font-weight: 700;
-
             color: #1a237e;
-
             margin: 0 15px;
-
         }
 
+        /* 新版布局 */
+        .capture-group {
+            max-width: 1080px;
+            width: 100%;
+            margin-bottom: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-
-        /* 核心修正: 讓圖片和按鈕緊密結合 */
+        .capture-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            align-items: flex-start;
+            gap: 20px;
+            width: 100%;
+            max-width: 1080px;
+        }
 
         .capture-wrapper {
-
-            margin-bottom: 10px; /* 圖片區塊之間的間距 */
-
-            width: 100%; 
-
             display: flex;
-
             flex-direction: column;
-
-            align-items: center;
-
-        }
-
-
-
-        .capture-area {
-
-            width: 1080px;
-
-            height: 1350px;
-
-            padding: 80px;
-
-            box-sizing: border-box;
-
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-
-            margin-bottom: 0; 
-
-            display: flex;
-
-            flex-direction: column;
-
-            justify-content: center;
-
-            transform: scale(0.5); 
-
-            transform-origin: top center;
-
-            position: relative;
-
-            background-image: url('./share-background.png'); 
-
-            background-size: cover;
-
-            background-position: center;
-
+            align-items: flex-start;
+            margin-bottom: 20px;
         }
 
         .download-btn {
-
-            padding: 10px 20px;
-
-            font-size: 18px;
-
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-
+            padding: 8px 16px;
+            font-size: 16px;
+            margin-bottom: 8px;
             background-color: #4caf50;
-
             color: white;
-
             border: none;
-
-            border-radius: 8px;
-
+            border-radius: 6px;
             cursor: pointer;
-
-            margin-top: 5px;
-
+            transition: background-color 0.2s;
         }
 
-        #loading-text { font-size: 24px; font-family: -apple-system, sans-serif; }
+        .download-btn:hover {
+            background-color: #388e3c;
+        }
 
+        .capture-area {
+            width: 540px;
+            height: 675px;
+            padding: 40px;
+            box-sizing: border-box;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            transform: scale(1);
+            transform-origin: top left;
+            background-image: url('./share-background.png');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
 
+        #loading-text {
+            font-size: 24px;
+            font-family: -apple-system, sans-serif;
+        }
 
-        /* 圖一：體重紀錄 */
-
+        /* 圖一 */
         #capture-area-1 {
-
             color: #4a4a4a;
-
             align-items: center;
-
         }
 
-        #capture-area-1 h1, #capture-area-1 h2 {
-
+        #capture-area-1 h1,
+        #capture-area-1 h2 {
             margin: 20px 0;
-
             font-weight: 700;
-
         }
 
-        #capture-area-1 h1 { font-size: 80px; }
+        #capture-area-1 h1 {
+            font-size: 48px;
+        }
 
-        #capture-area-1 h2 { font-size: 60px; }
+        #capture-area-1 h2 {
+            font-size: 36px;
+        }
 
-
-
-        /* 圖二 & 圖三：飲食與運動 */
-
-        #capture-area-2, #capture-area-3 {
-
-            background-image: linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url('./share-background.png');
-
+        /* 圖二 & 圖三 */
+        #capture-area-2,
+        #capture-area-3 {
+            background-image: linear-gradient(rgba(255, 255, 255, 0.7),
+                    rgba(255, 255, 255, 0.7)),
+                url('./share-background.png');
             align-items: flex-start;
-
-            padding-left: 100px;
-
+            padding-left: 60px;
             color: #333;
-
         }
 
         .card-header {
-
             width: 100%;
-
             display: flex;
-
             justify-content: space-between;
-
-            font-size: 28px;
-
+            font-size: 20px;
             color: #555;
-
             position: absolute;
-
-            top: 80px;
-
+            top: 40px;
             left: 0;
-
-            padding: 0 100px;
-
+            padding: 0 60px;
             box-sizing: border-box;
-
         }
 
         .card-title {
-
-            font-size: 60px;
-
+            font-size: 40px;
             font-weight: 700;
-
-            margin-bottom: 40px;
-
+            margin-top: 120px;
+            margin-bottom: 30px;
         }
 
         .card-content {
-
-            font-size: 48px;
-
-            line-height: 1.8;
-
+            font-size: 28px;
+            line-height: 1.6;
             text-align: left;
-
         }
 
-        .card-content u { 
-
+        .card-content u {
             text-decoration-thickness: 3px;
-
             text-underline-offset: 8px;
-
         }
 
         .card-content .plan-name {
-
-            font-size: 1.2em; 
-
-            display: block; 
-
+            font-size: 1.2em;
+            display: block;
             margin-bottom: 10px;
-
             font-weight: 700;
-
         }
 
-        .card-content u.orange { text-decoration-color: #ff9800; }
+        .card-content u.orange {
+            text-decoration-color: #ff9800;
+        }
 
-        .card-content u.blue { text-decoration-color: #2196F3; }
+        .card-content u.blue {
+            text-decoration-color: #2196F3;
+        }
 
-        .total-calories { margin-top: 40px; }
-
+        .total-calories {
+            margin-top: 20px;
+        }
     </style>
-
 </head>
 
 <body>
 
     <div class="page-navbar">
-
         <h1>個人健身追蹤器</h1>
-
         <nav>
-
             <a href="index.html">數據追蹤</a>
-
             <a href="workout.html">今日課表</a>
-
             <a href="diet.html">飲食紀錄</a>
-
             <a href="share.html" class="active">分享與成果</a>
-
         </nav>
-
         <h2>生成每日分享圖</h2>
-
     </div>
-
-
 
     <div id="loading-text">讀取今日紀錄中...</div>
 
-
-
     <div class="capture-group">
-
         <div id="date-controls">
-
             <button onclick="changeDate(-1)">‹</button>
-
             <span id="current-date-display"></span>
-
             <button onclick="changeDate(1)">›</button>
-
         </div>
 
+        <div class="capture-row">
 
-
-        <div class="capture-wrapper" id="wrapper-1" style="display: none;">
-
-            <div class="capture-area" id="capture-area-1">
-
-                <h1 id="weight-title">百日減脂計畫</h1>
-
-                <h2 id="weight-day"></h2>
-
-                <h2 id="weight-start"></h2>
-
-                <h2 id="weight-current"></h2>
-
-            </div>
-
-            <button class="download-btn" onclick="downloadImage('capture-area-1', '百日計畫')">下載第一張圖</button>
-
-        </div>
-
-
-
-        <div class="capture-wrapper" id="wrapper-2" style="display: none;">
-
-            <div class="capture-area" id="capture-area-2">
-
-                <div class="card-header">
-
-                    <span id="diet-day-of-week"></span>
-
-                    <span id="diet-date"></span>
-
+            <!-- 第一張 -->
+            <div class="capture-wrapper" id="wrapper-1" style="display: none;">
+                <button class="download-btn" onclick="downloadImage('capture-area-1', '百日計畫')">下載第一張圖</button>
+                <div class="capture-area" id="capture-area-1">
+                    <h1 id="weight-title">百日減脂計畫</h1>
+                    <h2 id="weight-day"></h2>
+                    <h2 id="weight-start"></h2>
+                    <h2 id="weight-current"></h2>
                 </div>
-
-                <div class="card-title" style="margin-top: 150px;">飲食紀錄</div>
-
-                <div class="card-content" id="diet-content"></div>
-
             </div>
 
-            <button class="download-btn" onclick="downloadImage('capture-area-2', '飲食紀錄')">下載第二張圖</button>
-
-        </div>
-
-
-
-        <div class="capture-wrapper" id="wrapper-3" style="display: none;">
-
-            <div class="capture-area" id="capture-area-3">
-
-                 <div class="card-header">
-
-                    <span id="workout-day-of-week"></span>
-
-                    <span id="workout-date"></span>
-
+            <!-- 第二張 -->
+            <div class="capture-wrapper" id="wrapper-2" style="display: none;">
+                <button class="download-btn" onclick="downloadImage('capture-area-2', '飲食紀錄')">下載第二張圖</button>
+                <div class="capture-area" id="capture-area-2">
+                    <div class="card-header">
+                        <span id="diet-day-of-week"></span>
+                        <span id="diet-date"></span>
+                    </div>
+                    <div class="card-title">飲食紀錄</div>
+                    <div class="card-content" id="diet-content"></div>
                 </div>
-
-                <div class="card-title" style="margin-top: 150px;">今日運動</div>
-
-                <div class="card-content" id="workout-content"></div>
-
             </div>
 
-            <button class="download-btn" onclick="downloadImage('capture-area-3', '訓練紀錄')">下載第三張圖</button>
+            <!-- 第三張 -->
+            <div class="capture-wrapper" id="wrapper-3" style="display: none;">
+                <button class="download-btn" onclick="downloadImage('capture-area-3', '訓練紀錄')">下載第三張圖</button>
+                <div class="capture-area" id="capture-area-3">
+                    <div class="card-header">
+                        <span id="workout-day-of-week"></span>
+                        <span id="workout-date"></span>
+                    </div>
+                    <div class="card-title">今日運動</div>
+                    <div class="card-content" id="workout-content"></div>
+                </div>
+            </div>
 
         </div>
-
     </div>
 
+    <script>
+        const CHALLENGE_START_DATE = new Date('2025-10-20T00:00:00');
+        const STARTING_WEIGHT = 83.1;
+        const MOCK_DIET_TOTALS = { protein: 138.3, carbs: 102.6, fat: 55.6 };
 
+        const dietPlan = {
+            monday: { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
+            tuesday: { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
+            wednesday: { name: "無碳日", protein: 160, carbs: 40, fat: 98 },
+            thursday: { name: "高碳日", protein: 160, carbs: 230, fat: 51 },
+            friday: { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
+            saturday: { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
+            sunday: { name: "無碳日", protein: 160, carbs: 40, fat: 98 },
+        };
+        const dayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+        let allDataCache = {};
+        let currentDisplayDate = new Date();
 
-<script>
+        function getFormattedDateString(date) {
+            return date.toLocaleString('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
+        }
 
-    const CHALLENGE_START_DATE = new Date('2025-10-20T00:00:00');
+        function getDayOfWeekStr(date) {
+            const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            return weekdays[date.getDay()];
+        }
 
-    const STARTING_WEIGHT = 83.1; 
+        function getDateStr(date) {
+            return `${date.getMonth() + 1}月${date.getDate()}日`;
+        }
 
-    const MOCK_DIET_TOTALS = {
-
-        protein: 138.3,
-
-        carbs: 102.6,
-
-        fat: 55.6
-
-    };
-
-
-
-
-
-    const dietPlan = {
-
-        monday:    { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
-
-        tuesday:   { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
-
-        wednesday: { name: "無碳日", protein: 160, carbs: 40,  fat: 98 },
-
-        thursday:  { name: "高碳日", protein: 160, carbs: 230, fat: 51 },
-
-        friday:    { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
-
-        saturday:  { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
-
-        sunday:    { name: "無碳日", protein: 160, carbs: 40,  fat: 98 },
-
-    };
-
-    const dayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-
-    let allDataCache = {};
-
-    let currentDisplayDate = new Date(); 
-
-
-
-    // ✅ 核心修正函數：獲取台灣時區的 YYYY-MM-DD
-
-    function getFormattedDateString(date) {
-
-        // 使用 'en-CA' 確保格式為 YYYY-MM-DD
-
-        return date.toLocaleString('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
-
-    }
-
-    
-
-    function getDayOfWeekStr(date) {
-
-        const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-        return weekdays[date.getDay()];
-
-    }
-
-
-
-    function getDateStr(date) {
-
-        return `${date.getMonth() + 1}月${date.getDate()}日`;
-
-    }
-
-
-
-    // 輔助函數：安全地解析數據
-
-    function safeParse(data) {
-
-        // 只有當數據是字串且看起來像 JSON 時才解析
-
-        if (typeof data === 'string' && (data.startsWith('{') || data.startsWith('['))) {
-
-            try {
-
-                return JSON.parse(data);
-
-            } catch (e) {
-
-                console.error("Failed to parse JSON string:", e);
-
-                return data;
-
+        function safeParse(data) {
+            if (typeof data === 'string' && (data.startsWith('{') || data.startsWith('['))) {
+                try { return JSON.parse(data); } catch (e) { console.error("Failed to parse JSON:", e); return data; }
             }
-
+            return data;
         }
 
-        return data;
-
-    }
-
-
-
-    // 數據載入和渲染主函數
-
-    async function loadAndRenderData(date) {
-
-        const dateKey = getFormattedDateString(date);
-
-        
-
-        document.getElementById('current-date-display').textContent = `${dateKey} (${getDayOfWeekStr(date)}.)`;
-
-        document.getElementById('loading-text').textContent = `正在讀取 ${dateKey} 的數據...`;
-
-        
-
-        // 讀取數據 (假設數據已緩存，如果沒有則從 API 獲取)
-
-        if (Object.keys(allDataCache).length === 0 || !allDataCache.fitnessData) {
-
-            try {
-
-                // 讀取 API
-
-                const response = await fetch('/api/getAllData');
-
-                if (!response.ok) throw new Error('API request failed');
-
-                const data = await response.json();
-
-                
-
-                // ✅ 核心修正：使用 safeParse 確保數據結構正確
-
-                allDataCache.fitnessData = safeParse(data.fitnessData) || [];
-
-                allDataCache.dietLog = safeParse(data.dietLog) || {};
-
-                allDataCache.workoutLog = safeParse(data.workoutLog) || {};
-
-            } catch (error) {
-
-                document.getElementById('loading-text').textContent = '讀取雲端資料失敗！請重新整理。';
-
-                console.error(error);
-
-                return;
-
-            }
-
-        }
-
-        
-
-        const { fitnessData, dietLog, workoutLog } = allDataCache;
-
-        
-
-        // --- 渲染圖一：體重 ---
-
-        const diffTime = date - CHALLENGE_START_DATE;
-
-        const challengeDayNum = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-
-        document.getElementById('weight-day').textContent = `第 ${challengeDayNum} 天`;
-
-        
-
-        // 1. 起始體重 (使用固定值)
-
-        document.getElementById('weight-start').textContent = `起始體重 ${STARTING_WEIGHT.toFixed(1)} 公斤`;
-
-        
-
-        // 2. 今日體重 (獲取該日期最新的體重紀錄)
-
-        const dayWeightEntries = fitnessData.filter(entry => entry.date === dateKey && entry.weight !== null);
-
-        const morningEntry = dayWeightEntries.find(entry => entry.time === 'morning');
-
-        const latestEntry = dayWeightEntries[dayWeightEntries.length - 1]; 
-
-
-
-        let currentWeightDisplay = '???';
-
-        if (morningEntry) {
-
-            currentWeightDisplay = morningEntry.weight.toFixed(1);
-
-        } else if (latestEntry) {
-
-            currentWeightDisplay = latestEntry.weight.toFixed(1);
-
-        } else {
-
-            currentWeightDisplay = '???';
-
-        }
-
-
-
-        document.getElementById('weight-current').textContent = `今日體重 ${currentWeightDisplay} 公斤`;
-
-
-
-        // --- 渲染圖二：飲食 ---
-
-        const dayOfWeekStr = getDayOfWeekStr(date);
-
-        const dateStr = getDateStr(date);
-
-        document.getElementById('diet-day-of-week').textContent = `(${dayOfWeekStr}.)`;
-
-        document.getElementById('diet-date').textContent = dateStr;
-
-        
-
-        const planForDay = dietPlan[dayKeys[date.getDay()]];
-
-        const logsForDay = dietLog[dateKey] || [];
-
-        const hasDietLogs = logsForDay.length > 0;
-
-        
-
-        // 數據計算
-
-        const totals = logsForDay.reduce((acc, item) => { acc.protein += item.protein; acc.carbs += item.carbs; acc.fat += item.fat; return acc; }, { protein: 0, carbs: 0, fat: 0 });
-
-        
-
-        // 數據覆蓋 (如果沒有紀錄，則使用您提供的 MOCK 數據)
-
-        if (!hasDietLogs && dateKey === getFormattedDateString(new Date())) { 
-
-             totals.protein = MOCK_DIET_TOTALS.protein;
-
-             totals.carbs = MOCK_DIET_TOTALS.carbs;
-
-             totals.fat = MOCK_DIET_TOTALS.fat;
-
-        }
-
-
-
-        const currentCalories = (totals.protein * 4) + (totals.carbs * 4) + (totals.fat * 9);
-
-        
-
-        document.getElementById('diet-content').innerHTML = `
-
-            <u class="orange plan-name">${planForDay.name}</u>
-
-            <br>
-
-            <br>
-
-            蛋白質: ${hasDietLogs ? totals.protein.toFixed(0) : '???'} / ${planForDay.protein} 克
-
-            <br>
-
-            碳水化合物: ${hasDietLogs ? totals.carbs.toFixed(0) : '???'} / ${planForDay.carbs} 克
-
-            <br>
-
-            脂肪: ${hasDietLogs ? totals.fat.toFixed(0) : '???'} / ${planForDay.fat} 克
-
-            <div class="total-calories">總熱量 ${hasDietLogs ? currentCalories.toFixed(0) : '???'} 大卡</div>
-
-        `;
-
-
-
-        // --- 渲染圖三：運動 ---
-
-        document.getElementById('workout-day-of-week').textContent = `(${getDayOfWeekStr(date)}.)`;
-
-        document.getElementById('workout-date').textContent = getDateStr(date);
-
-
-
-        let workoutHTML = '';
-
-        const workoutDayKey = dayKeys[date.getDay()]; // 確保使用當前顯示日期的星期
-
-        let hasWorkout = false;
-
-        
-
-        if(workoutLog && workoutLog[workoutDayKey]) {
-
-            for (const exName in workoutLog[workoutDayKey]) {
-
-                const sets = workoutLog[workoutDayKey][exName][dateKey];
-
-                if (sets && sets.length > 0) {
-
-                    hasWorkout = true;
-
-                    const weightSets = sets.filter(s => s.type === 'weight');
-
-                    const timeSets = sets.filter(s => s.type === 'time');
-
-                    if (weightSets.length > 0) {
-
-                        const weight = weightSets[0].weight;
-
-                        workoutHTML += `<u class="blue">${exName}</u> ${weight}公斤 ${weightSets.length}組<br>`;
-
-                    }
-
-                    if (timeSets.length > 0) {
-
-                        const totalDuration = timeSets.reduce((sum, s) => sum + s.duration, 0);
-
-                        workoutHTML += `<u class="blue">${exName}</u> ${totalDuration}分鐘<br>`;
-
-                    }
-
+        async function loadAndRenderData(date) {
+            const dateKey = getFormattedDateString(date);
+            document.getElementById('current-date-display').textContent = `${dateKey} (${getDayOfWeekStr(date)}.)`;
+            document.getElementById('loading-text').textContent = `正在讀取 ${dateKey} 的數據...`;
+
+            if (Object.keys(allDataCache).length === 0 || !allDataCache.fitnessData) {
+                try {
+                    const response = await fetch('/api/getAllData');
+                    if (!response.ok) throw new Error('API request failed');
+                    const data = await response.json();
+                    allDataCache.fitnessData = safeParse(data.fitnessData) || [];
+                    allDataCache.dietLog = safeParse(data.dietLog) || {};
+                    allDataCache.workoutLog = safeParse(data.workoutLog) || {};
+                } catch (error) {
+                    document.getElementById('loading-text').textContent = '讀取雲端資料失敗！請重新整理。';
+                    console.error(error);
+                    return;
                 }
-
             }
 
+            const { fitnessData, dietLog, workoutLog } = allDataCache;
+            const diffTime = date - CHALLENGE_START_DATE;
+            const challengeDayNum = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            document.getElementById('weight-day').textContent = `第 ${challengeDayNum} 天`;
+            document.getElementById('weight-start').textContent = `起始體重 ${STARTING_WEIGHT.toFixed(1)} 公斤`;
+
+            const dayWeightEntries = fitnessData.filter(entry => entry.date === dateKey && entry.weight !== null);
+            const morningEntry = dayWeightEntries.find(entry => entry.time === 'morning');
+            const latestEntry = dayWeightEntries[dayWeightEntries.length - 1];
+            let currentWeightDisplay = '???';
+            if (morningEntry) currentWeightDisplay = morningEntry.weight.toFixed(1);
+            else if (latestEntry) currentWeightDisplay = latestEntry.weight.toFixed(1);
+            document.getElementById('weight-current').textContent = `今日體重 ${currentWeightDisplay} 公斤`;
+
+            const dayOfWeekStr = getDayOfWeekStr(date);
+            const dateStr = getDateStr(date);
+            document.getElementById('diet-day-of-week').textContent = `(${dayOfWeekStr}.)`;
+            document.getElementById('diet-date').textContent = dateStr;
+            const planForDay = dietPlan[dayKeys[date.getDay()]];
+            const logsForDay = dietLog[dateKey] || [];
+            const hasDietLogs = logsForDay.length > 0;
+            const totals = logsForDay.reduce((acc, item) => { acc.protein += item.protein; acc.carbs += item.carbs; acc.fat += item.fat; return acc; }, { protein: 0, carbs: 0, fat: 0 });
+            if (!hasDietLogs && dateKey === getFormattedDateString(new Date())) {
+                totals.protein = MOCK_DIET_TOTALS.protein; totals.carbs = MOCK_DIET_TOTALS.carbs; totals.fat = MOCK_DIET_TOTALS.fat;
+            }
+            const currentCalories = (totals.protein * 4) + (totals.carbs * 4) + (totals.fat * 9);
+            document.getElementById('diet-content').innerHTML = `
+                <u class="orange plan-name">${planForDay.name}</u><br>
+                蛋白質: ${hasDietLogs ? totals.protein.toFixed(0) : '???'} / ${planForDay.protein} 克<br>
+                碳水化合物: ${hasDietLogs ? totals.carbs.toFixed(0) : '???'} / ${planForDay.carbs} 克<br>
+                脂肪: ${hasDietLogs ? totals.fat.toFixed(0) : '???'} / ${planForDay.fat} 克
+                <div class="total-calories">總熱量 ${hasDietLogs ? currentCalories.toFixed(0) : '???'} 大卡</div>`;
+
+            document.getElementById('workout-day-of-week').textContent = `(${getDayOfWeekStr(date)}.)`;
+            document.getElementById('workout-date').textContent = getDateStr(date);
+
+            let workoutHTML = '';
+            const workoutDayKey = dayKeys[date.getDay()];
+            let hasWorkout = false;
+            if (workoutLog && workoutLog[workoutDayKey]) {
+                for (const exName in workoutLog[workoutDayKey]) {
+                    const sets = workoutLog[workoutDayKey][exName][dateKey];
+                    if (sets && sets.length > 0) {
+                        hasWorkout = true;
+                        const weightSets = sets.filter(s => s.type === 'weight');
+                        const timeSets = sets.filter(s => s.type === 'time');
+                        if (weightSets.length > 0) {
+                            const weight = weightSets[0].weight;
+                            workoutHTML += `<u class="blue">${exName}</u> ${weight}公斤 ${weightSets.length}組<br>`;
+                        }
+                        if (timeSets.length > 0) {
+                            const totalDuration = timeSets.reduce((sum, s) => sum + s.duration, 0);
+                            workoutHTML += `<u class="blue">${exName}</u> ${totalDuration}分鐘<br>`;
+                        }
+                    }
+                }
+            }
+
+            if (!hasWorkout && dateKey === getFormattedDateString(new Date())) {
+                workoutHTML = `<u class="blue">胸推</u> 16公斤 1組<br>`;
+            } else if (!hasWorkout) {
+                workoutHTML = '當日無紀錄';
+            }
+            document.getElementById('workout-content').innerHTML = workoutHTML;
+
+            document.getElementById('loading-text').style.display = 'none';
+            document.getElementById('wrapper-1').style.display = 'block';
+            document.getElementById('wrapper-2').style.display = 'block';
+            document.getElementById('wrapper-3').style.display = 'block';
         }
 
-        
-
-        // 訓練數據覆蓋 (如果沒有實際紀錄，則使用您提供的 MOCK 數據)
-
-        if (!hasWorkout && dateKey === getFormattedDateString(new Date())) { 
-
-             workoutHTML = `<u class="blue">胸推</u> 16公斤 1組<br>`;
-
-        } else if (!hasWorkout && dateKey !== getFormattedDateString(new Date())) {
-
-            workoutHTML = '當日無紀錄';
-
+        function changeDate(days) {
+            const newDate = new Date(currentDisplayDate);
+            newDate.setDate(currentDisplayDate.getDate() + days);
+            currentDisplayDate = newDate;
+            loadAndRenderData(currentDisplayDate);
         }
 
-        
-
-        document.getElementById('workout-content').innerHTML = workoutHTML;
-
-
-
-        // --- 顯示所有內容 ---
-
-        document.getElementById('loading-text').style.display = 'none';
-
-        document.getElementById('wrapper-1').style.display = 'block';
-
-        document.getElementById('wrapper-2').style.display = 'block';
-
-        document.getElementById('wrapper-3').style.display = 'block';
-
-    }
-
-
-
-    function changeDate(days) {
-
-        const newDate = new Date(currentDisplayDate);
-
-        newDate.setDate(currentDisplayDate.getDate() + days);
-
-        currentDisplayDate = newDate;
-
-        loadAndRenderData(currentDisplayDate);
-
-    }
-
-
-
-    function downloadImage(elementId, fileNamePrefix) {
-
-        const dateKey = getFormattedDateString(currentDisplayDate);
-
-        const element = document.getElementById(elementId);
-
-        
-
-        element.style.transform = 'scale(1)';
-
-
-
-        html2canvas(element, { 
-
-            useCORS: true,
-
-            scale: 1, 
-
-            backgroundColor: null 
-
-        }).then(canvas => {
-
-            const link = document.createElement('a');
-
-            link.download = `${fileNamePrefix}_${dateKey}.png`;
-
-            link.href = canvas.toDataURL('image/png');
-
-            link.click();
-
-
-
-            element.style.transform = 'scale(0.5)';
-
-        });
-
-    }
-
-
-
-    document.addEventListener('DOMContentLoaded', () => {
-
-        // 頁面加載時，使用台灣時區的今天來初始化
-
-        const twDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
-
-        currentDisplayDate = new Date(twDate.getFullYear(), twDate.getMonth(), twDate.getDate());
-
-        
-
-        loadAndRenderData(currentDisplayDate);
-
-    });
-
-</script>
-
-</body>
-
-</html>
+        function downloadImage(elementId, fileNamePrefix) {
+            const dateKey = getFormattedDateString(currentDisplayDate);
