@@ -24,7 +24,7 @@
             padding: 25px;
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            margin-bottom: 5px; /* 縮小導航欄下方間距 */
+            margin-bottom: 5px;
         }
         .page-navbar h1 { color: #1a237e; border-bottom: 2px solid #3f51b5; padding-bottom: 10px; margin-top: 0; }
         .page-navbar nav { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 0; }
@@ -65,14 +65,13 @@
             margin: 0 15px;
         }
 
-        /* 核心修正: 讓圖片和按鈕緊密結合，並置左對齊 */
+        /* **修正:** 讓圖片容器恢復置中 (align-items: center) */
         .capture-wrapper {
-            margin-bottom: 30px; /* 增加圖片區塊之間的間距 */
+            margin-bottom: 30px;
             width: 100%; 
             display: flex;
             flex-direction: column;
-            /* **修正**：將圖片和按鈕置左對齊 */
-            align-items: flex-start;
+            align-items: center; /* 恢復置中，解決排版散亂問題 */
         }
 
         .capture-area {
@@ -101,9 +100,8 @@
             border: none;
             border-radius: 8px;
             cursor: pointer;
-            /* **修正**：移除原有的 margin-top，改為 margin-bottom 以隔開圖片 */
             margin-top: 0;
-            margin-bottom: 10px;
+            margin-bottom: 10px;
         }
         #loading-text { font-size: 24px; font-family: -apple-system, sans-serif; }
 
@@ -185,7 +183,7 @@
         </div>
 
         <div class="capture-wrapper" id="wrapper-1" style="display: none;">
-                        <button class="download-btn" onclick="downloadImage('capture-area-1', '百日計畫')">下載第一張圖</button>
+                        <button class="download-btn" onclick="downloadImage('capture-area-1', '百日計畫')">下載第一張圖</button>
             <div class="capture-area" id="capture-area-1">
                 <h1 id="weight-title">百日減脂計畫</h1>
                 <h2 id="weight-day"></h2>
@@ -195,7 +193,7 @@
         </div>
 
         <div class="capture-wrapper" id="wrapper-2" style="display: none;">
-                        <button class="download-btn" onclick="downloadImage('capture-area-2', '飲食紀錄')">下載第二張圖</button>
+                        <button class="download-btn" onclick="downloadImage('capture-area-2', '飲食紀錄')">下載第二張圖</button>
             <div class="capture-area" id="capture-area-2">
                 <div class="card-header">
                     <span id="diet-day-of-week"></span>
@@ -207,7 +205,7 @@
         </div>
 
         <div class="capture-wrapper" id="wrapper-3" style="display: none;">
-                        <button class="download-btn" onclick="downloadImage('capture-area-3', '訓練紀錄')">下載第三張圖</button>
+                        <button class="download-btn" onclick="downloadImage('capture-area-3', '訓練紀錄')">下載第三張圖</button>
             <div class="capture-area" id="capture-area-3">
                  <div class="card-header">
                     <span id="workout-day-of-week"></span>
@@ -362,7 +360,7 @@
         document.getElementById('workout-date').textContent = getDateStr(date);
 
         let workoutHTML = '';
-        const workoutDayKey = dayKeys[date.getDay()]; // 確保使用當前顯示日期的星期
+        const workoutDayKey = dayKeys[date.getDay()];
         let hasWorkout = false;
         
         if(workoutLog && workoutLog[workoutDayKey]) {
