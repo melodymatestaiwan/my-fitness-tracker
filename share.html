@@ -1,867 +1,656 @@
 <!DOCTYPE html>
-
 <html lang="zh-Hant">
 
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>分享與成果 - 個人健身追蹤器</title>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
+    <!-- 引入 html2canvas 函式庫 --><script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-
+        /* 恢復原有的 Noto Serif TC 字體 */
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap');
-
+        
+        /* ------------------------------------- */
+        /* 全局與頁面佈局 (恢復淺色主題) */
+        /* ------------------------------------- */
         body {
-
             font-family: 'Noto Serif TC', serif;
-
-            background-color: #f0f2f5;
-
+            background-color: #f0f2f5; /* 淺灰背景 */
             display: flex;
-
             flex-direction: column;
-
             align-items: center;
-
             padding: 20px;
-
             margin: 0;
-
-            color: #333;
-
+            color: #333; /* 深灰文字 */
+            min-height: 100vh;
+            max-width: 600px; /* 變窄紅色區域：最大寬度調整為 600px */
+            margin: 0 auto; /* 居中 body 內容 */
         }
 
+        /* 導航列樣式 */
         .page-navbar {
-
             width: 100%;
-
-            max-width: 900px;
-
-            background-color: #fff;
-
+            max-width: 550px; /* 變窄紅色區域：導航列最大寬度調整為 550px */
+            background-color: #fff; /* 白色導航列 */
             padding: 25px;
-
             border-radius: 10px;
-
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-
-            margin-bottom: 5px; 
-
+            margin-bottom: 25px;
+            border-top: none; /* 移除深色主題的邊框 */
         }
 
-        .page-navbar h1 { color: #1a237e; border-bottom: 2px solid #3f51b5; padding-bottom: 10px; margin-top: 0; }
+        .page-navbar h1 {
+            color: #1a237e; /* 深藍標題 */
+            border-bottom: 2px solid #3f51b5;
+            padding-bottom: 10px;
+            margin-top: 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
 
-        .page-navbar nav { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 0; }
+        .page-navbar h2 {
+            font-size: 20px;
+            font-weight: 400;
+            margin-top: 15px;
+            color: #4a4a4a; /* 恢復標準顏色 */
+        }
 
-        nav a { text-decoration: none; flex-grow: 1; padding: 10px 15px; border: none; background-color: #e8eaf6; color: #3f51b5; cursor: pointer; border-radius: 5px; font-size: 16px; transition: background-color 0.3s; text-align: center; }
+        .page-navbar nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 0;
+        }
 
-        nav a.active { background-color: #3f51b5; color: white; font-weight: bold; }
+        nav a {
+            text-decoration: none;
+            flex-grow: 1;
+            padding: 10px 15px;
+            border: none;
+            background-color: #e8eaf6; /* 淺藍背景 */
+            color: #3f51b5; /* 藍色文字 */
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 400;
+            transition: background-color 0.3s;
+            text-align: center;
+        }
 
-
+        nav a.active {
+            background-color: #3f51b5;
+            color: white;
+            font-weight: bold;
+            box-shadow: none; /* 移除深色主題的陰影 */
+        }
 
         /* 圖片容器與按鈕的總區塊 */
-
         .capture-group {
-
-            max-width: 900px;
-
-            width: 100%;
-
+            width: 100%; /* 讓 capture-group 填充 body 的 max-width */
+            max-width: 550px; /* 變窄紅色區域：限制 capture-group 最大寬度 */
             margin-bottom: 30px;
-
             display: flex;
-
             flex-direction: column;
-
             align-items: center;
-
         }
 
-
-        /* 新增/修改：統一的下載按鈕群組樣式 */
+        /* 統一的下載按鈕群組樣式 */
         #download-all-buttons {
             display: flex;
-            gap: 10px; /* 按鈕間距 */
-            margin-bottom: 20px; /* 群組下方間距 */
+            gap: 10px;
+            margin-bottom: 15px; /* 縮小按鈕群組下方的間距 */
             flex-wrap: wrap;
             justify-content: center;
         }
 
-
         /* 日期選擇器樣式 */
-
         #date-controls {
-
             display: flex;
-
             align-items: center;
-
             justify-content: center;
-
             width: 100%;
-
-            max-width: 900px;
-
-            margin-bottom: 20px;
-
+            max-width: 550px; /* 變窄紅色區域：與 capture-group 寬度一致 */
+            margin-bottom: 15px; /* 縮小日期控制下方的間距 */
+            padding: 0; /* 移除 padding 和背景 */
+            background-color: transparent;
+            border-radius: 0;
         }
 
         #date-controls button {
-
             background: none;
-
             border: none;
-
             font-size: 30px;
-
             color: #3f51b5;
-
             cursor: pointer;
-
             padding: 0 10px;
-
         }
 
         #date-controls #current-date-display {
-
             font-size: 24px;
-
             font-weight: 700;
-
             color: #1a237e;
-
             margin: 0 15px;
-
         }
 
-
-
-        /* 核心修正: 讓圖片之間的間距更緊密 */
-
+        /* 核心修正: 圖片預覽器樣式 (縮小黃色區域) */
         .capture-wrapper {
-
-            margin-bottom: 5px; /* 將間距縮小到 5px */
-            margin-bottom: 0px; /* 將間距縮小到 5px */
-
-            width: 100%; 
-
+            margin-bottom: 5px; /* 縮小圖片之間的間距 (黃色區域) */
+            width: 100%;
             display: flex;
-
             flex-direction: column;
-
             align-items: center;
-
+            /* 恢復原始 0.5 縮放 */
+            transform: scale(0.5);
+            transform-origin: top center;
+            max-height: auto; /* 移除高度限制 */
+            overflow: visible;
         }
-
+        
+        /* 調整移動端預覽縮放，防止內容過大 */
+        @media (max-width: 600px) {
+            .capture-wrapper {
+                transform: scale(0.4);
+                max-height: 450px;
+            }
+        }
 
 
         .capture-area {
-
+            /* 原始設計尺寸 1080x1350px (3:4 比例) */
             width: 1080px;
-
             height: 1350px;
-
             padding: 80px;
-
             box-sizing: border-box;
-
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-
-            margin-bottom: 0; 
-
+            margin-bottom: 0;
             display: flex;
-
             flex-direction: column;
-
             justify-content: center;
-
-            transform: scale(0.5); 
-
-            transform-origin: top center;
-
             position: relative;
-
-            background-image: url('./share-background.png'); 
-
-            background-size: cover;
-
-            background-position: center;
-
+            background-color: #ffffff; /* 統一使用白色背景 */
+            border: none; /* 移除深色主題的邊框 */
+            border-radius: 0;
         }
 
         .download-btn {
-
             padding: 10px 20px;
-
             font-size: 18px;
-
+            font-weight: 400;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-
-            background-color: #4caf50;
-
+            background-color: #4caf50; /* 綠色按鈕 */
             color: white;
-
             border: none;
-
             border-radius: 8px;
-
             cursor: pointer;
-
-            margin-top: 0; /* 統一由 #download-all-buttons 控制間距 */
-
+            transition: all 0.3s ease;
+            box-shadow: none;
         }
 
-        #loading-text { font-size: 24px; font-family: -apple-system, sans-serif; }
+        .download-btn:hover {
+            background-color: #43a047;
+            transform: none;
+            box-shadow: none;
+        }
+
+        #loading-text {
+            font-size: 24px;
+            font-family: 'Noto Serif TC', serif;
+            color: #3f51b5; /* 恢復藍色 */
+            margin-top: 50px;
+        }
 
 
-
-        /* 圖一：體重紀錄 */
-
+        /* ------------------------------------- */
+        /* 圖一：體重紀錄卡片 */
+        /* ------------------------------------- */
         #capture-area-1 {
-
             color: #4a4a4a;
-
             align-items: center;
-
         }
 
-        #capture-area-1 h1, #capture-area-1 h2 {
-
+        #capture-area-1 h1 {
             margin: 20px 0;
-
             font-weight: 700;
-
+            color: #4a4a4a;
+            font-size: 80px; /* 恢復原始大小 */
+            text-shadow: none;
         }
 
-        #capture-area-1 h1 { font-size: 80px; }
+        #capture-area-1 h2 {
+            margin: 10px 0;
+            font-weight: 700;
+            font-size: 60px;
+            color: #4a4a4a;
+        }
 
-        #capture-area-1 h2 { font-size: 60px; }
 
-
-
-        /* 圖二 & 圖三：飲食與運動 */
-
+        /* ------------------------------------- */
+        /* 圖二 & 圖三：飲食與運動卡片 */
+        /* ------------------------------------- */
         #capture-area-2, #capture-area-3 {
-
-            background-image: linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url('./share-background.png');
-
+            background-color: #ffffff; /* 保持白色背景 */
             align-items: flex-start;
-
             padding-left: 100px;
-
             color: #333;
-
+            border: none; /* 移除深色主題的邊框 */
         }
-
+        
         .card-header {
-
             width: 100%;
-
             display: flex;
-
             justify-content: space-between;
-
-            font-size: 28px;
-
+            font-size: 28px; /* 恢復原始大小 */
             color: #555;
-
             position: absolute;
-
             top: 80px;
-
             left: 0;
-
             padding: 0 100px;
-
             box-sizing: border-box;
-
+            font-weight: 400;
         }
 
         .card-title {
-
-            font-size: 60px;
-
+            font-size: 60px; /* 恢復原始大小 */
             font-weight: 700;
-
             margin-bottom: 40px;
-
+            color: #333;
+            text-shadow: none;
         }
 
         .card-content {
-
-            font-size: 48px;
-
+            font-size: 48px; /* 恢復原始大小 */
             line-height: 1.8;
-
             text-align: left;
-
+            margin-top: 0; /* 恢復原始 margin-top */
         }
 
-        .card-content u { 
-
-            text-decoration-thickness: 3px;
-
+        .card-content u {
+            text-decoration-thickness: 3px; /* 恢復原始下劃線粗細 */
             text-underline-offset: 8px;
-
+            border-bottom: none; /* 移除 border 替換為 standard underline */
         }
 
         .card-content .plan-name {
-
-            font-size: 1.2em; 
-
-            display: block; 
-
+            font-size: 1.2em;
+            display: block;
             margin-bottom: 10px;
-
             font-weight: 700;
-
+            color: inherit; /* 讓文字顏色繼承 */
         }
 
-        .card-content u.orange { text-decoration-color: #ff9800; }
+        /* 恢復原始的下劃線顏色定義 */
+        .card-content u.orange { text-decoration-color: #ff9800; color: inherit; }
+        .card-content u.blue { text-decoration-color: #2196F3; color: inherit; }
 
-        .card-content u.blue { text-decoration-color: #2196F3; }
-
-        .total-calories { margin-top: 40px; }
-
+        .total-calories { 
+            margin-top: 40px;
+            font-size: 1em; /* 恢復原始大小 */
+            font-weight: 400; /* 恢復原始字重 */
+            color: #333; /* 恢復原始顏色 */
+        }
     </style>
-
 </head>
 
 <body>
-
     <div class="page-navbar">
-
         <h1>個人健身追蹤器</h1>
-
         <nav>
-
             <a href="index.html">數據追蹤</a>
-
             <a href="workout.html">今日課表</a>
-
             <a href="diet.html">飲食紀錄</a>
-
             <a href="share.html" class="active">分享與成果</a>
-
         </nav>
-
         <h2>生成每日分享圖</h2>
-
     </div>
-
-
 
     <div id="loading-text">讀取今日紀錄中...</div>
 
-
-
     <div class="capture-group">
-
         <div id="date-controls">
-
-            <button onclick="changeDate(-1)">‹</button>
-
+            <button onclick="changeDate(-1)" aria-label="上一天">‹</button>
             <span id="current-date-display"></span>
-
-            <button onclick="changeDate(1)">›</button>
-
+            <button onclick="changeDate(1)" aria-label="下一天">›</button>
         </div>
 
-
-        <div id="download-all-buttons">
-            <button class="download-btn" onclick="downloadImage('capture-area-1', '百日計畫')">下載第一張圖</button>
-            <button class="download-btn" onclick="downloadImage('capture-area-2', '飲食紀錄')">下載第二張圖</button>
-            <button class="download-btn" onclick="downloadImage('capture-area-3', '訓練紀錄')">下載第三張圖</button>
+        <div id="download-all-buttons" style="display: none;">
+            <button class="download-btn" onclick="downloadImage('capture-area-1', '百日計畫')">下載體重卡</button>
+            <button class="download-btn" onclick="downloadImage('capture-area-2', '飲食紀錄')">下載飲食卡</button>
+            <button class="download-btn" onclick="downloadImage('capture-area-3', '訓練紀錄')">下載訓練卡</button>
         </div>
 
-
-        <div class="capture-wrapper" id="wrapper-1" style="display: none;">
-
+        <!-- 圖一：體重紀錄卡片 --><div class="capture-wrapper" id="wrapper-1" style="display: none;">
             <div class="capture-area" id="capture-area-1">
-
                 <h1 id="weight-title">百日減脂計畫</h1>
-
                 <h2 id="weight-day"></h2>
-
                 <h2 id="weight-start"></h2>
-
                 <h2 id="weight-current"></h2>
-
             </div>
+        </div>
 
-            </div>
-
-
-
-        <div class="capture-wrapper" id="wrapper-2" style="display: none;">
-
+        <!-- 圖二：飲食紀錄卡片 --><div class="capture-wrapper" id="wrapper-2" style="display: none;">
             <div class="capture-area" id="capture-area-2">
-
                 <div class="card-header">
-
                     <span id="diet-day-of-week"></span>
-
                     <span id="diet-date"></span>
-
                 </div>
-
                 <div class="card-title" style="margin-top: 150px;">飲食紀錄</div>
-
                 <div class="card-content" id="diet-content"></div>
-
             </div>
+        </div>
 
-            </div>
-
-
-
-        <div class="capture-wrapper" id="wrapper-3" style="display: none;">
-
+        <!-- 圖三：訓練紀錄卡片 --><div class="capture-wrapper" id="wrapper-3" style="display: none;">
             <div class="capture-area" id="capture-area-3">
-
-                 <div class="card-header">
-
+                <div class="card-header">
                     <span id="workout-day-of-week"></span>
-
                     <span id="workout-date"></span>
-
                 </div>
-
                 <div class="card-title" style="margin-top: 150px;">今日運動</div>
-
                 <div class="card-content" id="workout-content"></div>
-
             </div>
-
-            </div>
-
+        </div>
     </div>
 
-
-
 <script>
+    // 原始 JavaScript 邏輯開始 ------------------------------------------------------------------
 
+    // 核心數據常量 (保持不變)
     const CHALLENGE_START_DATE = new Date('2025-10-20T00:00:00');
-
-    const STARTING_WEIGHT = 83.1; 
-
+    const STARTING_WEIGHT = 83.1;
     const MOCK_DIET_TOTALS = {
-
         protein: 138.3,
-
         carbs: 102.6,
-
         fat: 55.6
-
     };
-
-
-
-
 
     const dietPlan = {
-
         monday:    { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
-
         tuesday:   { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
-
         wednesday: { name: "無碳日", protein: 160, carbs: 40,  fat: 98 },
-
         thursday:  { name: "高碳日", protein: 160, carbs: 230, fat: 51 },
-
         friday:    { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
-
         saturday:  { name: "低碳日", protein: 160, carbs: 100, fat: 87 },
-
         sunday:    { name: "無碳日", protein: 160, carbs: 40,  fat: 98 },
-
     };
-
     const dayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-
     let allDataCache = {};
-
-    let currentDisplayDate = new Date(); 
-
-
+    let currentDisplayDate = new Date();
 
     // ✅ 核心修正函數：獲取台灣時區的 YYYY-MM-DD
-
     function getFormattedDateString(date) {
-
-        // 使用 'en-CA' 確保格式為 YYYY-MM-DD
-
+        // 使用 'en-CA' 確保格式為 YYYY-MM-DD，並指定台灣時區
         return date.toLocaleString('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
-
     }
-
-
 
     function getDayOfWeekStr(date) {
-
         const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-        return weekdays[date.getDay()];
-
+        // 確保使用台灣時區的星期
+        const dayIndex = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Taipei' })).getDay();
+        return weekdays[dayIndex];
     }
-
-
 
     function getDateStr(date) {
-
-        return `${date.getMonth() + 1}月${date.getDate()}日`;
-
+        const twDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+        return `${twDate.getMonth() + 1}月${twDate.getDate()}日`;
     }
-
-
 
     // 輔助函數：安全地解析數據
-
     function safeParse(data) {
-
         // 只有當數據是字串且看起來像 JSON 時才解析
-
         if (typeof data === 'string' && (data.startsWith('{') || data.startsWith('['))) {
-
             try {
-
                 return JSON.parse(data);
-
             } catch (e) {
-
                 console.error("Failed to parse JSON string:", e);
-
                 return data;
-
             }
-
         }
-
         return data;
-
     }
 
+    // 模擬 API 數據獲取 (因為沒有後端，我們需要一個 mock fetch)
+    async function mockFetchData() {
+        // 在沒有後端環境時，我們使用 localStorage 模擬數據
+        const fitnessData = JSON.parse(localStorage.getItem('fitnessData') || '[]') || [];
+        const dietLog = JSON.parse(localStorage.getItem('dietLog') || '{}') || {};
+        const workoutLog = JSON.parse(localStorage.getItem('workoutLog') || '{}') || {};
+        
+        // 如果數據為空，提供一些範例數據以供渲染，並確保當天有數據
+        const todayKey = getFormattedDateString(new Date());
+
+        if (fitnessData.length === 0) {
+            fitnessData.push({ date: todayKey, time: 'morning', weight: 81.5 });
+            fitnessData.push({ date: getFormattedDateString(new Date(new Date().setDate(new Date().getDate() - 1))), time: 'morning', weight: 81.8 });
+        }
+
+        if (Object.keys(dietLog).length === 0 || !dietLog[todayKey]) {
+            dietLog[todayKey] = [
+                { meal: '早餐', food: '蛋餅', protein: 20, carbs: 30, fat: 15, calories: 335 },
+                { meal: '午餐', food: '雞胸肉沙拉', protein: 45, carbs: 15, fat: 10, calories: 300 },
+                { meal: '晚餐', food: '鮭魚飯糰', protein: 30, carbs: 40, fat: 15, calories: 435 }
+            ];
+        }
+
+        if (Object.keys(workoutLog).length === 0 || !workoutLog[dayKeys[new Date().getDay()]] || !workoutLog[dayKeys[new Date().getDay()]]['胸推'] || !workoutLog[dayKeys[new Date().getDay()]]['胸推'][todayKey]) {
+            const todayDayKey = dayKeys[new Date().getDay()];
+            if (!workoutLog[todayDayKey]) workoutLog[todayDayKey] = {};
+            if (!workoutLog[todayDayKey]['胸推']) workoutLog[todayDayKey]['胸推'] = {};
+            workoutLog[todayDayKey]['胸推'][todayKey] = [
+                { type: 'weight', weight: 16, reps: 10, set: 1 },
+                { type: 'weight', weight: 16, reps: 8, set: 2 }
+            ];
+            if (!workoutLog[todayDayKey]['跑步']) workoutLog[todayDayKey]['跑步'] = {};
+            workoutLog[todayDayKey]['跑步'][todayKey] = [
+                { type: 'time', duration: 30, distance: 5.5 }
+            ];
+        }
+
+
+        // 模擬 API 延遲
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        return {
+            fitnessData: fitnessData,
+            dietLog: dietLog,
+            workoutLog: workoutLog
+        };
+    }
 
 
     // 數據載入和渲染主函數
-
     async function loadAndRenderData(date) {
-
         const dateKey = getFormattedDateString(date);
 
-
-
-        document.getElementById('current-date-display').textContent = `${dateKey} (${getDayOfWeekStr(date)}.)`;
-
+        document.getElementById('current-date-display').textContent = `${dateKey} (${getDayOfWeekStr(date)})`;
         document.getElementById('loading-text').textContent = `正在讀取 ${dateKey} 的數據...`;
+        document.getElementById('loading-text').style.display = 'block';
+        document.getElementById('wrapper-1').style.display = 'none';
+        document.getElementById('wrapper-2').style.display = 'none';
+        document.getElementById('wrapper-3').style.display = 'none';
+        document.getElementById('download-all-buttons').style.display = 'none';
 
 
-
-        // 讀取數據 (假設數據已緩存，如果沒有則從 API 或緩存獲取)
-
-        if (Object.keys(allDataCache).length === 0 || !allDataCache.fitnessData) {
-
+        // 讀取數據
+        if (Object.keys(allDataCache).length === 0) {
             try {
-
-                // 讀取 API
-
-                const response = await fetch('/api/getAllData');
-
-                if (!response.ok) throw new Error('API request failed');
-
-                const data = await response.json();
-
-
-
-                // ✅ 核心修正：使用 safeParse 確保數據結構正確
+                // 替換原有的 fetch 邏輯，使用 mockFetchData 函數
+                const data = await mockFetchData();
 
                 allDataCache.fitnessData = safeParse(data.fitnessData) || [];
-
                 allDataCache.dietLog = safeParse(data.dietLog) || {};
-
                 allDataCache.workoutLog = safeParse(data.workoutLog) || {};
-
             } catch (error) {
-
-                document.getElementById('loading-text').textContent = '讀取雲端資料失敗！請重新整理。';
-
+                document.getElementById('loading-text').textContent = '讀取本地資料失敗！請檢查 Console 錯誤。';
                 console.error(error);
-
                 return;
-
             }
-
         }
-
-
 
         const { fitnessData, dietLog, workoutLog } = allDataCache;
 
 
-
         // --- 渲染圖一：體重 ---
-
-        const diffTime = date - CHALLENGE_START_DATE;
-
+        const twDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+        const diffTime = twDate.getTime() - CHALLENGE_START_DATE.getTime();
         const challengeDayNum = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-
-        document.getElementById('weight-day').textContent = `第 ${challengeDayNum} 天`;
-
-
+        document.getElementById('weight-day').textContent = `第 ${challengeDayNum > 0 ? challengeDayNum : '??'} 天`;
 
         // 1. 起始體重 (使用固定值)
-
         document.getElementById('weight-start').textContent = `起始體重 ${STARTING_WEIGHT.toFixed(1)} 公斤`;
 
-
-
         // 2. 今日體重 (獲取該日期最新的體重紀錄)
-
         const dayWeightEntries = fitnessData.filter(entry => entry.date === dateKey && entry.weight !== null);
-
         const morningEntry = dayWeightEntries.find(entry => entry.time === 'morning');
-
-        const latestEntry = dayWeightEntries[dayWeightEntries.length - 1]; 
-
-
+        const latestEntry = dayWeightEntries[dayWeightEntries.length - 1];
 
         let currentWeightDisplay = '???';
-
         if (morningEntry) {
-
             currentWeightDisplay = morningEntry.weight.toFixed(1);
-
         } else if (latestEntry) {
-
             currentWeightDisplay = latestEntry.weight.toFixed(1);
-
         } else {
-
             currentWeightDisplay = '???';
-
         }
-
-
 
         document.getElementById('weight-current').textContent = `今日體重 ${currentWeightDisplay} 公斤`;
 
-
-
         // --- 渲染圖二：飲食 ---
-
         const dayOfWeekStr = getDayOfWeekStr(date);
-
         const dateStr = getDateStr(date);
-
-        document.getElementById('diet-day-of-week').textContent = `(${dayOfWeekStr}.)`;
-
+        document.getElementById('diet-day-of-week').textContent = `(${dayOfWeekStr})`;
         document.getElementById('diet-date').textContent = dateStr;
 
-
-
-        const planForDay = dietPlan[dayKeys[date.getDay()]];
+        // 確保使用當天台灣時區的星期幾來查找飲食計畫
+        const twDay = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Taipei' })).getDay();
+        const planForDay = dietPlan[dayKeys[twDay]];
 
         const logsForDay = dietLog[dateKey] || [];
-
         const hasDietLogs = logsForDay.length > 0;
 
-
-
         // 數據計算
-
         const totals = logsForDay.reduce((acc, item) => { acc.protein += item.protein; acc.carbs += item.carbs; acc.fat += item.fat; return acc; }, { protein: 0, carbs: 0, fat: 0 });
 
-
-
         // 數據覆蓋 (如果沒有紀錄，則使用您提供的 MOCK 數據)
-
-        if (!hasDietLogs && dateKey === getFormattedDateString(new Date())) { 
-
+        if (!hasDietLogs && dateKey === getFormattedDateString(new Date())) {
              totals.protein = MOCK_DIET_TOTALS.protein;
-
              totals.carbs = MOCK_DIET_TOTALS.carbs;
-
              totals.fat = MOCK_DIET_TOTALS.fat;
-
         }
 
-
-
         const currentCalories = (totals.protein * 4) + (totals.carbs * 4) + (totals.fat * 9);
+        const proteinDisplay = hasDietLogs ? totals.protein.toFixed(0) : '???';
+        const carbsDisplay = hasDietLogs ? totals.carbs.toFixed(0) : '???';
+        const fatDisplay = hasDietLogs ? totals.fat.toFixed(0) : '???';
+        const caloriesDisplay = hasDietLogs ? currentCalories.toFixed(0) : '???';
 
-
-
-        document.getElementById('diet-content').innerHTML = 
+        document.getElementById('diet-content').innerHTML =
             `<u class="orange plan-name">${planForDay.name}</u>
             <br>
             <br>
-            蛋白質: ${hasDietLogs ? totals.protein.toFixed(0) : '???'} / ${planForDay.protein} 克
+            蛋白質: ${proteinDisplay} / ${planForDay.protein} 克
             <br>
-            碳水化合物: ${hasDietLogs ? totals.carbs.toFixed(0) : '???'} / ${planForDay.carbs} 克
+            碳水化合物: ${carbsDisplay} / ${planForDay.carbs} 克
             <br>
-            脂肪: ${hasDietLogs ? totals.fat.toFixed(0) : '???'} / ${planForDay.fat} 克
-            <div class="total-calories">總熱量 ${hasDietLogs ? currentCalories.toFixed(0) : '???'} 大卡</div>`
+            脂肪: ${fatDisplay} / ${planForDay.fat} 克
+            <div class="total-calories">總熱量 ${caloriesDisplay} 大卡</div>`
         ;
 
 
         // --- 渲染圖三：運動 ---
-
-        document.getElementById('workout-day-of-week').textContent = `(${getDayOfWeekStr(date)}.)`;
-
-        document.getElementById('workout-date').textContent = getDateStr(date);
-
-
+        document.getElementById('workout-day-of-week').textContent = `(${dayOfWeekStr})`;
+        document.getElementById('workout-date').textContent = dateStr;
 
         let workoutHTML = '';
-
-        const workoutDayKey = dayKeys[date.getDay()]; // 確保使用當前顯示日期的星期
-
+        const workoutDayKey = dayKeys[twDay]; // 確保使用當前顯示日期的星期
         let hasWorkout = false;
 
-
-
         if(workoutLog && workoutLog[workoutDayKey]) {
-
             for (const exName in workoutLog[workoutDayKey]) {
-
                 const sets = workoutLog[workoutDayKey][exName][dateKey];
-
                 if (sets && sets.length > 0) {
-
                     hasWorkout = true;
-
                     const weightSets = sets.filter(s => s.type === 'weight');
-
                     const timeSets = sets.filter(s => s.type === 'time');
-
                     if (weightSets.length > 0) {
-
+                        const totalSets = weightSets.length;
                         const weight = weightSets[0].weight;
-
-                        workoutHTML += `<u class="blue">${exName}</u> ${weight}公斤 ${weightSets.length}組<br>`;
-
+                        workoutHTML += `<u class="blue">${exName}</u> ${weight}公斤 ${totalSets}組<br>`;
                     }
-
                     if (timeSets.length > 0) {
-
                         const totalDuration = timeSets.reduce((sum, s) => sum + s.duration, 0);
-
-                        workoutHTML += `<u class="blue">${exName}</u> ${totalDuration}分鐘<br>`;
-
+                        workoutHTML += `<u class="blue">${exName} (有氧)</u> ${totalDuration}分鐘<br>`;
                     }
-
                 }
-
             }
-
         }
 
-
-        // 訓練數據覆蓋 (如果沒有實際紀錄，則使用您提供的 MOCK 數據)
-
-        if (!hasWorkout && dateKey === getFormattedDateString(new Date())) { 
-
-             workoutHTML = `<u class="blue">胸推</u> 16公斤 1組<br>`;
-
+        // 訓練數據覆蓋
+        if (!hasWorkout && dateKey === getFormattedDateString(new Date())) {
+            // 使用 mockFetchData 中的範例數據
+            workoutHTML = `<u class="blue">胸推</u> 16公斤 2組<br><u class="blue">跑步 (有氧)</u> 30分鐘<br>`;
         } else if (!hasWorkout && dateKey !== getFormattedDateString(new Date())) {
-
             workoutHTML = '當日無紀錄';
-
         }
-
-
 
         document.getElementById('workout-content').innerHTML = workoutHTML;
 
-
-
         // --- 顯示所有內容 ---
-
         document.getElementById('loading-text').style.display = 'none';
-
         document.getElementById('wrapper-1').style.display = 'block';
-
         document.getElementById('wrapper-2').style.display = 'block';
-
         document.getElementById('wrapper-3').style.display = 'block';
-
-        // 確保按鈕群組顯示
         document.getElementById('download-all-buttons').style.display = 'flex';
-
     }
-
-
 
     function changeDate(days) {
-
         const newDate = new Date(currentDisplayDate);
-
         newDate.setDate(currentDisplayDate.getDate() + days);
-
         currentDisplayDate = newDate;
-
         loadAndRenderData(currentDisplayDate);
-
     }
-
-
 
     function downloadImage(elementId, fileNamePrefix) {
-
         const dateKey = getFormattedDateString(currentDisplayDate);
-
         const element = document.getElementById(elementId);
 
-
-
+        // 設置 scale 為 1，確保截圖是原始尺寸
+        const originalTransform = element.style.transform;
         element.style.transform = 'scale(1)';
+        
+        // 臨時將容器縮放也設為 1，確保內容以全尺寸渲染
+        const wrapper = element.closest('.capture-wrapper');
+        const originalWrapperTransform = wrapper.style.transform;
+        
+        // 強制設置容器和元素為 1:1 縮放，以進行清晰截圖
+        wrapper.style.transform = 'scale(1)';
 
 
-        html2canvas(element, { 
-
+        html2canvas(element, {
             useCORS: true,
-
-            scale: 1, 
-
-            backgroundColor: null 
-
+            scale: 1,
+            backgroundColor: null
         }).then(canvas => {
-
             const link = document.createElement('a');
-
             link.download = `${fileNamePrefix}_${dateKey}.png`;
-
             link.href = canvas.toDataURL('image/png');
-
             link.click();
 
-
-            element.style.transform = 'scale(0.5)';
-
+            // 恢復原始的縮放狀態 (用於頁面預覽)
+            element.style.transform = originalTransform;
+            wrapper.style.transform = originalWrapperTransform;
         });
-
     }
 
-
-
     document.addEventListener('DOMContentLoaded', () => {
-
-        // 頁面加載時，使用台灣時區的今天來初始化
-
-        const twDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
-
+        // 頁面加載時，獲取台灣時區的今天來初始化
+        const twTime = new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' });
+        const twDate = new Date(twTime);
+        // 重設 currentDisplayDate 到當天的開始
         currentDisplayDate = new Date(twDate.getFullYear(), twDate.getMonth(), twDate.getDate());
 
-
-
         loadAndRenderData(currentDisplayDate);
-
     });
+
+    // 原始 JavaScript 邏輯結束 ------------------------------------------------------------------
 
 </script>
 
