@@ -26,7 +26,7 @@
 
             flex-direction: column;
 
-            align-items: flex-start; /* 改為靠左對齊 */
+            align-items: center;
 
             padding: 20px;
 
@@ -62,7 +62,7 @@
 
         nav a.active { background-color: #3f51b5; color: white; font-weight: bold; }
 
-        
+
 
         /* 圖片容器與按鈕的總區塊 */
 
@@ -78,18 +78,18 @@
 
             flex-direction: column;
 
-            align-items: flex-start; /* 改為靠左對齊 */
+            align-items: center;
 
         }
 
-        
+
         /* 新增/修改：統一的下載按鈕群組樣式 */
         #download-all-buttons {
             display: flex;
             gap: 10px; /* 按鈕間距 */
-            margin-bottom: 10px; /* 減少底部間距 */
+            margin-bottom: 20px; /* 群組下方間距 */
             flex-wrap: wrap;
-            justify-content: flex-start; /* 改為靠左對齊 */
+            justify-content: center;
         }
 
 
@@ -101,13 +101,13 @@
 
             align-items: center;
 
-            justify-content: flex-start; /* 改為靠左對齊 */
+            justify-content: center;
 
             width: 100%;
 
             max-width: 900px;
 
-            margin-bottom: 10px; /* 減少底部間距 */
+            margin-bottom: 20px;
 
         }
 
@@ -145,7 +145,8 @@
 
         .capture-wrapper {
 
-            margin-bottom: 5px; /* 進一步減少間距 */
+            margin-bottom: 5px; /* 將間距縮小到 5px */
+            margin-bottom: 0px; /* 將間距縮小到 5px */
 
             width: 100%; 
 
@@ -153,7 +154,7 @@
 
             flex-direction: column;
 
-            align-items: flex-start; /* 改為靠左對齊 */
+            align-items: center;
 
         }
 
@@ -181,7 +182,7 @@
 
             transform: scale(0.5); 
 
-            transform-origin: top left; /* 改為從左上角縮放 */
+            transform-origin: top center;
 
             position: relative;
 
@@ -225,7 +226,7 @@
 
             color: #4a4a4a;
 
-            align-items: flex-start; /* 改為靠左對齊 */
+            align-items: center;
 
         }
 
@@ -249,7 +250,7 @@
 
             background-image: linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url('./share-background.png');
 
-            align-items: flex-start; /* 改為靠左對齊 */
+            align-items: flex-start;
 
             padding-left: 100px;
 
@@ -263,7 +264,7 @@
 
             display: flex;
 
-            justify-content: flex-start; /* 改為靠左對齊 */
+            justify-content: space-between;
 
             font-size: 28px;
 
@@ -297,7 +298,7 @@
 
             line-height: 1.8;
 
-            text-align: left; /* 確保文字靠左 */
+            text-align: left;
 
         }
 
@@ -371,7 +372,7 @@
 
         </div>
 
-        
+
         <div id="download-all-buttons">
             <button class="download-btn" onclick="downloadImage('capture-area-1', '百日計畫')">下載第一張圖</button>
             <button class="download-btn" onclick="downloadImage('capture-area-2', '飲食紀錄')">下載第二張圖</button>
@@ -499,7 +500,7 @@
 
     }
 
-    
+
 
     function getDayOfWeekStr(date) {
 
@@ -553,13 +554,13 @@
 
         const dateKey = getFormattedDateString(date);
 
-        
+
 
         document.getElementById('current-date-display').textContent = `${dateKey} (${getDayOfWeekStr(date)}.)`;
 
         document.getElementById('loading-text').textContent = `正在讀取 ${dateKey} 的數據...`;
 
-        
+
 
         // 讀取數據 (假設數據已緩存，如果沒有則從 API 或緩存獲取)
 
@@ -575,7 +576,7 @@
 
                 const data = await response.json();
 
-                
+
 
                 // ✅ 核心修正：使用 safeParse 確保數據結構正確
 
@@ -597,11 +598,11 @@
 
         }
 
-        
+
 
         const { fitnessData, dietLog, workoutLog } = allDataCache;
 
-        
+
 
         // --- 渲染圖一：體重 ---
 
@@ -611,13 +612,13 @@
 
         document.getElementById('weight-day').textContent = `第 ${challengeDayNum} 天`;
 
-        
+
 
         // 1. 起始體重 (使用固定值)
 
         document.getElementById('weight-start').textContent = `起始體重 ${STARTING_WEIGHT.toFixed(1)} 公斤`;
 
-        
+
 
         // 2. 今日體重 (獲取該日期最新的體重紀錄)
 
@@ -661,7 +662,7 @@
 
         document.getElementById('diet-date').textContent = dateStr;
 
-        
+
 
         const planForDay = dietPlan[dayKeys[date.getDay()]];
 
@@ -669,13 +670,13 @@
 
         const hasDietLogs = logsForDay.length > 0;
 
-        
+
 
         // 數據計算
 
         const totals = logsForDay.reduce((acc, item) => { acc.protein += item.protein; acc.carbs += item.carbs; acc.fat += item.fat; return acc; }, { protein: 0, carbs: 0, fat: 0 });
 
-        
+
 
         // 數據覆蓋 (如果沒有紀錄，則使用您提供的 MOCK 數據)
 
@@ -693,7 +694,7 @@
 
         const currentCalories = (totals.protein * 4) + (totals.carbs * 4) + (totals.fat * 9);
 
-        
+
 
         document.getElementById('diet-content').innerHTML = 
             `<u class="orange plan-name">${planForDay.name}</u>
@@ -722,7 +723,7 @@
 
         let hasWorkout = false;
 
-        
+
 
         if(workoutLog && workoutLog[workoutDayKey]) {
 
@@ -760,7 +761,7 @@
 
         }
 
-        
+
         // 訓練數據覆蓋 (如果沒有實際紀錄，則使用您提供的 MOCK 數據)
 
         if (!hasWorkout && dateKey === getFormattedDateString(new Date())) { 
@@ -773,7 +774,7 @@
 
         }
 
-        
+
 
         document.getElementById('workout-content').innerHTML = workoutHTML;
 
@@ -788,7 +789,7 @@
         document.getElementById('wrapper-2').style.display = 'block';
 
         document.getElementById('wrapper-3').style.display = 'block';
-        
+
         // 確保按鈕群組顯示
         document.getElementById('download-all-buttons').style.display = 'flex';
 
@@ -816,7 +817,7 @@
 
         const element = document.getElementById(elementId);
 
-        
+
 
         element.style.transform = 'scale(1)';
 
@@ -856,7 +857,7 @@
 
         currentDisplayDate = new Date(twDate.getFullYear(), twDate.getMonth(), twDate.getDate());
 
-        
+
 
         loadAndRenderData(currentDisplayDate);
 
