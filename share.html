@@ -26,7 +26,7 @@
 
             flex-direction: column;
 
-            align-items: center;
+            align-items: flex-start; /* 改為靠左對齊 */
 
             padding: 20px;
 
@@ -78,7 +78,7 @@
 
             flex-direction: column;
 
-            align-items: center;
+            align-items: flex-start; /* 改為靠左對齊 */
 
         }
 
@@ -87,9 +87,9 @@
         #download-all-buttons {
             display: flex;
             gap: 10px; /* 按鈕間距 */
-            margin-bottom: 20px; /* 群組下方間距 */
+            margin-bottom: 10px; /* 減少底部間距 */
             flex-wrap: wrap;
-            justify-content: center;
+            justify-content: flex-start; /* 改為靠左對齊 */
         }
 
 
@@ -101,13 +101,13 @@
 
             align-items: center;
 
-            justify-content: center;
+            justify-content: flex-start; /* 改為靠左對齊 */
 
             width: 100%;
 
             max-width: 900px;
 
-            margin-bottom: 20px;
+            margin-bottom: 10px; /* 減少底部間距 */
 
         }
 
@@ -145,7 +145,7 @@
 
         .capture-wrapper {
 
-            margin-bottom: 0px; /* 將間距縮小到 5px */
+            margin-bottom: 5px; /* 進一步減少間距 */
 
             width: 100%; 
 
@@ -153,7 +153,7 @@
 
             flex-direction: column;
 
-            align-items: center;
+            align-items: flex-start; /* 改為靠左對齊 */
 
         }
 
@@ -181,7 +181,7 @@
 
             transform: scale(0.5); 
 
-            transform-origin: top center;
+            transform-origin: top left; /* 改為從左上角縮放 */
 
             position: relative;
 
@@ -225,7 +225,7 @@
 
             color: #4a4a4a;
 
-            align-items: center;
+            align-items: flex-start; /* 改為靠左對齊 */
 
         }
 
@@ -249,7 +249,7 @@
 
             background-image: linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url('./share-background.png');
 
-            align-items: flex-start;
+            align-items: flex-start; /* 改為靠左對齊 */
 
             padding-left: 100px;
 
@@ -263,7 +263,7 @@
 
             display: flex;
 
-            justify-content: space-between;
+            justify-content: flex-start; /* 改為靠左對齊 */
 
             font-size: 28px;
 
@@ -297,7 +297,7 @@
 
             line-height: 1.8;
 
-            text-align: left;
+            text-align: left; /* 確保文字靠左 */
 
         }
 
