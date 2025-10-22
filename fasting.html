@@ -468,24 +468,54 @@
         }
 
         const currentStart = new Date(fastingState.start);
+        const defaultDate = getFormattedDate(currentStart);
         const defaultTime = currentStart.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Taipei' });
         
-        const newTimeStr = prompt(`請輸入新的斷食開始時間 (HH:MM)，例如：${defaultTime.substring(0, 5)}`, defaultTime.substring(0, 5));
-
-        if (newTimeStr === null) return; // 取消
+        const newDateStr = prompt(`請輸入新的斷食開始日期 (YYYY-MM-DD)：`, defaultDate);
+        if (newDateStr === null) return; // 取消
         
+        const newTimeStr = prompt(`請輸入新的斷食開始時間 (HH:MM)：`, defaultTime.substring(0, 5));
+        if (newTimeStr === null) return; // 取消
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // 1. 驗證日期格式和範圍
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(newDateStr)) {
+            alert('日期格式錯誤，請使用 YYYY-MM-DD。');
+            return;
+        }
+        
+        // 2. 驗證時間格式
+        const timeRegex = /^\d{2}:\d{2}$/;
+        if (!timeRegex.test(newTimeStr)) {
+            alert('時間格式錯誤，請使用 HH:MM。');
+            return;
+        }
+
         const [hourStr, minuteStr] = newTimeStr.split(':');
         const hour = parseInt(hourStr);
         const minute = parseInt(minuteStr);
 
         if (isNaN(hour) || isNaN(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
-            alert('輸入格式錯誤或時間無效，請使用 HH:MM 格式。');
+            alert('時間數值無效。');
             return;
         }
 
-        // 創建一個新的開始日期時間物件 (使用今天的日期，但替換時間)
-        const now = new Date();
-        const newStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute, 0);
+        // 3. 計算新的開始時間戳記 (關鍵修正：確保時區和日期一起計算)
+        // 使用 ISO 格式，但替換日期和時間部分，並確保以 TW 時區解析
+        const [year, month, day] = newDateStr.split('-').map(Number);
+        
+        // 核心修正：創建一個 UTC 時間戳，但值是 TW 該日期時間的瞬間
+        // month - 1 是因為月份從 0 開始
+        const newStart = new Date(year, month - 1, day, hour, minute, 0);
+        
+        // 4. 驗證日期是否在未來
+        if (newStart.getTime() > now.getTime() + TIME_OFFSET) { // 使用 now.getTime() + offset 作為 TW 的今天
+            alert('無法將開始時間設定在未來日期或未來時間！');
+            return;
+        }
 
         // 更新狀態
         fastingState.start = newStart.getTime();
@@ -497,7 +527,7 @@
              timerInterval = setInterval(updateTimer, 1000);
              updateTimer();
         }
-        alert(`斷食開始時間已更新為 ${newTimeStr}！`);
+        alert(`斷食開始時間已更新為 ${newDateStr} ${newTimeStr}！`);
     }
 
     function startFasting() {
