@@ -39,7 +39,7 @@
         .set-item span { background-color: #e8eaf6; padding: 3px 8px; border-radius: 12px; font-weight: bold; }
         .set-item .delete-set-btn { background: #ffcdd2; color: #c62828; border: none; border-radius: 50%; cursor: pointer; width: 24px; height: 24px; font-weight: bold; line-height: 24px; padding: 0; }
         .input-set-group { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; border-top: 1px dashed #ccc; padding-top: 15px; margin-top: 15px; }
-        .input-set-group input { width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        .input-set-group input { width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; flex-grow: 1; }
         .input-set-group button { padding: 8px 15px; font-size: 14px; background-color: #4caf50; color: white; border: none; border-radius: 5px; cursor: pointer;}
         .rest-day-message { text-align: center; padding: 20px; font-size: 1.2em; color: #888; }
         .add-exercise-form { display: flex; gap: 10px; margin-top: 25px; padding: 15px; background-color: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; }
@@ -54,7 +54,6 @@
             <a href="index.html">數據追蹤</a>
             <a href="workout.html" class="active">今日課表</a>
             <a href="diet.html">飲食紀錄</a>
-  <a href="share.html">分享與成果</a>
         </nav>
 
         <div id="page-checklist">
@@ -77,8 +76,10 @@
     const workoutPlan = {
         monday: { dayName: "星期一：胸部訓練", exercises: ["地板啞鈴胸推", "上斜啞鈴胸推 (地板式)", "啞鈴Squeeze握推", "臀橋式啞鈴胸推", "窄距/鑽石伏地挺身"] },
         tuesday: { dayName: "星期二：背部訓練", exercises: ["單臂啞鈴划船", "啞鈴上拉 (Dumbbell Pullover)", "俯身啞鈴划船 (雙手)", "鳥狗式"] },
-        wednesday: { dayName: "星期三：休息日", exercises: [] },
+        // ✅ 核心修正：對調 週三 和 週四 的內容
+        wednesday: { dayName: "星期三：休息日", exercises: [] }, 
         thursday: { dayName: "星期四：腿部訓練", exercises: ["保加利亞分腿蹲", "高腳杯箱式深蹲", "啞鈴負重臀橋", "站姿啞鈴提踵"] },
+        // ----------------------------------------------------
         friday: { dayName: "星期五：肩部訓練", exercises: ["坐姿啞鈴肩推", "超級組：坐姿啞鈴側平舉 + 坐姿啞鈴前平舉", "俯身啞鈴反向飛鳥", "啞鈴聳肩"] },
         saturday: { dayName: "星期六：手臂訓練", exercises: ["超級組：啞鈴二頭彎舉 + 坐姿過頭三頭伸展", "超級組：啞鈴鎚式彎舉 + 啞鈴頸後臂屈伸", "超級組：集中彎舉 + 窄距伏地挺身"] },
         sunday: { dayName: "星期日：休息日", exercises: [] },
@@ -92,14 +93,13 @@
     async function loadData(key) { try { const response = await fetch(`/api/getData?key=${key}`); const data = await response.json(); return data || {}; } catch (error) { console.error(`Failed to load ${key}:`, error); alert(`讀取雲端 ${key} 失敗！`); return {}; } }
     function saveLastWorkoutInputs() { localStorage.setItem('lastWorkoutInputs', JSON.stringify(lastWorkoutInputs)); }
     
-    // ✅ 核心時區修正函數：獲取台灣時區的 YYYY-MM-DD
+    // 核心時區修正函數：獲取台灣時區的 YYYY-MM-DD
     function getTodayKey() {
         const today = new Date();
-        // 確保使用台灣時區 (UTC+8) 的日期，並格式化為 YYYY-MM-DD
         const dateParts = today.toLocaleString('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' });
         return dateParts.replace(/\//g, '-');
     }
-
+    
     function isWorkoutCompletedOnDate(dateString) {
         const date = new Date(dateString + 'T00:00:00');
         const dayOfWeekKey = dayKeys[date.getDay()];
@@ -109,7 +109,6 @@
         
         for (const exerciseName of planForDay.exercises) {
             let hasLog = false;
-            // 核心檢查：確保 logs 存在且長度大於 0
             if (
                 workoutLog[dayOfWeekKey] && 
                 workoutLog[dayOfWeekKey][exerciseName] && 
@@ -150,13 +149,13 @@
         titleEl.textContent = `本週訓練紀錄 (${monday.getMonth()+1}/${monday.getDate()} - ${sunday.getMonth()+1}/${sunday.getDate()})`;
 
         const today = new Date(); today.setHours(0, 0, 0, 0); 
-        const todayString = getTodayKey(); // 確保 TW 日期字串
+        const todayString = getTodayKey(); 
         const CHALLENGE_START_DATE = new Date('2025-10-20T00:00:00');
 
         for (let i = 0; i < 7; i++) {
             const currentDate = new Date(monday); currentDate.setDate(monday.getDate() + i);
             
-            // ✅ 核心修正：統一使用 TW 日期字串來作為鍵和比較
+            // 核心修正：統一使用 TW 日期字串來作為鍵和比較
             const dateString = currentDate.toLocaleString('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
             
             const diffTime = currentDate - CHALLENGE_START_DATE;
@@ -167,7 +166,6 @@
             if (dateString === todayString) { dayDiv.classList.add('today'); } 
             dayDiv.innerHTML = `<div class="day-date">${currentDate.getDate()}</div><div class="day-challenge-num">${challengeDayText}</div>`;
             
-            // 由於 currentDate 是 UTC 基準，我們需要用 todayString (TW) 來檢查紀錄
             if (currentDate <= today && currentDate >= CHALLENGE_START_DATE) {
                 const planForDay = workoutPlan[dayKeys[currentDate.getDay()]];
                 
@@ -305,53 +303,4 @@
         if (type === 'weight') {
             const weightInput = document.getElementById(`weight-${dayKey}-${uniqueId}`);
             const repsInput = document.getElementById(`reps-${dayKey}-${uniqueId}`);
-            const weight = parseFloat(weightInput.value);
-            const reps = parseInt(repsInput.value);
-            if (isNaN(weight) || isNaN(reps) || weight < 0 || reps <= 0) { alert('請輸入有效的重量和次數！'); return; }
-            newSet = { type: 'weight', weight, reps };
-            lastWorkoutInputs[exerciseName] = { ...lastWorkoutInputs[exerciseName], weight, reps };
-        } else { // type === 'time'
-            const timeInput = document.getElementById(`time-${dayKey}-${uniqueId}`);
-            const duration = parseInt(timeInput.value);
-            if (isNaN(duration) || duration <= 0) { alert('請輸入有效的時間(分鐘)！'); return; }
-            newSet = { type: 'time', duration };
-            lastWorkoutInputs[exerciseName] = { ...lastWorkoutInputs[exerciseName], duration };
-        }
-        
-        workoutLog[dayKey][exerciseName][todayKey].push(newSet);
-        saveLastWorkoutInputs();
-        await saveData('workoutLog', workoutLog);
-        
-        const isNowCompleted = isWorkoutCompletedOnDate(todayKey);
-        const isNowActiveRest = hasAnyWorkoutOnDate(todayKey);
-
-        if ((!wasCompleted && isNowCompleted) || (!wasActiveRest && isNowActiveRest)) {
-            renderWorkoutCalendar(currentCalendarDate);
-        }
-        renderDayContent(dayKey, document.getElementById(`content-workout-${dayKey}`));
-    }
-
-    async function deleteSet(dayKey, exerciseName, setIndex) {
-        const todayKey = getTodayKey();
-        const wasCompleted = isWorkoutCompletedOnDate(todayKey);
-        const wasActiveRest = hasAnyWorkoutOnDate(todayKey);
-
-        workoutLog[dayKey][exerciseName][todayKey].splice(setIndex, 1);
-        await saveData('workoutLog', workoutLog);
-
-        const isNowCompleted = isWorkoutCompletedOnDate(todayKey);
-        const isNowActiveRest = hasAnyWorkoutOnDate(todayKey);
-
-        if ((wasCompleted && !isNowCompleted) || (wasActiveRest && !isNowActiveRest)) {
-            renderWorkoutCalendar(currentCalendarDate);
-        }
-        renderDayContent(dayKey, document.getElementById(`content-workout-${dayKey}`));
-    }
-
-    document.addEventListener('DOMContentLoaded', async () => {
-        workoutLog = await loadData('workoutLog');
-        initWorkoutPage();
-    });
-</script>
-</body>
-</html>
+            const weight = parseFloat(weightInput.va
