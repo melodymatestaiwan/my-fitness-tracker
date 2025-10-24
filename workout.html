@@ -303,4 +303,53 @@
         if (type === 'weight') {
             const weightInput = document.getElementById(`weight-${dayKey}-${uniqueId}`);
             const repsInput = document.getElementById(`reps-${dayKey}-${uniqueId}`);
-            const weight = parseFloat(weightInput.va
+            const weight = parseFloat(weightInput.value);
+            const reps = parseInt(repsInput.value);
+            if (isNaN(weight) || isNaN(reps) || weight < 0 || reps <= 0) { alert('請輸入有效的重量和次數！'); return; }
+            newSet = { type: 'weight', weight, reps };
+            lastWorkoutInputs[exerciseName] = { ...lastWorkoutInputs[exerciseName], weight, reps };
+        } else { // type === 'time'
+            const timeInput = document.getElementById(`time-${dayKey}-${uniqueId}`);
+            const duration = parseInt(timeInput.value);
+            if (isNaN(duration) || duration <= 0) { alert('請輸入有效的時間(分鐘)！'); return; }
+            newSet = { type: 'time', duration };
+            lastWorkoutInputs[exerciseName] = { ...lastWorkoutInputs[exerciseName], duration };
+        }
+        
+        workoutLog[dayKey][exerciseName][todayKey].push(newSet);
+        saveLastWorkoutInputs();
+        await saveData('workoutLog', workoutLog);
+        
+        const isNowCompleted = isWorkoutCompletedOnDate(todayKey);
+        const isNowActiveRest = hasAnyWorkoutOnDate(todayKey);
+
+        if ((!wasCompleted && isNowCompleted) || (!wasActiveRest && isNowActiveRest)) {
+            renderWorkoutCalendar(currentCalendarDate);
+        }
+        renderDayContent(dayKey, document.getElementById(`content-workout-${dayKey}`));
+    }
+
+    async function deleteSet(dayKey, exerciseName, setIndex) {
+        const todayKey = getTodayKey();
+        const wasCompleted = isWorkoutCompletedOnDate(todayKey);
+        const wasActiveRest = hasAnyWorkoutOnDate(todayKey);
+
+        workoutLog[dayKey][exerciseName][todayKey].splice(setIndex, 1);
+        await saveData('workoutLog', workoutLog);
+
+        const isNowCompleted = isWorkoutCompletedOnDate(todayKey);
+        const isNowActiveRest = hasAnyWorkoutOnDate(todayKey);
+
+        if ((wasCompleted && !isNowCompleted) || (wasActiveRest && !isNowActiveRest)) {
+            renderWorkoutCalendar(currentCalendarDate);
+        }
+        renderDayContent(dayKey, document.getElementById(`content-workout-${dayKey}`));
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        workoutLog = await loadData('workoutLog');
+        initWorkoutPage();
+    });
+</script>
+</body>
+</html>
