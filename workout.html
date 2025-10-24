@@ -76,8 +76,10 @@
     const workoutPlan = {
         monday: { dayName: "星期一：胸部訓練", exercises: ["地板啞鈴胸推", "上斜啞鈴胸推 (地板式)", "啞鈴Squeeze握推", "臀橋式啞鈴胸推", "窄距/鑽石伏地挺身"] },
         tuesday: { dayName: "星期二：背部訓練", exercises: ["單臂啞鈴划船", "啞鈴上拉 (Dumbbell Pullover)", "俯身啞鈴划船 (雙手)", "鳥狗式"] },
+        // ✅ 核心修正：對調 週三 和 週四 的內容
         wednesday: { dayName: "星期三：休息日", exercises: [] }, 
         thursday: { dayName: "星期四：腿部訓練", exercises: ["保加利亞分腿蹲", "高腳杯箱式深蹲", "啞鈴負重臀橋", "站姿啞鈴提踵"] },
+        // ----------------------------------------------------
         friday: { dayName: "星期五：肩部訓練", exercises: ["坐姿啞鈴肩推", "超級組：坐姿啞鈴側平舉 + 坐姿啞鈴前平舉", "俯身啞鈴反向飛鳥", "啞鈴聳肩"] },
         saturday: { dayName: "星期六：手臂訓練", exercises: ["超級組：啞鈴二頭彎舉 + 坐姿過頭三頭伸展", "超級組：啞鈴鎚式彎舉 + 啞鈴頸後臂屈伸", "超級組：集中彎舉 + 窄距伏地挺身"] },
         sunday: { dayName: "星期日：休息日", exercises: [] },
@@ -88,17 +90,7 @@
     let currentCalendarDate = new Date();
 
     async function saveData(key, value) { try { await fetch('/api/setData', { method: 'POST', body: JSON.stringify({ key, value }) }); } catch (error) { console.error(`Failed to save ${key}:`, error); alert(`${key} 儲存失敗！`); } }
-    async function loadData(key) { 
-        try { 
-            const response = await fetch(`/api/getData?key=${key}`); 
-            const data = await response.json(); 
-            // 核心修正：確保返回的 data 是物件，而不是字串
-            return data && typeof data === 'string' ? JSON.parse(data) : (data || {});
-        } catch (error) { 
-            console.error(`Failed to load ${key}:`, error); 
-            return {}; 
-        } 
-    }
+    async function loadData(key) { try { const response = await fetch(`/api/getData?key=${key}`); const data = await response.json(); return data || {}; } catch (error) { console.error(`Failed to load ${key}:`, error); alert(`讀取雲端 ${key} 失敗！`); return {}; } }
     function saveLastWorkoutInputs() { localStorage.setItem('lastWorkoutInputs', JSON.stringify(lastWorkoutInputs)); }
     
     // 核心時區修正函數：獲取台灣時區的 YYYY-MM-DD
@@ -107,7 +99,7 @@
         const dateParts = today.toLocaleString('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' });
         return dateParts.replace(/\//g, '-');
     }
-
+    
     function isWorkoutCompletedOnDate(dateString) {
         const date = new Date(dateString + 'T00:00:00');
         const dayOfWeekKey = dayKeys[date.getDay()];
