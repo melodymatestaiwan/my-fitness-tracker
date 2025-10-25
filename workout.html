@@ -45,6 +45,20 @@
         .add-exercise-form { display: flex; gap: 10px; margin-top: 25px; padding: 15px; background-color: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; }
         .add-exercise-form input { flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
         .add-exercise-form button { background-color: #2196F3; white-space: nowrap; }
+
+        /* --- Modal 樣式 --- */
+        .modal {
+            display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe; margin: 5% auto; padding: 20px; border-radius: 10px; width: 90%; max-width: 700px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; }
+        .close-btn:hover, .close-btn:focus { color: #333; text-decoration: none; cursor: pointer; }
+        #history-edit-table th { background-color: #f0f4f8; }
+        #history-edit-table td input { width: 60px; padding: 4px; border: 1px solid #ccc; border-radius: 4px; }
+        #history-edit-table .delete-btn { background-color: #f44336; color: white; padding: 5px 8px; font-size: 12px; }
+        .edit-header-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
     </style>
 </head>
 <body>
@@ -58,6 +72,12 @@
 
         <div id="page-checklist">
             <h2>我的課表</h2>
+            
+            <!-- ✅ 新增編輯歷史紀錄按鈕 -->
+            <button onclick="openHistoryEditor()" style="background-color: #2196F3; color: white; padding: 10px 15px; margin-bottom: 15px; border: none; border-radius: 5px;">
+                🖊️ 編輯歷史紀錄
+            </button>
+            
             <div id="calendar-container">
                 <div class="calendar-header">
                     <button id="prev-week-btn">‹</button>
@@ -70,6 +90,40 @@
             <div class="workout-nav" id="workout-nav"></div>
             <div id="workout-content-container"></div>
         </div>
+    </div>
+    
+    <!-- 歷史訓練編輯器 Modal -->
+    <div id="history-editor-modal" class="modal">
+      <div class="modal-content">
+        <span class="close-btn" onclick="closeHistoryEditor()">&times;</span>
+        <h2>編輯歷史訓練</h2>
+        
+        <div class="edit-header-controls">
+            <label for="history-date-picker">選擇日期:</label>
+            <input type="date" id="history-date-picker" onchange="renderHistoryData()">
+            <h4 id="history-date-title"></h4>
+        </div>
+        
+        <div style="max-height: 400px; overflow-y: auto;">
+            <table id="history-edit-table" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>項目</th>
+                        <th>類型</th>
+                        <th>重量(kg)/時長(min)</th>
+                        <th>次數</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="history-editor-tbody">
+                    <tr><td colspan="5">請選擇日期...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="text-align: right; margin-top: 15px;">
+             <button onclick="saveEditedData()" style="background-color: #4caf50; color: white;">💾 儲存修改</button>
+        </div>
+      </div>
     </div>
 
 <script>
@@ -86,13 +140,13 @@
     let workoutLog = {};
     let lastWorkoutInputs = JSON.parse(localStorage.getItem('lastWorkoutInputs')) || {};
     let currentCalendarDate = new Date();
+    let editableLogs = []; // 專門用於 Modal 編輯的臨時陣列
 
     async function saveData(key, value) { try { await fetch('/api/setData', { method: 'POST', body: JSON.stringify({ key, value }) }); } catch (error) { console.error(`Failed to save ${key}:`, error); alert(`${key} 儲存失敗！`); } }
     async function loadData(key) { 
         try { 
             const response = await fetch(`/api/getData?key=${key}`); 
             const data = await response.json(); 
-            // 核心修正：確保返回的 data 是物件，而不是字串
             return data && typeof data === 'string' ? JSON.parse(data) : (data || {});
         } catch (error) { 
             console.error(`Failed to load ${key}:`, error); 
@@ -226,7 +280,7 @@
         
         if (exerciseList.length === 0 && dayData.exercises.length === 0) { container.innerHTML = `<div class="rest-day-message">今天是休息日，但您仍可以新增活動紀錄。</div>`; }
         
-        exerciseList.forEach((exerciseName) => {
+        exerciseList.forEach((exerciseName, exerciseIndex) => {
             const uniqueId = exerciseName.replace(/[\s\W]/g, '-');
             const isCustom = !dayData.exercises.includes(exerciseName);
             if (!workoutLog[dayKey]) workoutLog[dayKey] = {};
@@ -242,6 +296,7 @@
                 lastLogHTML = `<strong>上次紀錄 (${lastDate}):</strong> ${lastSets}`;
             }
             
+            // 核心修正: 總是顯示輸入框，允許回溯補登
             let inputGroupsHTML = `<div class="input-set-group"><input type="number" id="weight-${dayKey}-${uniqueId}" placeholder="重量(kg)" value="${lastInput.weight || ''}"><input type="number" id="reps-${dayKey}-${uniqueId}" placeholder="次數" value="${lastInput.reps || ''}"><button onclick="addSet('${dayKey}', '${exerciseName}', 'weight')">新增組數</button></div>`;
             if (isCustom) { inputGroupsHTML += `<div class="input-set-group"><input type="number" id="time-${dayKey}-${uniqueId}" placeholder="時間(分鐘)" value="${lastInput.duration || ''}"><button onclick="addSet('${dayKey}', '${exerciseName}', 'time')">新增時間</button></div>`; }
 
@@ -354,10 +409,189 @@
         renderDayContent(dayKey, document.getElementById(`content-workout-${dayKey}`));
     }
 
+    // --- 歷史編輯器功能 ---
+    function openHistoryEditor() {
+        // 確保 date picker 預設為今天
+        const today = new Date();
+        const todayFormatted = today.toISOString().split('T')[0];
+        document.getElementById('history-date-picker').value = todayFormatted;
+        
+        renderHistoryData();
+        document.getElementById('history-editor-modal').style.display = 'block';
+    }
+
+    function closeHistoryEditor() {
+        document.getElementById('history-editor-modal').style.display = 'none';
+        // 確保日曆在關閉時刷新，以防有數據變動
+        renderWorkoutCalendar(currentCalendarDate); 
+    }
+
+    // 核心函數：渲染特定日期的所有訓練數據到 Modal
+    function renderHistoryData() {
+        const datePicker = document.getElementById('history-date-picker');
+        const selectedDateString = datePicker.value; // YYYY-MM-DD
+        const tbody = document.getElementById('history-editor-tbody');
+        tbody.innerHTML = '';
+        
+        if (!selectedDateString) {
+            tbody.innerHTML = '<tr><td colspan="5">請選擇日期...</td></tr>';
+            return;
+        }
+
+        const selectedDate = new Date(selectedDateString + 'T00:00:00');
+        const dayOfWeekKey = dayKeys[selectedDate.getDay()];
+        let allLogs = [];
+        let globalIndex = 0; // 用於在 editableLogs 中追蹤組數的索引
+
+        // 遍歷所有運動項目 (包括預設和自定義)
+        if (workoutLog[dayOfWeekKey]) {
+            for (const exerciseName in workoutLog[dayOfWeekKey]) {
+                const sets = workoutLog[dayOfWeekKey][exerciseName][selectedDateString] || [];
+                
+                sets.forEach((set, setIndex) => {
+                    const typeValue = set.type === 'time' ? (set.duration || 0) : (set.weight || 0);
+                    
+                    allLogs.push({
+                        exerciseName: exerciseName,
+                        type: set.type,
+                        value: typeValue,
+                        reps: set.reps || 0,
+                        dayKey: dayOfWeekKey,
+                        dateKey: selectedDateString,
+                        setIndex: setIndex, // 該組數在原始 sets 陣列中的索引
+                        globalIndex: globalIndex // 用於 HTML 元素的唯一索引
+                    });
+                    globalIndex++;
+                });
+            }
+        }
+
+        editableLogs = allLogs; // 更新全局編輯陣列
+        
+        if (editableLogs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5">當日無訓練紀錄</td></tr>';
+            return;
+        }
+
+        editableLogs.forEach((log, index) => {
+            const row = tbody.insertRow();
+            row.innerHTML = `
+                <td>${log.exerciseName}</td>
+                <td>${log.type === 'weight' ? '重量' : '時間'}</td>
+                <td><input type="number" value="${log.value}" onchange="updateEditableLog(${index}, 'value', this.value)"></td>
+                <td>${log.type === 'weight' ? `<input type="number" value="${log.reps}" onchange="updateEditableLog(${index}, 'reps', this.value)">` : '—'}</td>
+                <td><button class="delete-btn" onclick="deleteHistorySet(${index})">刪除組數</button></td>
+            `;
+        });
+    }
+
+    function updateEditableLog(index, key, value) {
+        // 更新臨時編輯陣列中的值
+        const parsedValue = parseFloat(value) || 0;
+        if (key === 'value') {
+            editableLogs[index].value = parsedValue;
+        } else if (key === 'reps') {
+            editableLogs[index].reps = parseInt(value) || 0;
+        }
+    }
+
+    async function deleteHistorySet(index) {
+        if (!confirm('確定要刪除這筆組數紀錄嗎？')) return;
+
+        const log = editableLogs[index];
+        
+        // 從 workoutLog 原始結構中刪除該組數
+        const currentSets = workoutLog[log.dayKey][log.exerciseName][log.dateKey];
+        if (currentSets) {
+            currentSets.splice(log.setIndex, 1);
+        }
+
+        // 如果該項目的 sets 陣列變空，則從 workoutLog 中刪除該日期鍵 (可選)
+        if (currentSets && currentSets.length === 0) {
+            delete workoutLog[log.dayKey][log.exerciseName][log.dateKey];
+        }
+
+        // 儲存到雲端並刷新
+        await saveData('workoutLog', workoutLog);
+        renderHistoryData(); // 刷新編輯器內容
+    }
+
+    async function saveEditedData() {
+        const dateKey = document.getElementById('history-date-picker').value;
+        const selectedDate = new Date(dateKey + 'T00:00:00');
+        const dayOfWeekKey = dayKeys[selectedDate.getDay()];
+
+        if (!dateKey) return;
+
+        // 重新整理 workoutLog 中該日期的數據
+        let newLogForDate = {};
+
+        editableLogs.forEach(log => {
+            const exName = log.exerciseName;
+            if (!newLogForDate[exName]) {
+                newLogForDate[exName] = [];
+            }
+            
+            const newSet = { 
+                type: log.type,
+                weight: log.type === 'weight' ? log.value : 0,
+                reps: log.type === 'weight' ? log.reps : 0,
+                duration: log.type === 'time' ? log.value : 0,
+            };
+            newLogForDate[exName].push(newSet);
+        });
+
+        // 更新 workoutLog 總結構
+        if (!workoutLog[dayOfWeekKey]) {
+            workoutLog[dayOfWeekKey] = {};
+        }
+
+        for (const exName in newLogForDate) {
+            if (!workoutLog[dayOfWeekKey][exName]) {
+                workoutLog[dayOfWeekKey][exName] = {};
+            }
+            // 覆蓋該日期的所有組數
+            workoutLog[dayOfWeekKey][exName][dateKey] = newLogForDate[exName];
+        }
+
+        // 如果某個項目在編輯後被清空，確保在 workoutLog 中也被刪除
+        const currentDayExercises = Object.keys(workoutLog[dayOfWeekKey]);
+        currentDayExercises.forEach(exName => {
+             if (newLogForDate[exName] === undefined) {
+                 delete workoutLog[dayOfWeekKey][exName][dateKey];
+             }
+        });
+
+
+        await saveData('workoutLog', workoutLog);
+        alert(`已成功儲存 ${dateKey} 的修改！`);
+        closeHistoryEditor();
+    }
+    
+    // --- Initialization ---
     document.addEventListener('DOMContentLoaded', async () => {
         workoutLog = await loadData('workoutLog');
         initWorkoutPage();
     });
+    
+    // --- Modal Control Functions ---
+    function openHistoryEditor() {
+        const today = new Date();
+        const todayFormatted = today.toISOString().split('T')[0];
+        document.getElementById('history-date-picker').value = todayFormatted;
+        document.getElementById('history-date-title').textContent = `正在編輯：${todayFormatted}`;
+
+        // 設置日期選擇器的最大值為今天
+        document.getElementById('history-date-picker').setAttribute('max', todayFormatted);
+        
+        renderHistoryData();
+        document.getElementById('history-editor-modal').style.display = 'block';
+    }
+
+    function closeHistoryEditor() {
+        document.getElementById('history-editor-modal').style.display = 'none';
+        renderWorkoutCalendar(currentCalendarDate);
+    }
 </script>
 </body>
 </html>
