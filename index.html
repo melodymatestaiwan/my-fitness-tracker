@@ -212,6 +212,7 @@
             <a href="diet.html">飲食紀錄</a>
             <a href="fasting.html">間歇性斷食</a>
             <a href="share.html">分享與成果</a>
+            <a href="settings.html">設定</a>
         </nav>
 
         <div id="countdown-container" class="card"></div>
@@ -296,15 +297,18 @@
         </div>
     </div>
 
+    <script src="storage.js"></script>
     <script>
-        const CHALLENGE_TOTAL_DAYS = 100;
-        const CHALLENGE_START_DATE_STRING = '2025-10-20T00:00:00';
+        // 從設定讀取計畫參數
+        const settings = Storage.getSettings();
+        const CHALLENGE_TOTAL_DAYS = settings.challengeDays;
+        const CHALLENGE_START_DATE_STRING = settings.challengeStartDate + 'T00:00:00';
         const CHALLENGE_START_DATE = new Date(CHALLENGE_START_DATE_STRING);
-        const START_WEIGHT = 83.1;
-        const TARGET_WEIGHT = 75.0;
+        const START_WEIGHT = settings.startWeight;
+        const TARGET_WEIGHT = settings.targetWeight;
 
         let myCharts = {};
-        let fitnessData = []; // 全域變數，數據將從雲端載入
+        let fitnessData = []; // 全域變數
 
         function getFormattedDate(date) {
             const year = date.getFullYear();
@@ -313,36 +317,17 @@
             return `${year}-${month}-${day}`;
         }
 
-        // ---------------------- 資料存取與處理 (雲端存取) ----------------------
+        // ---------------------- 資料存取與處理 (本地儲存) ----------------------
 
-        async function getDataFromCloud() {
-            try {
-                const response = await fetch('/api/getData?key=fitnessData');
-                if (!response.ok) throw new Error('Failed to fetch fitnessData');
-                const data = await response.json();
-                // KV 返回的數據已經是 JSON 格式（物件或陣列）
-                return data || [];
-            } catch (e) {
-                console.error("Error reading from cloud:", e);
-                alert("數據同步失敗，請檢查 Vercel KV 連線。");
-                return []; // 返回空陣列以防崩潰
-            }
+        function loadFitnessData() {
+            return Storage.getFitnessData();
         }
 
-        async function saveDataToCloud() {
-            try {
-                await fetch('/api/setData', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ key: 'fitnessData', value: fitnessData })
-                });
-            } catch (e) {
-                console.error("Error writing to cloud:", e);
-                alert('數據儲存失敗！請檢查 Vercel KV 連線。');
-            }
+        function saveFitnessData() {
+            Storage.saveFitnessData(fitnessData);
         }
 
-        async function addData() {
+        function addData() {
             const date = document.getElementById('entry-date').value;
             const time = document.querySelector('input[name="time-of-day"]:checked').value;
             const weight = parseFloat(document.getElementById('weight').value);
@@ -367,46 +352,38 @@
                 timestamp: new Date().toISOString()
             };
 
-            // 從全域變數 fitnessData 獲取當前數據
-            // ✅ 核心修正：使用 date 和 time 組合進行精準查找，避免覆蓋
             const existingIndex = fitnessData.findIndex(item => item.date === date && item.time === time);
 
             if (existingIndex > -1) {
-                // 如果找到，更新該筆數據
                 newData.timestamp = fitnessData[existingIndex].timestamp;
                 fitnessData[existingIndex] = newData;
             } else {
-                // 如果沒找到，新增數據
                 fitnessData.push(newData);
             }
 
-            // 排序，確保圖表正確
             fitnessData.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-            await saveDataToCloud(); // 儲存到雲端
+            saveFitnessData();
             alert('紀錄新增成功！');
-
-            await init(); // 重新載入數據並渲染所有組件
+            init();
         }
 
-        async function deleteData(timestamp) {
+        function deleteData(timestamp) {
             if (!confirm('確定要刪除這筆紀錄嗎？')) return;
 
             const initialLength = fitnessData.length;
-            // 使用 timestamp 進行精確刪除
-            const updatedData = fitnessData.filter(item => item.timestamp !== timestamp);
-            fitnessData = updatedData;
+            fitnessData = fitnessData.filter(item => item.timestamp !== timestamp);
 
             if (fitnessData.length < initialLength) {
-                await saveDataToCloud(); // 儲存到雲端
+                saveFitnessData();
                 alert('紀錄刪除成功！');
-                await init();
+                init();
             } else {
                 alert('找不到該紀錄。');
             }
         }
 
-        async function editRawData(timestamp) {
+        function editRawData(timestamp) {
             const entry = fitnessData.find(d => d.timestamp === timestamp);
             if (!entry) { alert("找不到該紀錄"); return; }
 
@@ -427,8 +404,8 @@
             entry.bodyfat = bodyfat;
             entry.muscleMass = muscleMass;
 
-            await saveDataToCloud(); // 儲存到雲端
-            await init();
+            saveFitnessData();
+            init();
         }
 
         // ---------------------- 數據統計與分析 ----------------------
@@ -459,8 +436,8 @@
                 trendEl.textContent = '近7日變動: 數據不足';
             }
 
-            // 3. BMI 計算 (假設身高 175cm, 之後可加入設定)
-            const HEIGHT_CM = 175;
+            // 3. BMI 計算（從設定讀取身高）
+            const HEIGHT_CM = settings.heightCm;
             const bmi = latest.weight / ((HEIGHT_CM / 100) ** 2);
             const bmiEl = document.getElementById('dash-bmi');
             const bmiStatusEl = document.getElementById('dash-bmi-status');
@@ -472,10 +449,11 @@
             else if (bmi >= 27) status = '肥胖';
             bmiStatusEl.textContent = `狀態: ${status}`;
 
-            // 4. BMR 計算 (Mifflin-St Jeor Equation, 假設男性, 30歲)
-            // BMR = 10 * weight + 6.25 * height - 5 * age + 5
-            const AGE = 30;
-            const bmr = (10 * latest.weight) + (6.25 * HEIGHT_CM) - (5 * AGE) + 5;
+            // 4. BMR 計算 (Mifflin-St Jeor Equation)
+            const currentYear = new Date().getFullYear();
+            const AGE = currentYear - (settings.birthYear || 1994);
+            const genderOffset = settings.gender === 'female' ? -161 : 5;
+            const bmr = (10 * latest.weight) + (6.25 * HEIGHT_CM) - (5 * AGE) + genderOffset;
             document.getElementById('dash-bmr').textContent = `${Math.round(bmr)} kcal`;
 
             const coachEl = document.getElementById('dash-bmr-coach');
@@ -738,9 +716,15 @@
 
         // ---------------------- 初始化 ----------------------
 
-        async function init() {
-            // 1. 從雲端載入數據到全域變數
-            fitnessData = await getDataFromCloud();
+        function init() {
+            // 如果還沒完成初始設定，導向設定頁面
+            if (!Storage.hasCompletedSetup()) {
+                window.location.href = 'settings.html';
+                return;
+            }
+
+            // 1. 從本地儲存載入數據
+            fitnessData = loadFitnessData();
 
             // 2. 數據記憶: 載入上次輸入值並填入欄位
             const lastInputs = JSON.parse(localStorage.getItem('lastFitnessInputs'));
