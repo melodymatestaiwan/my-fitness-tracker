@@ -351,18 +351,16 @@
 
     <div class="page-navbar">
 
-        <h1>個人健身追蹤器</h1>
-
+        <div class="page-header">
+            <h1>分享與成果</h1>
+        </div>
         <nav>
-
-            <a href="index.html">數據追蹤</a>
-
-            <a href="workout.html">今日課表</a>
-
-            <a href="diet.html">飲食紀錄</a>
-
-            <a href="share.html" class="active">分享與成果</a>
-
+            <a href="index.html" data-icon="📊">追蹤</a>
+            <a href="workout.html" data-icon="💪">課表</a>
+            <a href="diet.html" data-icon="🥗">飲食</a>
+            <a href="fasting.html" data-icon="⏱">斷食</a>
+            <a href="share.html" class="active" data-icon="📤">分享</a>
+            <a href="settings.html" data-icon="⚙️">設定</a>
         </nav>
 
         <h2>生成每日分享圖</h2>
@@ -460,11 +458,13 @@
 
 
 
+<script src="storage.js"></script>
 <script>
 
-    const CHALLENGE_START_DATE = new Date('2025-10-20T00:00:00');
+    const shareSettings = Storage.getSettings();
+    const CHALLENGE_START_DATE = new Date(shareSettings.challengeStartDate + 'T00:00:00');
 
-    const STARTING_WEIGHT = 83.1; 
+    const STARTING_WEIGHT = shareSettings.startWeight;
 
     const MOCK_DIET_TOTALS = {
 
@@ -581,40 +581,15 @@
         
 
 
-        // 讀取數據 (假設數據已緩存，如果沒有則從 API 或緩存獲取)
+        // 讀取數據（從本地儲存）
 
         if (Object.keys(allDataCache).length === 0 || !allDataCache.fitnessData) {
 
-            try {
+            allDataCache.fitnessData = Storage.getFitnessData();
 
-                // 讀取 API
+            allDataCache.dietLog = Storage.getDietLog();
 
-                const response = await fetch('/api/getAllData');
-
-                if (!response.ok) throw new Error('API request failed');
-
-                const data = await response.json();
-
-                
-
-
-                // ✅ 核心修正：使用 safeParse 確保數據結構正確
-
-                allDataCache.fitnessData = safeParse(data.fitnessData) || [];
-
-                allDataCache.dietLog = safeParse(data.dietLog) || {};
-
-                allDataCache.workoutLog = safeParse(data.workoutLog) || {};
-
-            } catch (error) {
-
-                document.getElementById('loading-text').textContent = '讀取雲端資料失敗！請重新整理。';
-
-                console.error(error);
-
-                return;
-
-            }
+            allDataCache.workoutLog = Storage.getWorkoutLog();
 
         }
 

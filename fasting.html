@@ -265,12 +265,16 @@
 
 <body>
     <div class="container">
-        <h1>個人健身追蹤器</h1>
+        <div class="page-header">
+            <h1>間歇性斷食</h1>
+        </div>
         <nav>
-            <a href="index.html">數據追蹤</a>
-            <a href="workout.html">今日課表</a>
-            <a href="diet.html">飲食紀錄</a>
-            <a href="fasting.html" class="active">間歇性斷食</a>
+            <a href="index.html" data-icon="📊">追蹤</a>
+            <a href="workout.html" data-icon="💪">課表</a>
+            <a href="diet.html" data-icon="🥗">飲食</a>
+            <a href="fasting.html" class="active" data-icon="⏱">斷食</a>
+            <a href="share.html" data-icon="📤">分享</a>
+            <a href="settings.html" data-icon="⚙️">設定</a>
         </nav>
 
         <h2 style="text-align: center; margin-bottom: 2rem;">斷食教練</h2>
@@ -346,6 +350,7 @@
             </ul>
         </div>
     </div>
+    <script src="storage.js"></script>
     <script>
         // --- Configuration ---
         const TIME_OFFSET = 8 * 60 * 60 * 1000; // TW time zone offset (UTC+8)
@@ -389,9 +394,9 @@
         }
 
         // --- Initialization ---
-        async function init() {
+        function init() {
             try {
-                const data = await loadData();
+                const data = loadData();
                 if (data && data.fastingHistory) {
                     fastingHistory = data.fastingHistory;
                 }
@@ -452,7 +457,7 @@
             document.getElementById('weekly-success-display').textContent = `${weeklySuccess} 次`;
         }
 
-        async function startFasting() {
+        function startFasting() {
             if (isFasting) return;
 
             const modeData = modes[currentMode];
@@ -463,10 +468,10 @@
             targetEndTime = now + (modeData.fast * 60 * 60 * 1000);
 
             startTimerUI();
-            await saveState();
+            saveState();
         }
 
-        async function stopFasting() {
+        function stopFasting() {
             if (!isFasting) return;
             if (confirm("確定要在現在結束斷食嗎？")) {
                 const now = new Date().getTime();
@@ -566,57 +571,32 @@
         }
 
         // --- Helper Functions ---
-        async function loadData() {
-            try {
-                const url = `${window.location.origin}/api/getData?key=fastingData`;
-                const response = await fetch(url);
-
-                if (!response.ok) {
-                    console.error(`API status error for fastingData: ${response.status}`);
-                    return {};
-                }
-
-                const text = await response.text();
-                if (!text) return {};
-
-                return JSON.parse(text) || {};
-            } catch (error) {
-                console.error(`Failed to load fastingData:`, error);
-                return {};
-            }
+        function loadData(key) {
+            if (key) return Storage.get(key, {});
+            return Storage.getFastingData();
         }
 
-        async function saveData(key, value) {
-            try {
-                const url = `${window.location.origin}/api/setData`;
-                await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ key, value })
-                });
-                return true;
-            } catch (error) {
-                console.error(`Failed to save ${key}:`, error);
-                return false;
-            }
+        function saveData(key, value) {
+            Storage.set(key, value);
+            return true;
         }
 
-        async function saveState() {
+        function saveState() {
             const state = {
                 isFasting: isFasting,
                 startTime: startTime,
                 targetEndTime: targetEndTime,
                 mode: currentMode
             };
-            const currentData = await loadData();
+            const currentData = loadData();
             currentData.fastingState = state;
-            await saveData('fastingData', currentData);
+            saveData('fastingData', currentData);
         }
 
-        async function saveHistory() {
-            const currentData = await loadData();
+        function saveHistory() {
+            const currentData = loadData();
             currentData.fastingHistory = fastingHistory;
-            await saveData('fastingData', currentData);
+            saveData('fastingData', currentData);
         }
 
         function updateHistoryUI() {
@@ -642,18 +622,18 @@
             });
         }
 
-        async function deleteHistory(index) {
+        function deleteHistory(index) {
             if (confirm("確定要刪除這筆紀錄嗎？")) {
                 fastingHistory.splice(index, 1);
                 updateHistoryUI();
                 updateDashboardStats();
-                await saveHistory();
+                saveHistory();
             }
         }
 
         // --- User Actions ---
         // ✅ 實作編輯時間功能
-        async function editTime() {
+        function editTime() {
             if (!isFasting) {
                 alert('請先開始斷食才能編輯時間！');
                 return;
@@ -711,7 +691,7 @@
 
             // 更新狀態
             fastingState.start = newStart.getTime();
-            await saveState();
+            saveState();
 
             // 強制刷新計時器
             if (isFasting) {
@@ -871,9 +851,9 @@
 
 
         // --- Persistence ---
-        async function loadState() {
-            const state = await loadData('fastingState');
-            const history = await loadData('fastingHistory');
+        function loadState() {
+            const state = loadData('fastingState');
+            const history = loadData('fastingHistory');
 
             if (state && state.start && state.mode) {
                 fastingState = state;
@@ -929,10 +909,10 @@
             });
         }
 
-        async function deleteHistory(index) {
+        function deleteHistory(index) {
             if (confirm('確定要刪除這筆歷史紀錄嗎？')) {
                 historyLog.splice(index, 1);
-                await saveData('fastingHistory', historyLog);
+                saveData('fastingHistory', historyLog);
                 renderHistory();
             }
         }
