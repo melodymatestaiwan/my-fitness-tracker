@@ -18,6 +18,7 @@ import Share from './pages/Share';
 import Settings from './pages/Settings';
 import Building from './pages/Building';
 import PhotoTracker from './pages/PhotoTracker';
+import Community from './pages/Community';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -51,6 +52,7 @@ const App = () => {
     coins: 0, placed: {}, inventory: [], streak: 0, missedDays: 0, lastWorkoutDate: null,
   }));
   const [photoData, setPhotoData] = useState(() => loadState('photos', []));
+  const [communityPosts, setCommunityPosts] = useState(() => loadState('communityPosts', []));
 
   // --- 金幣通知 ---
   const [coinToast, setCoinToast] = useState('');
@@ -62,6 +64,7 @@ const App = () => {
   useEffect(() => { saveState('fasting', fasting); }, [fasting]);
   useEffect(() => { saveState('building', building); }, [building]);
   useEffect(() => { saveState('photos', photoData); }, [photoData]);
+  useEffect(() => { saveState('communityPosts', communityPosts); }, [communityPosts]);
 
   const dayKey = formatDate(currentDate);
 
@@ -175,6 +178,7 @@ const App = () => {
         {activeTab === 'diet' && <Diet diet={diet} setDiet={setDiet} currentDate={currentDate} userProfile={userProfile} addCoins={addCoins} />}
         {activeTab === 'fasting' && <Fasting fasting={fasting} setFasting={setFasting} addCoins={addCoins} />}
         {activeTab === 'share' && <Share records={records} diet={diet} workouts={workouts} currentDate={currentDate} userProfile={userProfile} />}
+        {activeTab === 'community' && <Community records={records} workouts={workouts} diet={diet} fasting={fasting} building={building} communityPosts={communityPosts} setCommunityPosts={setCommunityPosts} />}
         {activeTab === 'photos' && <PhotoTracker photos={photoData} setPhotos={setPhotoData} />}
         {activeTab === 'building' && <Building building={building} setBuilding={setBuilding} />}
         {activeTab === 'settings' && <Settings userProfile={userProfile} onSave={handleProfileUpdate} onLogout={handleLogout} />}
