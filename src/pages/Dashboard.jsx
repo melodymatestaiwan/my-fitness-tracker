@@ -48,8 +48,13 @@ export default function Dashboard({ records, setRecords, dayKey, userProfile }) 
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Hero */}
-      <div className="relative h-72 rounded-[3rem] overflow-hidden shadow-2xl mb-8">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#FF5733]/30 via-black to-black" />
+      <div className="relative h-72 rounded-[3rem] overflow-hidden shadow-2xl mb-8 group">
+        <img
+          src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&q=80&w=1200"
+          alt="健身"
+          className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-110"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
         <div className="absolute bottom-8 left-8">
           <p className="text-white/40 font-black tracking-[0.4em] text-[10px] uppercase mb-2">
             {userProfile?.name ? `${userProfile.name} //` : 'Elite Status //'} Day {challengeDay}
