@@ -49,7 +49,7 @@ const App = () => {
     history: [],
   }));
   const [building, setBuilding] = useState(() => loadState('building', {
-    coins: 0, placed: {}, inventory: [], streak: 0, missedDays: 0, lastWorkoutDate: null,
+    coins: 99999, placed: {}, inventory: [], streak: 0, missedDays: 0, lastWorkoutDate: null,
   }));
   const [photoData, setPhotoData] = useState(() => loadState('photos', []));
   const [communityPosts, setCommunityPosts] = useState(() => loadState('communityPosts', []));
