@@ -56,3 +56,57 @@ export const formatDate = (date) => {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 };
+
+// --- Profile-aware 函式 ---
+import { loadState } from './api';
+
+export function getUserProfile() {
+  return loadState('userProfile', null);
+}
+
+export function getUserChallengeConfig(profile) {
+  if (!profile) return { totalDays: CHALLENGE_TOTAL_DAYS, startDate: CHALLENGE_START_DATE, startWeight: START_WEIGHT, targetWeight: TARGET_WEIGHT };
+  return {
+    totalDays: profile.challengeDays || CHALLENGE_TOTAL_DAYS,
+    startDate: new Date(profile.startDate || '2025-10-20'),
+    startWeight: profile.currentWeight || START_WEIGHT,
+    targetWeight: profile.targetWeight || TARGET_WEIGHT,
+  };
+}
+
+export function getUserDietPlan(profile) {
+  if (!profile) return DIET_PLAN;
+  const w = profile.currentWeight || 80;
+  const type = profile.dietPlanType || 'carb-cycling';
+
+  if (type === 'balanced') {
+    const p = Math.round(w * 2), c = Math.round(w * 3), f = Math.round(w * 0.8);
+    const day = { name: '均衡飲食', protein: p, carbs: c, fat: f };
+    return Object.fromEntries(DAY_KEYS.slice(1).concat(DAY_KEYS[0]).map((_, i) => [DAY_KEYS[(i + 1) % 7] || 'sunday', day]).entries ?
+      DAY_KEYS.filter(k => k !== '').map(k => [k, day]) : DAY_KEYS.map(k => [k, day]));
+  }
+  if (type === 'low-carb') {
+    const p = Math.round(w * 2.2), c = Math.round(w * 1), f = Math.round(w * 1.2);
+    const day = { name: '低碳飲食', protein: p, carbs: c, fat: f };
+    return Object.fromEntries(DAY_KEYS.map(k => [k, day]));
+  }
+  // carb-cycling: scale protein by body weight
+  const p = Math.round(w * 2);
+  return {
+    monday:    { name: "低碳日", protein: p, carbs: 100, fat: 87 },
+    tuesday:   { name: "低碳日", protein: p, carbs: 100, fat: 87 },
+    wednesday: { name: "無碳日", protein: p, carbs: 40,  fat: 98 },
+    thursday:  { name: "高碳日", protein: p, carbs: 230, fat: 51 },
+    friday:    { name: "低碳日", protein: p, carbs: 100, fat: 87 },
+    saturday:  { name: "低碳日", protein: p, carbs: 100, fat: 87 },
+    sunday:    { name: "無碳日", protein: p, carbs: 40,  fat: 98 },
+  };
+}
+
+export function getUserBMR(profile, weight) {
+  const h = profile?.height || 175;
+  const a = profile?.age || 25;
+  const w = weight || profile?.currentWeight || 70;
+  const genderOffset = profile?.gender === 'female' ? -161 : 5;
+  return Math.round(10 * w + 6.25 * h - 5 * a + genderOffset);
+}

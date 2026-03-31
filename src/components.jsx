@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Activity, Dumbbell, Utensils, Clock, Share2,
-  TrendingUp, Trophy, Plus, Info
+  TrendingUp, Trophy, Plus, Info, Settings
 } from 'lucide-react';
 
 // --- 共用 UI 元件 ---
@@ -34,6 +34,7 @@ export const Navbar = ({ activeTab, setActiveTab }) => {
     { id: 'diet', icon: Utensils },
     { id: 'fasting', icon: Clock },
     { id: 'share', icon: Share2 },
+    { id: 'settings', icon: Settings },
   ];
   return (
     <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md bg-black/80 backdrop-blur-3xl border border-white/10 rounded-[3rem] p-2 flex justify-around items-center z-50 shadow-[0_20px_60px_rgba(0,0,0,0.7)]">
