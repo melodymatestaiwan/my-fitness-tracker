@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Trash2, CheckCircle2, Info, CalendarIcon } f
 import { GlassCard } from '../components';
 import { WORKOUT_PLAN, DAY_KEYS, COACH_TIPS, formatDate } from '../constants';
 
-export default function Workout({ workouts, setWorkouts, currentDate, setCurrentDate }) {
+export default function Workout({ workouts, setWorkouts, currentDate, setCurrentDate, addCoins, recordWorkoutDay }) {
   const dayKey = formatDate(currentDate);
   const dow = DAY_KEYS[currentDate.getDay()];
   const plan = WORKOUT_PLAN[dow];
@@ -41,8 +41,15 @@ export default function Workout({ workouts, setWorkouts, currentDate, setCurrent
 
   const toggleComplete = (exIdx, setIdx) => {
     const newW = { ...workouts };
-    newW[dayKey][exIdx].sets[setIdx].completed = !newW[dayKey][exIdx].sets[setIdx].completed;
+    const wasCompleted = newW[dayKey][exIdx].sets[setIdx].completed;
+    newW[dayKey][exIdx].sets[setIdx].completed = !wasCompleted;
     setWorkouts(newW);
+
+    // 金幣獎勵：完成一組 = +50
+    if (!wasCompleted && addCoins) {
+      addCoins(50, '完成訓練組');
+      if (recordWorkoutDay) recordWorkoutDay();
+    }
   };
 
   const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
