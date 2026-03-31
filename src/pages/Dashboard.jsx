@@ -2,17 +2,18 @@ import React from 'react';
 import { TrendingUp, Trash2 } from 'lucide-react';
 import { Line } from 'react-chartjs-2';
 import { GlassCard } from '../components';
-import { CHALLENGE_TOTAL_DAYS, CHALLENGE_START_DATE, START_WEIGHT, TARGET_WEIGHT, formatDate } from '../constants';
+import { formatDate, getUserChallengeConfig, getUserBMR } from '../constants';
 
-export default function Dashboard({ records, setRecords, dayKey }) {
-  const progressPercent = Math.min(100, (records.length / CHALLENGE_TOTAL_DAYS) * 100);
-  const latest = records[records.length - 1] || { weight: 70, bodyFat: 20, muscle: 30 };
-  const HEIGHT = 175;
+export default function Dashboard({ records, setRecords, dayKey, userProfile }) {
+  const challenge = getUserChallengeConfig(userProfile);
+  const progressPercent = Math.min(100, (records.length / challenge.totalDays) * 100);
+  const latest = records[records.length - 1] || { weight: userProfile?.currentWeight || 70, bodyFat: 20, muscle: 30 };
+  const HEIGHT = userProfile?.height || 175;
   const bmi = (latest.weight / Math.pow(HEIGHT / 100, 2)).toFixed(1);
-  const bmr = (10 * latest.weight + 6.25 * HEIGHT - 5 * 25 + 5).toFixed(0);
+  const bmr = getUserBMR(userProfile, latest.weight);
 
   const today = new Date(); today.setHours(0,0,0,0);
-  const start = new Date(CHALLENGE_START_DATE); start.setHours(0,0,0,0);
+  const start = new Date(challenge.startDate); start.setHours(0,0,0,0);
   const challengeDay = Math.max(1, Math.floor((today - start) / 86400000) + 1);
 
   const handleAdd = (e) => {
@@ -31,9 +32,9 @@ export default function Dashboard({ records, setRecords, dayKey }) {
     e.target.reset();
   };
 
+  const allDates = [...new Set(records.map(r => r.date))].sort();
   const morningData = records.filter(r => r.time === 'morning');
   const eveningData = records.filter(r => r.time === 'evening');
-  const allDates = [...new Set(records.map(r => r.date))].sort();
 
   const chartData = {
     labels: allDates,
@@ -50,8 +51,12 @@ export default function Dashboard({ records, setRecords, dayKey }) {
       <div className="relative h-72 rounded-[3rem] overflow-hidden shadow-2xl mb-8">
         <div className="absolute inset-0 bg-gradient-to-br from-[#FF5733]/30 via-black to-black" />
         <div className="absolute bottom-8 left-8">
-          <p className="text-white/40 font-black tracking-[0.4em] text-[10px] uppercase mb-2">Elite Status // Day {challengeDay}</p>
-          <h1 className="text-5xl font-black text-white italic tracking-tighter leading-none uppercase">100 Days<br/><span className="text-[#FF5733]">Odyssey</span></h1>
+          <p className="text-white/40 font-black tracking-[0.4em] text-[10px] uppercase mb-2">
+            {userProfile?.name ? `${userProfile.name} //` : 'Elite Status //'} Day {challengeDay}
+          </p>
+          <h1 className="text-5xl font-black text-white italic tracking-tighter leading-none uppercase">
+            {challenge.totalDays} Days<br/><span className="text-[#FF5733]">Odyssey</span>
+          </h1>
         </div>
         <div className="absolute top-8 right-8 flex flex-col items-end">
           <div className="bg-[#FF5733] text-white px-4 py-1 rounded-full text-xs font-black italic mb-2">Day {challengeDay}</div>

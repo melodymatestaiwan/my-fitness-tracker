@@ -1,12 +1,13 @@
 import React from 'react';
 import { Trash2, Plus } from 'lucide-react';
 import { GlassCard } from '../components';
-import { DIET_PLAN, DAY_KEYS, QUICK_FOODS, formatDate } from '../constants';
+import { DIET_PLAN, DAY_KEYS, QUICK_FOODS, formatDate, getUserDietPlan } from '../constants';
 
-export default function Diet({ diet, setDiet, currentDate }) {
+export default function Diet({ diet, setDiet, currentDate, userProfile }) {
   const dayKey = formatDate(currentDate);
   const dow = DAY_KEYS[currentDate.getDay()];
-  const plan = DIET_PLAN[dow];
+  const dietPlan = getUserDietPlan(userProfile);
+  const plan = dietPlan[dow] || DIET_PLAN[dow];
   const goalKcal = plan.protein * 4 + plan.carbs * 4 + plan.fat * 9;
 
   const dailyDiet = diet.filter(i => i.date === dayKey);

@@ -1,9 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Download, Trophy } from 'lucide-react';
 import { SectionTitle } from '../components';
-import { CHALLENGE_START_DATE, DIET_PLAN, DAY_KEYS, formatDate } from '../constants';
+import { CHALLENGE_START_DATE, DIET_PLAN, DAY_KEYS, formatDate, getUserChallengeConfig, getUserDietPlan } from '../constants';
 
-export default function Share({ records, diet, workouts, currentDate }) {
+export default function Share({ records, diet, workouts, currentDate, userProfile }) {
   const dayKey = formatDate(currentDate);
   const progressRef = useRef();
   const dietRef = useRef();
@@ -21,13 +21,15 @@ export default function Share({ records, diet, workouts, currentDate }) {
   }, []);
 
   const latest = records[records.length - 1];
+  const challenge = getUserChallengeConfig(userProfile);
   const today = new Date(); today.setHours(0,0,0,0);
-  const start = new Date(CHALLENGE_START_DATE); start.setHours(0,0,0,0);
+  const start = new Date(challenge.startDate); start.setHours(0,0,0,0);
   const challengeDay = Math.max(1, Math.floor((today - start) / 86400000) + 1);
-  const progressPct = Math.min(100, Math.round((records.length / 100) * 100));
+  const progressPct = Math.min(100, Math.round((records.length / challenge.totalDays) * 100));
 
   const dow = DAY_KEYS[currentDate.getDay()];
-  const plan = DIET_PLAN[dow];
+  const dietPlan = getUserDietPlan(userProfile);
+  const plan = dietPlan[dow] || DIET_PLAN[dow];
   const dailyDiet = diet.filter(i => i.date === dayKey);
   const totals = dailyDiet.reduce((a, c) => ({ p: a.p + c.p, c: a.c + c.c, f: a.f + c.f }), { p: 0, c: 0, f: 0 });
   const kcal = totals.p * 4 + totals.c * 4 + totals.f * 9;

@@ -13,3 +13,7 @@ export function loadState(key, fallback) {
 export function saveState(key, value) {
   localStorage.setItem(`${APP_ID}-${key}`, JSON.stringify(value));
 }
+
+export function removeState(key) {
+  localStorage.removeItem(`${APP_ID}-${key}`);
+}
