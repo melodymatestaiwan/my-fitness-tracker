@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale, LinearScale, PointElement, LineElement,
@@ -16,6 +16,7 @@ import Diet from './pages/Diet';
 import Fasting from './pages/Fasting';
 import Share from './pages/Share';
 import Settings from './pages/Settings';
+import Building from './pages/Building';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -45,14 +46,55 @@ const App = () => {
     mode: userProfile?.fastingMode || 16,
     history: [],
   }));
+  const [building, setBuilding] = useState(() => loadState('building', {
+    coins: 0, placed: {}, inventory: [], streak: 0, missedDays: 0, lastWorkoutDate: null,
+  }));
+
+  // --- 金幣通知 ---
+  const [coinToast, setCoinToast] = useState('');
 
   // Auto-save
   useEffect(() => { saveState('records', records); }, [records]);
   useEffect(() => { saveState('workouts', workouts); }, [workouts]);
   useEffect(() => { saveState('diet', diet); }, [diet]);
   useEffect(() => { saveState('fasting', fasting); }, [fasting]);
+  useEffect(() => { saveState('building', building); }, [building]);
 
   const dayKey = formatDate(currentDate);
+
+  // --- 金幣系統 ---
+  const addCoins = useCallback((amount, reason) => {
+    setBuilding(prev => ({ ...prev, coins: (prev.coins || 0) + amount }));
+    setCoinToast(`+${amount} 🪙 ${reason}`);
+    setTimeout(() => setCoinToast(''), 2500);
+  }, []);
+
+  // 記錄訓練完成日（用於 streak 計算）
+  const recordWorkoutDay = useCallback(() => {
+    const today = formatDate(new Date());
+    setBuilding(prev => {
+      if (prev.lastWorkoutDate === today) return prev; // 今天已記錄
+      const yesterday = formatDate(new Date(Date.now() - 86400000));
+      const isConsecutive = prev.lastWorkoutDate === yesterday;
+      const newStreak = isConsecutive ? (prev.streak || 0) + 1 : 1;
+      let bonus = 0;
+      if (newStreak === 7) bonus = 200;
+      if (newStreak === 30) bonus = 1000;
+      if (bonus > 0) {
+        setTimeout(() => {
+          setCoinToast(`🔥 連續 ${newStreak} 天！+${bonus} bonus 🪙`);
+          setTimeout(() => setCoinToast(''), 3000);
+        }, 3000);
+      }
+      return {
+        ...prev,
+        lastWorkoutDate: today,
+        streak: newStreak,
+        missedDays: 0,
+        coins: (prev.coins || 0) + bonus,
+      };
+    });
+  }, []);
 
   // --- Handlers ---
   const handleLoginSuccess = (user) => {
@@ -116,12 +158,21 @@ const App = () => {
   return (
     <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#FF5733] pb-40">
       <BgGlow />
+
+      {/* Coin Toast */}
+      {coinToast && (
+        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-50 bg-[#FFD700] text-black font-black px-6 py-3 rounded-2xl shadow-2xl text-sm italic animate-slide-bottom">
+          {coinToast}
+        </div>
+      )}
+
       <div className="relative z-10 max-w-lg mx-auto px-6 pt-12">
         {activeTab === 'dashboard' && <Dashboard records={records} setRecords={setRecords} dayKey={dayKey} userProfile={userProfile} />}
-        {activeTab === 'workout' && <Workout workouts={workouts} setWorkouts={setWorkouts} currentDate={currentDate} setCurrentDate={setCurrentDate} />}
-        {activeTab === 'diet' && <Diet diet={diet} setDiet={setDiet} currentDate={currentDate} userProfile={userProfile} />}
-        {activeTab === 'fasting' && <Fasting fasting={fasting} setFasting={setFasting} />}
+        {activeTab === 'workout' && <Workout workouts={workouts} setWorkouts={setWorkouts} currentDate={currentDate} setCurrentDate={setCurrentDate} addCoins={addCoins} recordWorkoutDay={recordWorkoutDay} />}
+        {activeTab === 'diet' && <Diet diet={diet} setDiet={setDiet} currentDate={currentDate} userProfile={userProfile} addCoins={addCoins} />}
+        {activeTab === 'fasting' && <Fasting fasting={fasting} setFasting={setFasting} addCoins={addCoins} />}
         {activeTab === 'share' && <Share records={records} diet={diet} workouts={workouts} currentDate={currentDate} userProfile={userProfile} />}
+        {activeTab === 'building' && <Building building={building} setBuilding={setBuilding} />}
         {activeTab === 'settings' && <Settings userProfile={userProfile} onSave={handleProfileUpdate} onLogout={handleLogout} />}
       </div>
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />

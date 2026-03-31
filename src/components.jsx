@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Activity, Dumbbell, Utensils, Clock, Share2,
-  TrendingUp, Trophy, Plus, Info, Settings
+  TrendingUp, Trophy, Plus, Info, Settings, Castle
 } from 'lucide-react';
 
 // --- 共用 UI 元件 ---
@@ -33,6 +33,7 @@ export const Navbar = ({ activeTab, setActiveTab }) => {
     { id: 'workout', icon: Dumbbell },
     { id: 'diet', icon: Utensils },
     { id: 'fasting', icon: Clock },
+    { id: 'building', icon: Castle },
     { id: 'share', icon: Share2 },
     { id: 'settings', icon: Settings },
   ];
@@ -42,9 +43,9 @@ export const Navbar = ({ activeTab, setActiveTab }) => {
         <button
           key={tab.id}
           onClick={() => setActiveTab(tab.id)}
-          className={`relative p-4 transition-all duration-500 ${activeTab === tab.id ? 'text-[#FF5733] scale-125' : 'text-gray-500'}`}
+          className={`relative p-3 transition-all duration-500 ${activeTab === tab.id ? 'text-[#FF5733] scale-110' : 'text-gray-500'}`}
         >
-          <tab.icon size={26} strokeWidth={activeTab === tab.id ? 2.5 : 2} />
+          <tab.icon size={22} strokeWidth={activeTab === tab.id ? 2.5 : 2} />
           {activeTab === tab.id && <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#FF5733] rounded-full shadow-[0_0_8px_#FF5733]" />}
         </button>
       ))}

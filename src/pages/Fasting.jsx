@@ -3,7 +3,7 @@ import { Zap, Flame, Trash2 } from 'lucide-react';
 import { GlassCard } from '../components';
 import { FASTING_MODES } from '../constants';
 
-export default function Fasting({ fasting, setFasting }) {
+export default function Fasting({ fasting, setFasting, addCoins }) {
   const [timeLeft, setTimeLeft] = useState(0);
   const [aiResponse, setAiResponse] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -50,7 +50,10 @@ export default function Fasting({ fasting, setFasting }) {
       startTime: null,
       history: [record, ...fasting.history],
     });
-    if (metGoal) alert('🎉 恭喜達成斷食目標！');
+    if (metGoal) {
+      alert('🎉 恭喜達成斷食目標！');
+      if (addCoins) addCoins(80, '完成斷食目標');
+    }
   };
 
   const deleteHistory = (id) => {
