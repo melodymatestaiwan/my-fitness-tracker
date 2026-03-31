@@ -7,7 +7,7 @@ import {
 import { Navbar } from './components';
 import { loadState, saveState } from './api';
 import { formatDate } from './constants';
-import { getCurrentUser, isOnboardingComplete, logoutUser, seedDefaultUser } from './auth';
+import { getCurrentUser, isOnboardingComplete, logoutAll, seedDefaultUser } from './auth';
 import Login from './pages/Login';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
@@ -123,8 +123,8 @@ const App = () => {
     setUserProfile(newProfile);
   };
 
-  const handleLogout = () => {
-    logoutUser();
+  const handleLogout = async () => {
+    await logoutAll();
     setCurrentUser(null);
     setAppView('login');
   };
