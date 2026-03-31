@@ -17,6 +17,7 @@ import Fasting from './pages/Fasting';
 import Share from './pages/Share';
 import Settings from './pages/Settings';
 import Building from './pages/Building';
+import PhotoTracker from './pages/PhotoTracker';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -49,6 +50,7 @@ const App = () => {
   const [building, setBuilding] = useState(() => loadState('building', {
     coins: 0, placed: {}, inventory: [], streak: 0, missedDays: 0, lastWorkoutDate: null,
   }));
+  const [photoData, setPhotoData] = useState(() => loadState('photos', []));
 
   // --- 金幣通知 ---
   const [coinToast, setCoinToast] = useState('');
@@ -59,6 +61,7 @@ const App = () => {
   useEffect(() => { saveState('diet', diet); }, [diet]);
   useEffect(() => { saveState('fasting', fasting); }, [fasting]);
   useEffect(() => { saveState('building', building); }, [building]);
+  useEffect(() => { saveState('photos', photoData); }, [photoData]);
 
   const dayKey = formatDate(currentDate);
 
@@ -172,6 +175,7 @@ const App = () => {
         {activeTab === 'diet' && <Diet diet={diet} setDiet={setDiet} currentDate={currentDate} userProfile={userProfile} addCoins={addCoins} />}
         {activeTab === 'fasting' && <Fasting fasting={fasting} setFasting={setFasting} addCoins={addCoins} />}
         {activeTab === 'share' && <Share records={records} diet={diet} workouts={workouts} currentDate={currentDate} userProfile={userProfile} />}
+        {activeTab === 'photos' && <PhotoTracker photos={photoData} setPhotos={setPhotoData} />}
         {activeTab === 'building' && <Building building={building} setBuilding={setBuilding} />}
         {activeTab === 'settings' && <Settings userProfile={userProfile} onSave={handleProfileUpdate} onLogout={handleLogout} />}
       </div>
