@@ -7,7 +7,7 @@ import {
 import { Navbar } from './components';
 import { loadState, saveState } from './api';
 import { formatDate } from './constants';
-import { getCurrentUser, isOnboardingComplete, logoutUser } from './auth';
+import { getCurrentUser, isOnboardingComplete, logoutUser, seedDefaultUser } from './auth';
 import Login from './pages/Login';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
@@ -20,6 +20,9 @@ import Settings from './pages/Settings';
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
 const App = () => {
+  // --- 首次載入：建立預設使用者 ---
+  useState(() => { seedDefaultUser(); });
+
   // --- Auth gate ---
   const [appView, setAppView] = useState(() => {
     const user = getCurrentUser();
