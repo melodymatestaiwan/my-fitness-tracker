@@ -50,7 +50,7 @@ export default function Share({ records, diet, workouts, currentDate, userProfil
     }
   };
 
-  const CardWrapper = ({ label, refObj, id, children }) => (
+  const CardWrapper = ({ label, refObj, id, bg, children }) => (
     <div className="space-y-4">
       <button
         onClick={() => download(refObj, id)}
@@ -59,8 +59,9 @@ export default function Share({ records, diet, workouts, currentDate, userProfil
       >
         <Download size={20}/> {isCapturing ? 'Generating...' : `Export ${label}`}
       </button>
-      <div ref={refObj} className="relative w-full aspect-[1080/1350] rounded-[3rem] overflow-hidden shadow-2xl bg-black">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#FF5733]/10 via-black to-black" />
+      <div ref={refObj} className="relative w-full aspect-[1080/1350] rounded-[3rem] overflow-hidden shadow-[0_50px_100px_rgba(0,0,0,0.8)] bg-black">
+        {bg && <img src={bg} alt="背景" className="w-full h-full object-cover brightness-[0.3]" />}
+        <div className="absolute inset-0 bg-gradient-to-br from-black/60 to-transparent" />
         {children}
       </div>
     </div>
@@ -71,7 +72,7 @@ export default function Share({ records, diet, workouts, currentDate, userProfil
       <SectionTitle icon={Trophy}>Accomplishments</SectionTitle>
 
       {/* Card 1: Progress */}
-      <CardWrapper label="進度卡" refObj={progressRef} id="progress">
+      <CardWrapper label="進度卡" refObj={progressRef} id="progress" bg="https://images.unsplash.com/photo-1548690312-e3b507d17a4d?auto=format&fit=crop&q=80&w=1080">
         <div className="absolute inset-0 p-12 flex flex-col justify-between text-white">
           <div>
             <p className="text-white/40 font-black tracking-[0.5em] text-[10px] uppercase mb-4 italic">100 Day Challenge</p>
@@ -94,7 +95,7 @@ export default function Share({ records, diet, workouts, currentDate, userProfil
       </CardWrapper>
 
       {/* Card 2: Diet */}
-      <CardWrapper label="飲食卡" refObj={dietRef} id="diet">
+      <CardWrapper label="飲食卡" refObj={dietRef} id="diet" bg="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=1080">
         <div className="absolute inset-0 p-12 flex flex-col justify-between text-white">
           <div className="text-center">
             <p className="text-white/40 font-black tracking-[0.5em] text-[10px] uppercase mb-2">Bio-Fuel Analysis</p>
@@ -117,7 +118,7 @@ export default function Share({ records, diet, workouts, currentDate, userProfil
       </CardWrapper>
 
       {/* Card 3: Workout */}
-      <CardWrapper label="訓練卡" refObj={workoutRef} id="workout">
+      <CardWrapper label="訓練卡" refObj={workoutRef} id="workout" bg="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=1080">
         <div className="absolute inset-0 p-12 flex flex-col justify-between text-white">
           <div>
             <p className="text-white/40 font-black tracking-[0.5em] text-[10px] uppercase mb-2">Training Log</p>

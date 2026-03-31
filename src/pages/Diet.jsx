@@ -25,8 +25,13 @@ export default function Diet({ diet, setDiet, currentDate, userProfile }) {
   return (
     <div className="space-y-8 animate-slide-left">
       {/* Header */}
-      <div className="relative h-48 rounded-[3rem] overflow-hidden shadow-2xl mb-8">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#2ECC71]/30 via-black to-black" />
+      <div className="relative h-48 rounded-[3rem] overflow-hidden shadow-2xl mb-8 group">
+        <img
+          src="https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&q=80&w=1200"
+          alt="健康飲食"
+          className="w-full h-full object-cover brightness-75 transition-transform duration-[2000ms] group-hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-black/40" />
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <p className="text-white/40 font-black tracking-widest text-[10px] uppercase mb-1">{plan.name} — {dayKey}</p>
           <h2 className="text-5xl font-black text-white italic tracking-tighter uppercase leading-none">Bio<br/><span className="text-[#2ECC71]">Fuel</span></h2>
