@@ -124,8 +124,13 @@ const App = () => {
     // Firebase onAuthStateChanged 會自動觸發資料載入
   };
 
-  const handleOnboardingComplete = () => {
-    if (uid) loadCloud(uid, 'userProfile', null).then(setUserProfile);
+  const handleOnboardingComplete = (profile) => {
+    if (profile) {
+      setUserProfile(profile);
+      setDataLoaded(true);
+    } else if (uid) {
+      loadCloud(uid, 'userProfile', null).then(setUserProfile);
+    }
   };
 
   const handleProfileUpdate = (newProfile) => {
