@@ -4,10 +4,12 @@ import {
   CategoryScale, LinearScale, PointElement, LineElement,
   Title, Tooltip, Legend, Filler
 } from 'chart.js';
-import { Navbar } from './components';
-import { loadState, saveState } from './api';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './firebase';
+import { Navbar, LoadingScreen } from './components';
+import { loadCloud, saveCloud } from './api';
 import { formatDate } from './constants';
-import { getCurrentUser, isOnboardingComplete, logoutUser, seedDefaultUser } from './auth';
+import { logout } from './auth';
 import Login from './pages/Login';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
@@ -23,63 +25,84 @@ import Community from './pages/Community';
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
 const App = () => {
-  // --- 首次載入：建立預設使用者 ---
-  useState(() => { seedDefaultUser(); });
-
-  // --- Auth gate ---
-  const [appView, setAppView] = useState(() => {
-    const user = getCurrentUser();
-    if (!user) return 'login';
-    if (!isOnboardingComplete()) return 'onboarding';
-    return 'app';
-  });
-  const [currentUser, setCurrentUser] = useState(() => getCurrentUser());
-  const [userProfile, setUserProfile] = useState(() => loadState('userProfile', null));
-
-  // --- App state ---
+  const [firebaseUser, setFirebaseUser] = useState(undefined); // undefined = loading
+  const [userProfile, setUserProfile] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [dataLoaded, setDataLoaded] = useState(false);
 
-  const [records, setRecords] = useState(() => loadState('records', []));
-  const [workouts, setWorkouts] = useState(() => loadState('workouts', {}));
-  const [diet, setDiet] = useState(() => loadState('diet', []));
-  const [fasting, setFasting] = useState(() => loadState('fasting', {
-    active: false, startTime: null,
-    mode: userProfile?.fastingMode || 16,
-    history: [],
-  }));
-  const [building, setBuilding] = useState(() => loadState('building', {
-    coins: 0, placed: {}, inventory: [], streak: 0, missedDays: 0, lastWorkoutDate: null,
-  }));
-  const [photoData, setPhotoData] = useState(() => loadState('photos', []));
-  const [communityPosts, setCommunityPosts] = useState(() => loadState('communityPosts', []));
+  // App data
+  const [records, setRecords] = useState([]);
+  const [workouts, setWorkouts] = useState({});
+  const [diet, setDiet] = useState([]);
+  const [fasting, setFasting] = useState({ active: false, startTime: null, mode: 16, history: [] });
+  const [building, setBuilding] = useState({ coins: 99999, placed: {}, inventory: [], streak: 0, missedDays: 0, lastWorkoutDate: null });
+  const [photoData, setPhotoData] = useState([]);
+  const [communityPosts, setCommunityPosts] = useState([]);
 
-  // --- 金幣通知 ---
-  const [coinToast, setCoinToast] = useState('');
+  // --- 監聽 Firebase Auth ---
+  useEffect(() => {
+    return onAuthStateChanged(auth, (user) => {
+      setFirebaseUser(user || null);
+      if (!user) {
+        setDataLoaded(false);
+        setUserProfile(null);
+      }
+    });
+  }, []);
 
-  // Auto-save
-  useEffect(() => { saveState('records', records); }, [records]);
-  useEffect(() => { saveState('workouts', workouts); }, [workouts]);
-  useEffect(() => { saveState('diet', diet); }, [diet]);
-  useEffect(() => { saveState('fasting', fasting); }, [fasting]);
-  useEffect(() => { saveState('building', building); }, [building]);
-  useEffect(() => { saveState('photos', photoData); }, [photoData]);
-  useEffect(() => { saveState('communityPosts', communityPosts); }, [communityPosts]);
+  // --- 登入後從 Firestore 載入資料 ---
+  useEffect(() => {
+    if (!firebaseUser) return;
+    const uid = firebaseUser.uid;
+    (async () => {
+      const [p, r, w, d, f, b, ph, cp] = await Promise.all([
+        loadCloud(uid, 'userProfile', null),
+        loadCloud(uid, 'records', []),
+        loadCloud(uid, 'workouts', {}),
+        loadCloud(uid, 'diet', []),
+        loadCloud(uid, 'fasting', { active: false, startTime: null, mode: 16, history: [] }),
+        loadCloud(uid, 'building', { coins: 99999, placed: {}, inventory: [], streak: 0, missedDays: 0, lastWorkoutDate: null }),
+        loadCloud(uid, 'photos', []),
+        loadCloud(uid, 'communityPosts', []),
+      ]);
+      setUserProfile(p);
+      setRecords(r);
+      setWorkouts(w);
+      setDiet(d);
+      setFasting(f);
+      setBuilding(b);
+      setPhotoData(ph);
+      setCommunityPosts(cp);
+      setDataLoaded(true);
+    })();
+  }, [firebaseUser]);
+
+  // --- 自動儲存到 Firestore ---
+  const uid = firebaseUser?.uid;
+  useEffect(() => { if (uid && dataLoaded) saveCloud(uid, 'records', records); }, [records, uid, dataLoaded]);
+  useEffect(() => { if (uid && dataLoaded) saveCloud(uid, 'workouts', workouts); }, [workouts, uid, dataLoaded]);
+  useEffect(() => { if (uid && dataLoaded) saveCloud(uid, 'diet', diet); }, [diet, uid, dataLoaded]);
+  useEffect(() => { if (uid && dataLoaded) saveCloud(uid, 'fasting', fasting); }, [fasting, uid, dataLoaded]);
+  useEffect(() => { if (uid && dataLoaded) saveCloud(uid, 'building', building); }, [building, uid, dataLoaded]);
+  useEffect(() => { if (uid && dataLoaded) saveCloud(uid, 'photos', photoData); }, [photoData, uid, dataLoaded]);
+  useEffect(() => { if (uid && dataLoaded) saveCloud(uid, 'communityPosts', communityPosts); }, [communityPosts, uid, dataLoaded]);
+  useEffect(() => { if (uid && dataLoaded && userProfile) saveCloud(uid, 'userProfile', userProfile); }, [userProfile, uid, dataLoaded]);
 
   const dayKey = formatDate(currentDate);
 
   // --- 金幣系統 ---
+  const [coinToast, setCoinToast] = useState('');
   const addCoins = useCallback((amount, reason) => {
     setBuilding(prev => ({ ...prev, coins: (prev.coins || 0) + amount }));
     setCoinToast(`+${amount} 🪙 ${reason}`);
     setTimeout(() => setCoinToast(''), 2500);
   }, []);
 
-  // 記錄訓練完成日（用於 streak 計算）
   const recordWorkoutDay = useCallback(() => {
     const today = formatDate(new Date());
     setBuilding(prev => {
-      if (prev.lastWorkoutDate === today) return prev; // 今天已記錄
+      if (prev.lastWorkoutDate === today) return prev;
       const yesterday = formatDate(new Date(Date.now() - 86400000));
       const isConsecutive = prev.lastWorkoutDate === yesterday;
       const newStreak = isConsecutive ? (prev.streak || 0) + 1 : 1;
@@ -92,44 +115,28 @@ const App = () => {
           setTimeout(() => setCoinToast(''), 3000);
         }, 3000);
       }
-      return {
-        ...prev,
-        lastWorkoutDate: today,
-        streak: newStreak,
-        missedDays: 0,
-        coins: (prev.coins || 0) + bonus,
-      };
+      return { ...prev, lastWorkoutDate: today, streak: newStreak, missedDays: 0, coins: (prev.coins || 0) + bonus };
     });
   }, []);
 
   // --- Handlers ---
   const handleLoginSuccess = (user) => {
-    setCurrentUser(user);
-    if (isOnboardingComplete()) {
-      setUserProfile(loadState('userProfile', null));
-      setAppView('app');
-    } else {
-      setAppView('onboarding');
-    }
+    // Firebase onAuthStateChanged 會自動觸發資料載入
   };
 
   const handleOnboardingComplete = () => {
-    setUserProfile(loadState('userProfile', null));
-    setAppView('app');
+    if (uid) loadCloud(uid, 'userProfile', null).then(setUserProfile);
   };
 
   const handleProfileUpdate = (newProfile) => {
-    saveState('userProfile', newProfile);
     setUserProfile(newProfile);
   };
 
-  const handleLogout = () => {
-    logoutUser();
-    setCurrentUser(null);
-    setAppView('login');
+  const handleLogout = async () => {
+    await logout();
   };
 
-  // --- Background ---
+  // --- 判斷顯示哪個畫面 ---
   const BgGlow = () => (
     <div className="fixed inset-0 pointer-events-none z-0">
       <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] bg-[#FF5733]/10 rounded-full blur-[150px]" />
@@ -137,47 +144,48 @@ const App = () => {
     </div>
   );
 
-  // --- Login / Onboarding views ---
-  if (appView === 'login') {
+  // Loading
+  if (firebaseUser === undefined) return <LoadingScreen />;
+
+  // 未登入
+  if (!firebaseUser) {
+    return (
+      <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#FF5733]">
+        <BgGlow />
+        <div className="relative z-10"><Login onSuccess={handleLoginSuccess} /></div>
+      </div>
+    );
+  }
+
+  // 登入但資料還在載入
+  if (!dataLoaded) return <LoadingScreen />;
+
+  // 登入但沒有完成 Onboarding
+  if (!userProfile || !userProfile.onboardingCompletedAt) {
     return (
       <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#FF5733]">
         <BgGlow />
         <div className="relative z-10">
-          <Login onSuccess={handleLoginSuccess} />
+          <Onboarding userName={firebaseUser.displayName || firebaseUser.email?.split('@')[0]} onComplete={handleOnboardingComplete} />
         </div>
       </div>
     );
   }
 
-  if (appView === 'onboarding') {
-    return (
-      <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#FF5733]">
-        <BgGlow />
-        <div className="relative z-10">
-          <Onboarding userName={currentUser?.name} onComplete={handleOnboardingComplete} />
-        </div>
-      </div>
-    );
-  }
-
-  // --- Main app ---
+  // --- 主 App ---
   return (
     <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#FF5733] pb-40">
       <BgGlow />
-
-      {/* Coin Toast */}
       {coinToast && (
         <div className="fixed top-8 left-1/2 -translate-x-1/2 z-50 bg-[#FFD700] text-black font-black px-6 py-3 rounded-2xl shadow-2xl text-sm italic animate-slide-bottom">
           {coinToast}
         </div>
       )}
-
       <div className="relative z-10 max-w-lg mx-auto px-6 pt-12">
         {activeTab === 'dashboard' && <Dashboard records={records} setRecords={setRecords} dayKey={dayKey} userProfile={userProfile} />}
         {activeTab === 'workout' && <Workout workouts={workouts} setWorkouts={setWorkouts} currentDate={currentDate} setCurrentDate={setCurrentDate} addCoins={addCoins} recordWorkoutDay={recordWorkoutDay} />}
         {activeTab === 'diet' && <Diet diet={diet} setDiet={setDiet} currentDate={currentDate} userProfile={userProfile} addCoins={addCoins} />}
         {activeTab === 'fasting' && <Fasting fasting={fasting} setFasting={setFasting} addCoins={addCoins} />}
-        {activeTab === 'share' && <Share records={records} diet={diet} workouts={workouts} currentDate={currentDate} userProfile={userProfile} />}
         {activeTab === 'community' && <Community records={records} workouts={workouts} diet={diet} fasting={fasting} building={building} communityPosts={communityPosts} setCommunityPosts={setCommunityPosts} />}
         {activeTab === 'photos' && <PhotoTracker photos={photoData} setPhotos={setPhotoData} />}
         {activeTab === 'building' && <Building building={building} setBuilding={setBuilding} />}
