@@ -68,6 +68,9 @@ const App = () => {
       setPhotoData(loadState('photos', []));
       setCommunityPosts(loadState('communityPosts', []));
       setDataLoaded(true);
+    } else {
+      // 新用戶：localStorage 沒資料，直接標記載入完成（不等 Firestore）
+      setDataLoaded(true);
     }
 
     // 背景同步 Firestore（有資料則覆蓋 localStorage）

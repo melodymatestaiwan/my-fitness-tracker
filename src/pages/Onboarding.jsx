@@ -50,7 +50,7 @@ export default function Onboarding({ userName, onComplete }) {
   const next = () => { if (validateStep()) setStep(s => Math.min(s + 1, TOTAL_STEPS)); };
   const prev = () => setStep(s => Math.max(s - 1, 1));
 
-  const finish = async () => {
+  const finish = () => {
     const profile = {
       name: userName,
       height: parseFloat(height),
@@ -64,12 +64,12 @@ export default function Onboarding({ userName, onComplete }) {
       fastingMode,
       onboardingCompletedAt: Date.now(),
     };
-    // 同時存 Firestore + localStorage（確保任何情況都不會丟資料）
+    // 立即存 localStorage（確保不卡住）
     saveState('userProfile', profile);
+    // Firestore 背景存（不阻塞 UI）
     const uid = auth.currentUser?.uid;
-    if (uid) {
-      try { await saveCloud(uid, 'userProfile', profile); } catch (e) { console.error('Firestore save failed:', e); }
-    }
+    if (uid) saveCloud(uid, 'userProfile', profile).catch(() => {});
+    // 立即進入主頁
     onComplete(profile);
   };
 
