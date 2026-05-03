@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { ChevronRight, ChevronLeft, Rocket, User, Target, Utensils } from 'lucide-react';
 import { GlassCard } from '../components';
-import { saveState } from '../api';
+import { saveCloud } from '../api';
+import { auth } from '../firebase';
 import { FASTING_MODES, formatDate } from '../constants';
 
 const DIET_TYPES = [
@@ -49,7 +50,7 @@ export default function Onboarding({ userName, onComplete }) {
   const next = () => { if (validateStep()) setStep(s => Math.min(s + 1, TOTAL_STEPS)); };
   const prev = () => setStep(s => Math.max(s - 1, 1));
 
-  const finish = () => {
+  const finish = async () => {
     const profile = {
       name: userName,
       height: parseFloat(height),
@@ -63,8 +64,9 @@ export default function Onboarding({ userName, onComplete }) {
       fastingMode,
       onboardingCompletedAt: Date.now(),
     };
-    saveState('userProfile', profile);
-    onComplete();
+    const uid = auth.currentUser?.uid;
+    if (uid) await saveCloud(uid, 'userProfile', profile);
+    onComplete(profile);
   };
 
   const inputClass = "w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold outline-none focus:border-[#FF5733]/50 transition-colors placeholder:text-white/20";
