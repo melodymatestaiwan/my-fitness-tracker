@@ -55,27 +55,47 @@ const App = () => {
   useEffect(() => {
     if (!firebaseUser) return;
     const uid = firebaseUser.uid;
+
+    // 先嘗試從 localStorage 快速載入（避免白屏等待）
+    const localProfile = loadState('userProfile', null);
+    if (localProfile) {
+      setUserProfile(localProfile);
+      setRecords(loadState('records', []));
+      setWorkouts(loadState('workouts', {}));
+      setDiet(loadState('diet', []));
+      setFasting(loadState('fasting', { active: false, startTime: null, mode: 16, history: [] }));
+      setBuilding(loadState('building', { coins: 99999, placed: {}, inventory: [], streak: 0, missedDays: 0, lastWorkoutDate: null }));
+      setPhotoData(loadState('photos', []));
+      setCommunityPosts(loadState('communityPosts', []));
+      setDataLoaded(true);
+    }
+
+    // 背景同步 Firestore（有資料則覆蓋 localStorage）
     (async () => {
-      const [p, r, w, d, f, b, ph, cp] = await Promise.all([
-        loadCloud(uid, 'userProfile', null),
-        loadCloud(uid, 'records', []),
-        loadCloud(uid, 'workouts', {}),
-        loadCloud(uid, 'diet', []),
-        loadCloud(uid, 'fasting', { active: false, startTime: null, mode: 16, history: [] }),
-        loadCloud(uid, 'building', { coins: 99999, placed: {}, inventory: [], streak: 0, missedDays: 0, lastWorkoutDate: null }),
-        loadCloud(uid, 'photos', []),
-        loadCloud(uid, 'communityPosts', []),
-      ]);
-      // 如果 Firestore 沒有 profile，嘗試從 localStorage 讀取（fallback）
-      const finalProfile = p || loadState('userProfile', null);
-      setUserProfile(finalProfile);
-      setRecords(r);
-      setWorkouts(w);
-      setDiet(d);
-      setFasting(f);
-      setBuilding(b);
-      setPhotoData(ph);
-      setCommunityPosts(cp);
+      try {
+        const [p, r, w, d, f, b, ph, cp] = await Promise.all([
+          loadCloud(uid, 'userProfile', null),
+          loadCloud(uid, 'records', []),
+          loadCloud(uid, 'workouts', {}),
+          loadCloud(uid, 'diet', []),
+          loadCloud(uid, 'fasting', { active: false, startTime: null, mode: 16, history: [] }),
+          loadCloud(uid, 'building', { coins: 99999, placed: {}, inventory: [], streak: 0, missedDays: 0, lastWorkoutDate: null }),
+          loadCloud(uid, 'photos', []),
+          loadCloud(uid, 'communityPosts', []),
+        ]);
+        // Firestore 有資料則使用 Firestore 版本
+        const finalProfile = p || localProfile;
+        if (finalProfile) setUserProfile(finalProfile);
+        if (r.length > 0) setRecords(r);
+        if (Object.keys(w).length > 0) setWorkouts(w);
+        if (d.length > 0) setDiet(d);
+        if (f.history?.length > 0) setFasting(f);
+        if (b.coins !== 99999 || Object.keys(b.placed || {}).length > 0) setBuilding(b);
+        if (ph.length > 0) setPhotoData(ph);
+        if (cp.length > 0) setCommunityPosts(cp);
+      } catch (e) {
+        console.error('Firestore sync failed:', e);
+      }
       setDataLoaded(true);
     })();
   }, [firebaseUser]);
