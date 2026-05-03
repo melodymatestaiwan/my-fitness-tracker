@@ -7,7 +7,7 @@ import {
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
 import { Navbar, LoadingScreen } from './components';
-import { loadCloud, saveCloud } from './api';
+import { loadCloud, saveCloud, loadState } from './api';
 import { formatDate } from './constants';
 import { logout } from './auth';
 import Login from './pages/Login';
@@ -66,7 +66,9 @@ const App = () => {
         loadCloud(uid, 'photos', []),
         loadCloud(uid, 'communityPosts', []),
       ]);
-      setUserProfile(p);
+      // 如果 Firestore 沒有 profile，嘗試從 localStorage 讀取（fallback）
+      const finalProfile = p || loadState('userProfile', null);
+      setUserProfile(finalProfile);
       setRecords(r);
       setWorkouts(w);
       setDiet(d);

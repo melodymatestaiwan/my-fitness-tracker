@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronRight, ChevronLeft, Rocket, User, Target, Utensils } from 'lucide-react';
 import { GlassCard } from '../components';
-import { saveCloud } from '../api';
+import { saveCloud, saveState } from '../api';
 import { auth } from '../firebase';
 import { FASTING_MODES, formatDate } from '../constants';
 
@@ -64,8 +64,12 @@ export default function Onboarding({ userName, onComplete }) {
       fastingMode,
       onboardingCompletedAt: Date.now(),
     };
+    // 同時存 Firestore + localStorage（確保任何情況都不會丟資料）
+    saveState('userProfile', profile);
     const uid = auth.currentUser?.uid;
-    if (uid) await saveCloud(uid, 'userProfile', profile);
+    if (uid) {
+      try { await saveCloud(uid, 'userProfile', profile); } catch (e) { console.error('Firestore save failed:', e); }
+    }
     onComplete(profile);
   };
 
