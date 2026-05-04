@@ -23,8 +23,23 @@ function calcMeasurements(landmarks, heightCm, w, h) {
   const L_SHOULDER = 11, R_SHOULDER = 12, L_ELBOW = 13, L_WRIST = 15,
         L_HIP = 23, R_HIP = 24, L_KNEE = 25, R_KNEE = 26, L_ANKLE = 27, R_ANKLE = 28, NOSE = 0;
 
+  // 嚴格驗證：關鍵點可見度必須足夠
+  const critical = [L_SHOULDER, R_SHOULDER, L_HIP, R_HIP, L_KNEE, R_KNEE, L_ANKLE, R_ANKLE];
+  const lowVis = critical.filter(i => (lm[i].visibility || 0) < 0.4);
+  if (lowVis.length > 2) return null;
+
+  // 身體各段順序必須正確
+  const shoulderMidY = (lm[L_SHOULDER].y + lm[R_SHOULDER].y) / 2;
+  const hipMidYCheck = (lm[L_HIP].y + lm[R_HIP].y) / 2;
+  if (!(lm[NOSE].y < shoulderMidY && shoulderMidY < hipMidYCheck)) return null;
+
   const headY = lm[NOSE].y - 0.1;
   const feetY = Math.max(lm[L_ANKLE].y, lm[R_ANKLE].y);
+
+  // 全身比例檢查
+  const bodySpan = feetY - headY;
+  if (bodySpan < 0.4) return null;
+
   const pxH = (feetY - headY) * h;
   if (pxH <= 0) return null;
   const scale = heightCm / pxH;
@@ -41,7 +56,6 @@ function calcMeasurements(landmarks, heightCm, w, h) {
   );
 
   const hipMidY = (lm[L_HIP].y + lm[R_HIP].y) / 2;
-  const shoulderMidY = (lm[L_SHOULDER].y + lm[R_SHOULDER].y) / 2;
   const kneeMidY = (lm[L_KNEE].y + lm[R_KNEE].y) / 2;
 
   const DR = 0.65;
@@ -58,25 +72,43 @@ function calcMeasurements(landmarks, heightCm, w, h) {
   };
 }
 
-// 檢查姿勢是否符合標準
+// 檢查姿勢是否符合標準（嚴格版）
 function checkPose(landmarks, vw, vh) {
   if (!landmarks || landmarks.length < 33) return { ok: false, msg: '偵測不到人體' };
   const lm = landmarks;
   const checks = [];
 
-  // 全身入鏡：頭和腳都在畫面內
-  const headVisible = lm[0].y > 0.02 && lm[0].y < 0.3;
-  const feetVisible = Math.max(lm[27].y, lm[28].y) > 0.7;
-  if (!headVisible) checks.push('請讓頭部完整入鏡');
-  if (!feetVisible) checks.push('請讓腳部完整入鏡');
+  // 關鍵關節點的可見度必須夠高（MediaPipe 給每個點 visibility 分數 0-1）
+  const criticalPoints = [11, 12, 23, 24, 25, 26, 27, 28]; // 雙肩、雙臀、雙膝、雙踝
+  const lowVisibility = criticalPoints.filter(i => (lm[i].visibility || 0) < 0.5);
+  if (lowVisibility.length > 2) return { ok: false, msg: '請拍攝全身照（需看到肩膀到腳踝）' };
 
-  // 站直：肩膀水平
+  // 全身入鏡：頭在上方，腳在下方
+  const headY = lm[0].y;
+  const feetY = Math.max(lm[27].y, lm[28].y);
+  const shoulderY = (lm[11].y + lm[12].y) / 2;
+  const hipY = (lm[23].y + lm[24].y) / 2;
+  const kneeY = (lm[25].y + lm[26].y) / 2;
+
+  if (headY > 0.35) checks.push('請讓頭部在畫面上方');
+  if (feetY < 0.65) checks.push('請讓腳部完整入鏡');
+
+  // 身體各段必須有合理比例（排除只拍臉/半身的情況）
+  const bodySpan = feetY - headY;
+  if (bodySpan < 0.5) checks.push('請站遠一些，確保全身入鏡');
+
+  // 身體各段順序正確：頭 < 肩 < 臀 < 膝 < 腳
+  if (!(headY < shoulderY && shoulderY < hipY && hipY < kneeY && kneeY < feetY)) {
+    checks.push('請正常站立面向鏡頭');
+  }
+
+  // 肩膀水平
   const shoulderTilt = Math.abs(lm[11].y - lm[12].y);
   if (shoulderTilt > 0.05) checks.push('請站直，肩膀保持水平');
 
   // 正面：雙肩可見且寬度足夠
   const shoulderWidth = Math.abs(lm[11].x - lm[12].x);
-  if (shoulderWidth < 0.1) checks.push('請面向鏡頭');
+  if (shoulderWidth < 0.08) checks.push('請面向鏡頭');
 
   // 雙手微張（不要貼身）
   const lArmDist = Math.abs(lm[15].x - lm[23].x);
