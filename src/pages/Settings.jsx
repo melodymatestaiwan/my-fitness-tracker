@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogOut, Save, User, Target, Utensils } from 'lucide-react';
+import { LogOut, Save, User, Target, Utensils, RotateCcw } from 'lucide-react';
 import { GlassCard } from '../components';
 import { FASTING_MODES } from '../constants';
 
@@ -9,7 +9,7 @@ const DIET_TYPES = [
   { id: 'low-carb', name: '低碳飲食' },
 ];
 
-export default function Settings({ userProfile, onSave, onLogout }) {
+export default function Settings({ userProfile, onSave, onLogout, onReset }) {
   const [form, setForm] = useState({ ...userProfile });
   const [saved, setSaved] = useState(false);
 
@@ -168,6 +168,15 @@ export default function Settings({ userProfile, onSave, onLogout }) {
       <button onClick={handleSave}
         className={`w-full font-black py-5 rounded-[2rem] uppercase italic tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 ${saved ? 'bg-[#2ECC71] text-black shadow-xl shadow-[#2ECC71]/20' : 'bg-[#FF5733] text-white shadow-xl shadow-[#FF5733]/20'}`}>
         <Save size={18} /> {saved ? '已儲存 ✓' : '儲存所有變更'}
+      </button>
+
+      <button onClick={() => {
+        if (confirm('確定要重新設定計畫嗎？\n\n這會清除你的個人資料設定，重新進入初始設定流程。\n（訓練、飲食、斷食紀錄不會被刪除）')) {
+          if (onReset) onReset();
+        }
+      }}
+        className="w-full py-4 rounded-[2rem] font-black text-sm text-[#FF5733] border border-[#FF5733]/30 hover:bg-[#FF5733]/10 transition-all flex items-center justify-center gap-2">
+        <RotateCcw size={16} /> 重新設定計畫
       </button>
 
       <button onClick={() => { if (confirm('確定要登出嗎？')) onLogout(); }}

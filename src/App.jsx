@@ -104,6 +104,11 @@ const App = () => {
   };
   const handleProfileUpdate = (newProfile) => { setUserProfile(newProfile); };
   const handleLogout = async () => { await logout(); };
+  const handleReset = () => {
+    setUserProfile(null);
+    saveState('userProfile', null);
+    setActiveTab('dashboard');
+  };
 
   const BgGlow = () => (
     <div className="fixed inset-0 pointer-events-none z-0">
@@ -131,7 +136,7 @@ const App = () => {
         {activeTab === 'fasting' && <Fasting fasting={fasting} setFasting={setFasting} />}
         {activeTab === 'photos' && <PhotoTracker photos={photoData} setPhotos={setPhotoData} />}
         {activeTab === 'bodyscan' && <BodyMeasure userProfile={userProfile} onSave={(m) => setPhotoData(prev => [...prev, { id: Date.now(), date: formatDate(new Date()), measurements: m, photos: m.photo ? { front: m.photo } : {} }])} />}
-        {activeTab === 'settings' && <Settings userProfile={userProfile} onSave={handleProfileUpdate} onLogout={handleLogout} />}
+        {activeTab === 'settings' && <Settings userProfile={userProfile} onSave={handleProfileUpdate} onLogout={handleLogout} onReset={handleReset} />}
       </div>
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
     </div>
