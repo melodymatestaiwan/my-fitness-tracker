@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Activity, Dumbbell, Utensils, Clock,
-  TrendingUp, Trophy, Plus, Info, Settings, Camera
+  TrendingUp, Trophy, Plus, Info, Settings, Camera, Scan
 } from 'lucide-react';
 
 export const GlassCard = ({ children, className = "" }) => (
@@ -33,6 +33,7 @@ export const Navbar = ({ activeTab, setActiveTab }) => {
     { id: 'diet', icon: Utensils },
     { id: 'fasting', icon: Clock },
     { id: 'photos', icon: Camera },
+    { id: 'bodyscan', icon: Scan },
     { id: 'settings', icon: Settings },
   ];
   return (
@@ -41,9 +42,9 @@ export const Navbar = ({ activeTab, setActiveTab }) => {
         <button
           key={tab.id}
           onClick={() => setActiveTab(tab.id)}
-          className={`relative p-3.5 transition-all duration-500 ${activeTab === tab.id ? 'text-[#FF5733] scale-115' : 'text-gray-500'}`}
+          className={`relative p-2.5 transition-all duration-500 ${activeTab === tab.id ? 'text-[#FF5733] scale-110' : 'text-gray-500'}`}
         >
-          <tab.icon size={24} strokeWidth={activeTab === tab.id ? 2.5 : 2} />
+          <tab.icon size={22} strokeWidth={activeTab === tab.id ? 2.5 : 2} />
           {activeTab === tab.id && <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#FF5733] rounded-full shadow-[0_0_8px_#FF5733]" />}
         </button>
       ))}

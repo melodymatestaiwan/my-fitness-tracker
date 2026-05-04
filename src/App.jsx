@@ -18,6 +18,7 @@ import Diet from './pages/Diet';
 import Fasting from './pages/Fasting';
 import Settings from './pages/Settings';
 import PhotoTracker from './pages/PhotoTracker';
+import BodyMeasure from './pages/BodyMeasure';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -129,6 +130,7 @@ const App = () => {
         {activeTab === 'diet' && <Diet diet={diet} setDiet={setDiet} currentDate={currentDate} userProfile={userProfile} />}
         {activeTab === 'fasting' && <Fasting fasting={fasting} setFasting={setFasting} />}
         {activeTab === 'photos' && <PhotoTracker photos={photoData} setPhotos={setPhotoData} />}
+        {activeTab === 'bodyscan' && <BodyMeasure userProfile={userProfile} onSave={(m) => setPhotoData(prev => [...prev, { id: Date.now(), date: formatDate(new Date()), measurements: m, photos: m.photo ? { front: m.photo } : {} }])} />}
         {activeTab === 'settings' && <Settings userProfile={userProfile} onSave={handleProfileUpdate} onLogout={handleLogout} />}
       </div>
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
