@@ -110,11 +110,40 @@ export default function Community({ records, workouts, diet, fasting, building, 
     ...generateMockFeed(records, workouts, diet, fasting, building),
   ].filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i); // 去重
 
+  const [commentingPost, setCommentingPost] = useState(null);
+  const [commentText, setCommentText] = useState('');
+  const [expandedComments, setExpandedComments] = useState({});
+
   const toggleLike = (postId) => {
-    const updated = (communityPosts || []).map(p =>
-      p.id === postId ? { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 } : p
-    );
-    setCommunityPosts(updated);
+    // 對用戶自己的貼文操作 communityPosts
+    const idx = (communityPosts || []).findIndex(p => p.id === postId);
+    if (idx > -1) {
+      const updated = [...communityPosts];
+      updated[idx] = { ...updated[idx], liked: !updated[idx].liked, likes: updated[idx].liked ? updated[idx].likes - 1 : updated[idx].likes + 1 };
+      setCommunityPosts(updated);
+    }
+  };
+
+  const addComment = (postId) => {
+    if (!commentText.trim()) return;
+    const idx = (communityPosts || []).findIndex(p => p.id === postId);
+    if (idx > -1) {
+      const updated = [...communityPosts];
+      const newComments = [...(updated[idx].comments || []), { user: '你', text: commentText.trim() }];
+      updated[idx] = { ...updated[idx], comments: newComments };
+      setCommunityPosts(updated);
+    }
+    setCommentText('');
+    setCommentingPost(null);
+  };
+
+  const sharePost = (post) => {
+    const text = `${post.user.name}: ${post.content}`;
+    if (navigator.share) {
+      navigator.share({ title: 'Elite Fitness', text }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(text).then(() => alert('已複製到剪貼簿！'));
+    }
   };
 
   const createPost = () => {
@@ -186,26 +215,47 @@ export default function Community({ records, workouts, diet, fasting, building, 
                 <Heart size={16} fill={post.liked ? 'currentColor' : 'none'} />
                 {post.likes > 0 && <span>{post.likes}</span>}
               </button>
-              <button className="flex items-center gap-1.5 text-xs font-bold text-white/30 hover:text-[#3498DB] transition-all">
+              <button
+                onClick={() => setCommentingPost(commentingPost === post.id ? null : post.id)}
+                className={`flex items-center gap-1.5 text-xs font-bold transition-all ${commentingPost === post.id ? 'text-[#3498DB]' : 'text-white/30 hover:text-[#3498DB]'}`}
+              >
                 <MessageCircle size={16} />
                 {post.comments?.length > 0 && <span>{post.comments.length}</span>}
               </button>
-              <button className="flex items-center gap-1.5 text-xs font-bold text-white/30 hover:text-[#2ECC71] transition-all ml-auto">
+              <button
+                onClick={() => sharePost(post)}
+                className="flex items-center gap-1.5 text-xs font-bold text-white/30 hover:text-[#2ECC71] transition-all ml-auto"
+              >
                 <Send size={16} />
               </button>
             </div>
 
-            {/* Comments Preview */}
+            {/* Comment Input */}
+            {commentingPost === post.id && (
+              <div className="mt-3 pt-3 border-t border-white/5 flex gap-2 animate-slide-bottom">
+                <input
+                  value={commentText}
+                  onChange={e => setCommentText(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') addComment(post.id); }}
+                  placeholder="寫留言..."
+                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-[#3498DB]/50"
+                  autoFocus
+                />
+                <button onClick={() => addComment(post.id)} className="bg-[#3498DB] text-white px-3 py-2 rounded-xl text-[10px] font-black">送出</button>
+              </div>
+            )}
+
+            {/* Comments */}
             {post.comments?.length > 0 && (
               <div className="mt-3 pt-3 border-t border-white/5 space-y-2">
-                {post.comments.slice(0, 2).map((c, i) => (
+                {(expandedComments[post.id] ? post.comments : post.comments.slice(0, 2)).map((c, i) => (
                   <div key={i} className="flex gap-2">
                     <span className="text-white font-black text-[10px] italic flex-shrink-0">{c.user}</span>
                     <span className="text-white/40 text-[10px]">{c.text}</span>
                   </div>
                 ))}
-                {post.comments.length > 2 && (
-                  <button className="text-[10px] text-white/20 font-bold">查看全部 {post.comments.length} 則留言</button>
+                {post.comments.length > 2 && !expandedComments[post.id] && (
+                  <button onClick={() => setExpandedComments({ ...expandedComments, [post.id]: true })} className="text-[10px] text-[#3498DB] font-bold">查看全部 {post.comments.length} 則留言</button>
                 )}
               </div>
             )}

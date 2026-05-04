@@ -7,7 +7,7 @@ import {
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
 import { Navbar, LoadingScreen } from './components';
-import { loadCloud, saveCloud, loadState } from './api';
+import { loadCloud, saveCloud, loadState, saveState } from './api';
 import { formatDate } from './constants';
 import { logout } from './auth';
 import Login from './pages/Login';
@@ -16,7 +16,6 @@ import Dashboard from './pages/Dashboard';
 import Workout from './pages/Workout';
 import Diet from './pages/Diet';
 import Fasting from './pages/Fasting';
-import Share from './pages/Share';
 import Settings from './pages/Settings';
 import Building from './pages/Building';
 import PhotoTracker from './pages/PhotoTracker';
@@ -103,16 +102,33 @@ const App = () => {
     })();
   }, [firebaseUser]);
 
-  // --- 自動儲存到 Firestore ---
+  // --- 建築風化：自動計算漏練天數 ---
+  useEffect(() => {
+    if (!dataLoaded || !building.lastWorkoutDate) return;
+    const today = formatDate(new Date());
+    if (building.lastWorkoutDate === today) return;
+    const last = new Date(building.lastWorkoutDate + 'T00:00:00');
+    const now = new Date(today + 'T00:00:00');
+    const diffDays = Math.floor((now - last) / 86400000);
+    if (diffDays > 1 && diffDays !== building.missedDays) {
+      setBuilding(prev => ({ ...prev, missedDays: diffDays - 1 }));
+    }
+  }, [dataLoaded, building.lastWorkoutDate]);
+
+  // --- 自動儲存到 Firestore + localStorage ---
   const uid = firebaseUser?.uid;
-  useEffect(() => { if (uid && dataLoaded) saveCloud(uid, 'records', records); }, [records, uid, dataLoaded]);
-  useEffect(() => { if (uid && dataLoaded) saveCloud(uid, 'workouts', workouts); }, [workouts, uid, dataLoaded]);
-  useEffect(() => { if (uid && dataLoaded) saveCloud(uid, 'diet', diet); }, [diet, uid, dataLoaded]);
-  useEffect(() => { if (uid && dataLoaded) saveCloud(uid, 'fasting', fasting); }, [fasting, uid, dataLoaded]);
-  useEffect(() => { if (uid && dataLoaded) saveCloud(uid, 'building', building); }, [building, uid, dataLoaded]);
-  useEffect(() => { if (uid && dataLoaded) saveCloud(uid, 'photos', photoData); }, [photoData, uid, dataLoaded]);
-  useEffect(() => { if (uid && dataLoaded) saveCloud(uid, 'communityPosts', communityPosts); }, [communityPosts, uid, dataLoaded]);
-  useEffect(() => { if (uid && dataLoaded && userProfile) saveCloud(uid, 'userProfile', userProfile); }, [userProfile, uid, dataLoaded]);
+  const save = (key, value) => {
+    saveState(key, value);
+    if (uid) saveCloud(uid, key, value).catch(() => {});
+  };
+  useEffect(() => { if (dataLoaded) save('records', records); }, [records, dataLoaded]);
+  useEffect(() => { if (dataLoaded) save('workouts', workouts); }, [workouts, dataLoaded]);
+  useEffect(() => { if (dataLoaded) save('diet', diet); }, [diet, dataLoaded]);
+  useEffect(() => { if (dataLoaded) save('fasting', fasting); }, [fasting, dataLoaded]);
+  useEffect(() => { if (dataLoaded) save('building', building); }, [building, dataLoaded]);
+  useEffect(() => { if (dataLoaded) save('photos', photoData); }, [photoData, dataLoaded]);
+  useEffect(() => { if (dataLoaded) save('communityPosts', communityPosts); }, [communityPosts, dataLoaded]);
+  useEffect(() => { if (dataLoaded && userProfile) save('userProfile', userProfile); }, [userProfile, dataLoaded]);
 
   const dayKey = formatDate(currentDate);
 

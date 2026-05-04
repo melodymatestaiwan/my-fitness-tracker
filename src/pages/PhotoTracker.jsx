@@ -38,21 +38,26 @@ export default function PhotoTracker({ photos, setPhotos }) {
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file || !uploadPose) return;
+    if (file.size > 10 * 1024 * 1024) { alert('圖片太大，請選擇 10MB 以下的照片'); return; }
 
     const reader = new FileReader();
+    reader.onerror = () => alert('讀取圖片失敗，請重試');
     reader.onload = (ev) => {
-      // 壓縮圖片到合理大小
       const img = new Image();
+      img.onerror = () => alert('圖片格式不支援，請選擇 JPG 或 PNG');
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX = 600;
-        let w = img.width, h = img.height;
-        if (w > h) { h = (h / w) * MAX; w = MAX; } else { w = (w / h) * MAX; h = MAX; }
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-
-        savePhoto(uploadPose, dataUrl);
+        try {
+          const canvas = document.createElement('canvas');
+          const MAX = 600;
+          let w = img.width, h = img.height;
+          if (w > h) { h = (h / w) * MAX; w = MAX; } else { w = (w / h) * MAX; h = MAX; }
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          savePhoto(uploadPose, dataUrl);
+        } catch (err) {
+          alert('圖片處理失敗：' + err.message);
+        }
       };
       img.src = ev.target.result;
     };

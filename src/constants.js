@@ -82,8 +82,7 @@ export function getUserDietPlan(profile) {
   if (type === 'balanced') {
     const p = Math.round(w * 2), c = Math.round(w * 3), f = Math.round(w * 0.8);
     const day = { name: '均衡飲食', protein: p, carbs: c, fat: f };
-    return Object.fromEntries(DAY_KEYS.slice(1).concat(DAY_KEYS[0]).map((_, i) => [DAY_KEYS[(i + 1) % 7] || 'sunday', day]).entries ?
-      DAY_KEYS.filter(k => k !== '').map(k => [k, day]) : DAY_KEYS.map(k => [k, day]));
+    return Object.fromEntries(DAY_KEYS.map(k => [k, day]));
   }
   if (type === 'low-carb') {
     const p = Math.round(w * 2.2), c = Math.round(w * 1), f = Math.round(w * 1.2);

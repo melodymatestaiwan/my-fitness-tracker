@@ -18,15 +18,11 @@ export default function Diet({ diet, setDiet, currentDate, userProfile, addCoins
 
   // 載入在地食物資料庫
   useEffect(() => {
-    fetch('/my-fitness-tracker/tfda_db.json')
-      .then(r => r.json())
+    const base = import.meta.env.BASE_URL || '/';
+    fetch(`${base}tfda_db.json`)
+      .then(r => { if (!r.ok) throw new Error('not found'); return r.json(); })
       .then(data => { setFoodDb(data); setDbLoaded(true); })
-      .catch(() => {
-        fetch('/tfda_db.json')
-          .then(r => r.json())
-          .then(data => { setFoodDb(data); setDbLoaded(true); })
-          .catch(() => setDbLoaded(false));
-      });
+      .catch(() => setDbLoaded(false));
   }, []);
 
   // 搜尋食物

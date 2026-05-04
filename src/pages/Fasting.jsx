@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Zap, Flame, Trash2 } from 'lucide-react';
+import { Zap, Trash2 } from 'lucide-react';
 import { GlassCard } from '../components';
 import { FASTING_MODES } from '../constants';
 
 export default function Fasting({ fasting, setFasting, addCoins }) {
   const [timeLeft, setTimeLeft] = useState(0);
-  const [aiResponse, setAiResponse] = useState('');
-  const [isAiLoading, setIsAiLoading] = useState(false);
 
   useEffect(() => {
     let t;
@@ -59,26 +57,6 @@ export default function Fasting({ fasting, setFasting, addCoins }) {
   const deleteHistory = (id) => {
     if (!confirm('確定刪除？')) return;
     setFasting({ ...fasting, history: fasting.history.filter(h => h.id !== id) });
-  };
-
-  const callAI = async (query) => {
-    setIsAiLoading(true);
-    setAiResponse('');
-    const apiKey = "";
-    const prompt = `你是專業的健身與間歇性斷食教練。使用者的斷食模式是 ${fasting.mode}:${24 - fasting.mode}。請用繁體中文給予精簡、專業且鼓勵性的建議。使用者問題: ${query}`;
-    try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-      });
-      const data = await res.json();
-      setAiResponse(data.candidates?.[0]?.content?.parts?.[0]?.text || '教練暫時無法回應。');
-    } catch {
-      setAiResponse('連線失敗，請檢查網路。');
-    } finally {
-      setIsAiLoading(false);
-    }
   };
 
   const weeklySuccess = fasting.history.filter(h => {
@@ -150,28 +128,6 @@ export default function Fasting({ fasting, setFasting, addCoins }) {
             <p className="text-2xl font-black text-[#2ECC71] italic">{weeklySuccess} 次</p>
           </GlassCard>
         </div>
-
-        {/* AI Coach */}
-        <GlassCard className="bg-indigo-900/40 border-indigo-500/30 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none"><Flame size={120} /></div>
-          <h3 className="text-xl font-black text-white italic uppercase mb-4 flex items-center gap-2">✨ AI Coach</h3>
-          <p className="text-indigo-200 text-xs mb-6 leading-relaxed">遇到飢餓或想「破戒」？教練隨時為你提供建議。</p>
-          <div className="flex gap-2">
-            <input id="aiQ" placeholder="例如：我想吃炸雞怎麼辦？" className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 text-xs text-white font-bold" />
-            <button
-              disabled={isAiLoading}
-              onClick={() => { const v = document.getElementById('aiQ').value; if (v) callAI(v); }}
-              className="bg-white text-indigo-900 px-6 rounded-2xl font-black text-xs uppercase italic"
-            >
-              {isAiLoading ? '...' : 'Ask'}
-            </button>
-          </div>
-          {aiResponse && (
-            <div className="mt-6 bg-white/5 p-5 rounded-[2rem] text-xs leading-relaxed text-indigo-100 border border-white/5 italic animate-fade-in">
-              "{aiResponse}"
-            </div>
-          )}
-        </GlassCard>
 
         {/* History */}
         <div>
