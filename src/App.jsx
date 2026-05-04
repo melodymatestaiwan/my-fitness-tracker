@@ -132,7 +132,7 @@ const App = () => {
       <div className="relative z-10 max-w-lg mx-auto px-6 pt-12">
         {activeTab === 'dashboard' && <Dashboard records={records} setRecords={setRecords} dayKey={dayKey} userProfile={userProfile} />}
         {activeTab === 'workout' && <Workout workouts={workouts} setWorkouts={setWorkouts} currentDate={currentDate} setCurrentDate={setCurrentDate} />}
-        {activeTab === 'diet' && <Diet diet={diet} setDiet={setDiet} currentDate={currentDate} userProfile={userProfile} />}
+        {activeTab === 'diet' && <Diet diet={diet} setDiet={setDiet} currentDate={currentDate} setCurrentDate={setCurrentDate} userProfile={userProfile} />}
         {activeTab === 'fasting' && <Fasting fasting={fasting} setFasting={setFasting} />}
         {activeTab === 'photos' && <PhotoTracker photos={photoData} setPhotos={setPhotoData} />}
         {activeTab === 'bodyscan' && <BodyMeasure userProfile={userProfile} onSave={(m) => setPhotoData(prev => [...prev, { id: Date.now(), date: formatDate(new Date()), measurements: m, photos: m.photo ? { front: m.photo } : {} }])} />}
