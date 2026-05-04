@@ -1,5 +1,5 @@
-import React from 'react';
-import { Trash2, Plus } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Trash2, Plus, Search, Clock } from 'lucide-react';
 import { GlassCard } from '../components';
 import { DIET_PLAN, DAY_KEYS, QUICK_FOODS, formatDate, getUserDietPlan } from '../constants';
 
@@ -10,6 +10,38 @@ export default function Diet({ diet, setDiet, currentDate, userProfile, addCoins
   const plan = dietPlan[dow] || DIET_PLAN[dow];
   const goalKcal = plan.protein * 4 + plan.carbs * 4 + plan.fat * 9;
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [foodDb, setFoodDb] = useState([]);
+  const [dbLoaded, setDbLoaded] = useState(false);
+  const searchRef = useRef(null);
+
+  // 載入在地食物資料庫
+  useEffect(() => {
+    fetch('/my-fitness-tracker/tfda_db.json')
+      .then(r => r.json())
+      .then(data => { setFoodDb(data); setDbLoaded(true); })
+      .catch(() => {
+        fetch('/tfda_db.json')
+          .then(r => r.json())
+          .then(data => { setFoodDb(data); setDbLoaded(true); })
+          .catch(() => setDbLoaded(false));
+      });
+  }, []);
+
+  // 搜尋食物
+  useEffect(() => {
+    if (!searchQuery.trim() || !dbLoaded) { setSearchResults([]); return; }
+    const q = searchQuery.trim().toLowerCase();
+    const results = foodDb.filter(f => f.name.toLowerCase().includes(q)).slice(0, 8);
+    setSearchResults(results);
+  }, [searchQuery, foodDb, dbLoaded]);
+
+  // 最近使用的食物（從 diet 紀錄中取得最近 6 個不重複的）
+  const recentFoods = [...new Map(
+    [...diet].reverse().map(d => [d.name, { name: d.name, p: d.p, c: d.c, f: d.f, kcal: d.kcal }])
+  ).values()].slice(0, 6);
+
   const dailyDiet = diet.filter(i => i.date === dayKey);
   const totals = dailyDiet.reduce((acc, c) => ({
     p: acc.p + c.p * (c.servings || 1),
@@ -18,20 +50,36 @@ export default function Diet({ diet, setDiet, currentDate, userProfile, addCoins
     kcal: acc.kcal + c.kcal * (c.servings || 1),
   }), { p: 0, c: 0, f: 0, kcal: 0 });
 
-  const addQuick = (food) => {
-    setDiet([...diet, { ...food, id: Date.now(), date: dayKey, servings: 1, meal: '午餐' }]);
+  const addFood = (food, meal) => {
+    setDiet([...diet, { ...food, id: Date.now(), date: dayKey, servings: 1, meal: meal || '午餐' }]);
     if (addCoins) addCoins(20, '記錄飲食');
+    setSearchQuery('');
+    setSearchResults([]);
+  };
+
+  const selectSearchResult = (food) => {
+    // 從資料庫選取的食物，填入表單
+    const nameInput = document.querySelector('input[name="n"]');
+    const pInput = document.querySelector('input[name="p"]');
+    const cInput = document.querySelector('input[name="c"]');
+    const fInput = document.querySelector('input[name="f"]');
+    const kInput = document.querySelector('input[name="k"]');
+    if (nameInput) nameInput.value = food.name;
+    if (pInput) pInput.value = food.protein?.toFixed(1) || food.p || 0;
+    if (cInput) cInput.value = food.carbs?.toFixed(1) || food.c || 0;
+    if (fInput) fInput.value = food.fat?.toFixed(1) || food.f || 0;
+    const kcal = (food.protein || food.p || 0) * 4 + (food.carbs || food.c || 0) * 4 + (food.fat || food.f || 0) * 9;
+    if (kInput) kInput.value = Math.round(kcal);
+    setSearchQuery('');
+    setSearchResults([]);
   };
 
   return (
     <div className="space-y-8 animate-slide-left">
       {/* Header */}
       <div className="relative h-48 rounded-[3rem] overflow-hidden shadow-2xl mb-8 group">
-        <img
-          src="https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&q=80&w=1200"
-          alt="健康飲食"
-          className="w-full h-full object-cover brightness-75 transition-transform duration-[2000ms] group-hover:scale-105"
-        />
+        <img src="https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&q=80&w=1200" alt="健康飲食"
+          className="w-full h-full object-cover brightness-75 transition-transform duration-[2000ms] group-hover:scale-105" />
         <div className="absolute inset-0 bg-black/40" />
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <p className="text-white/40 font-black tracking-widest text-[10px] uppercase mb-1">{plan.name} — {dayKey}</p>
@@ -59,17 +107,57 @@ export default function Diet({ diet, setDiet, currentDate, userProfile, addCoins
         ))}
       </div>
 
-      {/* Quick Foods */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-        {QUICK_FOODS.map(f => (
-          <button
-            key={f.name}
-            onClick={() => addQuick(f)}
-            className="flex-shrink-0 bg-white/5 border border-white/10 px-4 py-2 rounded-2xl text-[10px] font-black text-white italic hover:bg-[#2ECC71] hover:text-black transition-all"
-          >
-            + {f.name}
-          </button>
-        ))}
+      {/* 搜尋食物 */}
+      <GlassCard className="p-5">
+        <h4 className="text-xs font-black text-white/40 uppercase tracking-widest mb-3 flex items-center gap-2"><Search size={14}/> 搜尋食物</h4>
+        <input
+          ref={searchRef}
+          type="text"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder={dbLoaded ? '輸入食物名稱...' : '資料庫載入中...'}
+          disabled={!dbLoaded}
+          className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold outline-none focus:border-[#2ECC71]/50 transition-colors placeholder:text-white/20"
+        />
+        {searchResults.length > 0 && (
+          <div className="mt-2 max-h-48 overflow-y-auto space-y-1">
+            {searchResults.map((f, i) => (
+              <button key={i} onClick={() => selectSearchResult(f)}
+                className="w-full text-left p-3 bg-white/5 rounded-xl hover:bg-[#2ECC71]/10 transition-all flex justify-between items-center">
+                <span className="text-white text-sm font-bold">{f.name}</span>
+                <span className="text-[10px] text-white/30">P:{f.protein?.toFixed(0)} C:{f.carbs?.toFixed(0)} F:{f.fat?.toFixed(0)}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </GlassCard>
+
+      {/* 最近使用 */}
+      {recentFoods.length > 0 && (
+        <div>
+          <h4 className="text-xs font-black text-white/40 uppercase tracking-widest mb-3 flex items-center gap-2"><Clock size={14}/> 最近使用</h4>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+            {recentFoods.map((f, i) => (
+              <button key={i} onClick={() => addFood(f)}
+                className="flex-shrink-0 bg-white/5 border border-white/10 px-4 py-2 rounded-2xl text-[10px] font-black text-white italic hover:bg-[#2ECC71] hover:text-black transition-all">
+                + {f.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 快速選取 */}
+      <div>
+        <h4 className="text-xs font-black text-white/40 uppercase tracking-widest mb-3">常用食物</h4>
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+          {QUICK_FOODS.map(f => (
+            <button key={f.name} onClick={() => addFood(f)}
+              className="flex-shrink-0 bg-white/5 border border-white/10 px-4 py-2 rounded-2xl text-[10px] font-black text-white italic hover:bg-[#2ECC71] hover:text-black transition-all">
+              + {f.name}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Meal Groups */}

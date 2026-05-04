@@ -59,11 +59,12 @@ export default function Workout({ workouts, setWorkouts, currentDate, setCurrent
       <header className="flex justify-between items-center mb-6">
         <h1 className="text-4xl font-black text-white italic uppercase leading-none tracking-tighter">Power<br/><span className="text-[#FF5733]">Station</span></h1>
         <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10">
-          <button onClick={() => { const d = new Date(currentDate); d.setDate(d.getDate()-7); setCurrentDate(d); }} className="p-2 text-white/40"><ChevronLeft size={18}/></button>
-          <span className="px-3 py-1 text-[10px] font-black text-white flex items-center">{plan.dayName}</span>
-          <button onClick={() => { const d = new Date(currentDate); d.setDate(d.getDate()+7); setCurrentDate(d); }} className="p-2 text-white/40"><ChevronRight size={18}/></button>
+          <button onClick={() => { const d = new Date(currentDate); d.setDate(d.getDate()-1); setCurrentDate(new Date(d)); }} className="p-2 text-white/40 hover:text-white"><ChevronLeft size={18}/></button>
+          <span className="px-3 py-1 text-[10px] font-black text-white flex items-center">{dayKey}</span>
+          <button onClick={() => { const d = new Date(currentDate); d.setDate(d.getDate()+1); setCurrentDate(new Date(d)); }} className="p-2 text-white/40 hover:text-white"><ChevronRight size={18}/></button>
         </div>
       </header>
+      <p className="text-center text-white/30 text-xs font-bold -mt-4 mb-2">{plan.dayName}</p>
 
       {/* Week Day Selector */}
       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-4">

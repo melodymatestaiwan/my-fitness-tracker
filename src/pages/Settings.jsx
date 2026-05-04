@@ -104,6 +104,52 @@ export default function Settings({ userProfile, onSave, onLogout }) {
               ))}
             </div>
           </div>
+
+          {/* 碳水循環：高/低/無碳日獨立設定 */}
+          {form.dietPlanType === 'carb-cycling' && (
+            <div className="space-y-4 pt-4 border-t border-white/10">
+              <p className="text-[10px] font-black text-[#FF5733] uppercase tracking-widest">碳水循環 — 各日營養素設定</p>
+              {[
+                { key: 'high', label: '高碳日', desc: '(週四)', defaults: { p: 160, c: 230, f: 51 } },
+                { key: 'low', label: '低碳日', desc: '(週一二五六)', defaults: { p: 160, c: 100, f: 87 } },
+                { key: 'zero', label: '無碳日', desc: '(週三日)', defaults: { p: 160, c: 40, f: 98 } },
+              ].map(day => {
+                const macros = form.customMacros?.[day.key] || day.defaults;
+                return (
+                  <div key={day.key} className="bg-white/5 rounded-2xl p-4">
+                    <p className="text-white font-black text-xs italic mb-3">{day.label} <span className="text-white/30 font-normal">{day.desc}</span></p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="text-[8px] text-white/30 font-bold uppercase block mb-1">蛋白質 g</label>
+                        <input type="number" value={macros.p} onChange={e => {
+                          const custom = { ...(form.customMacros || {}), [day.key]: { ...macros, p: parseInt(e.target.value) || 0 } };
+                          set('customMacros', custom);
+                        }} className={inputClass + ' text-sm p-3'} />
+                      </div>
+                      <div>
+                        <label className="text-[8px] text-white/30 font-bold uppercase block mb-1">碳水 g</label>
+                        <input type="number" value={macros.c} onChange={e => {
+                          const custom = { ...(form.customMacros || {}), [day.key]: { ...macros, c: parseInt(e.target.value) || 0 } };
+                          set('customMacros', custom);
+                        }} className={inputClass + ' text-sm p-3'} />
+                      </div>
+                      <div>
+                        <label className="text-[8px] text-white/30 font-bold uppercase block mb-1">脂肪 g</label>
+                        <input type="number" value={macros.f} onChange={e => {
+                          const custom = { ...(form.customMacros || {}), [day.key]: { ...macros, f: parseInt(e.target.value) || 0 } };
+                          set('customMacros', custom);
+                        }} className={inputClass + ' text-sm p-3'} />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-white/20 mt-2 text-right">
+                      ≈ {(macros.p * 4 + macros.c * 4 + macros.f * 9)} kcal
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           <div>
             <label className={labelClass}>偏好斷食模式</label>
             <div className="grid grid-cols-4 gap-2">

@@ -90,16 +90,19 @@ export function getUserDietPlan(profile) {
     const day = { name: '低碳飲食', protein: p, carbs: c, fat: f };
     return Object.fromEntries(DAY_KEYS.map(k => [k, day]));
   }
-  // carb-cycling: scale protein by body weight
-  const p = Math.round(w * 2);
+  // carb-cycling: 使用自訂巨量營養素（如果有的話）
+  const cm = profile.customMacros || {};
+  const high = cm.high || { p: 160, c: 230, f: 51 };
+  const low = cm.low || { p: 160, c: 100, f: 87 };
+  const zero = cm.zero || { p: 160, c: 40, f: 98 };
   return {
-    monday:    { name: "低碳日", protein: p, carbs: 100, fat: 87 },
-    tuesday:   { name: "低碳日", protein: p, carbs: 100, fat: 87 },
-    wednesday: { name: "無碳日", protein: p, carbs: 40,  fat: 98 },
-    thursday:  { name: "高碳日", protein: p, carbs: 230, fat: 51 },
-    friday:    { name: "低碳日", protein: p, carbs: 100, fat: 87 },
-    saturday:  { name: "低碳日", protein: p, carbs: 100, fat: 87 },
-    sunday:    { name: "無碳日", protein: p, carbs: 40,  fat: 98 },
+    monday:    { name: "低碳日", protein: low.p, carbs: low.c, fat: low.f },
+    tuesday:   { name: "低碳日", protein: low.p, carbs: low.c, fat: low.f },
+    wednesday: { name: "無碳日", protein: zero.p, carbs: zero.c, fat: zero.f },
+    thursday:  { name: "高碳日", protein: high.p, carbs: high.c, fat: high.f },
+    friday:    { name: "低碳日", protein: low.p, carbs: low.c, fat: low.f },
+    saturday:  { name: "低碳日", protein: low.p, carbs: low.c, fat: low.f },
+    sunday:    { name: "無碳日", protein: zero.p, carbs: zero.c, fat: zero.f },
   };
 }
 
