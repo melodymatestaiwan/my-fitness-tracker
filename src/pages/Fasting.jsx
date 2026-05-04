@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Zap, Trash2, Plus, Clock, Edit3, ChevronUp, ChevronDown, Save, X } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Zap, Trash2, Plus, Clock, Edit3, Save, X } from 'lucide-react';
 import { GlassCard } from '../components';
 import { FASTING_MODES } from '../constants';
 
@@ -35,65 +35,140 @@ function getNextStage(elapsedHours) {
   return null;
 }
 
-// 時間選擇器組件
-function TimePicker({ value, onChange, onCancel, onSave, title }) {
+// 滾輪選擇器列（可觸控滑動）
+function ScrollColumn({ items, selectedIndex, onChange, width = 'w-20' }) {
+  const colRef = useRef(null);
+  const ITEM_H = 44;
+  const isDragging = useRef(false);
+  const startY = useRef(0);
+  const startScroll = useRef(0);
+
+  useEffect(() => {
+    if (colRef.current) {
+      colRef.current.scrollTop = selectedIndex * ITEM_H;
+    }
+  }, []);
+
+  const handleScroll = useCallback(() => {
+    if (!colRef.current) return;
+    const idx = Math.round(colRef.current.scrollTop / ITEM_H);
+    if (idx >= 0 && idx < items.length && idx !== selectedIndex) {
+      onChange(idx);
+    }
+  }, [items.length, selectedIndex, onChange]);
+
+  useEffect(() => {
+    const el = colRef.current;
+    if (!el) return;
+    let timeout;
+    const onScroll = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        const idx = Math.round(el.scrollTop / ITEM_H);
+        const clamped = Math.max(0, Math.min(items.length - 1, idx));
+        el.scrollTo({ top: clamped * ITEM_H, behavior: 'smooth' });
+        if (clamped !== selectedIndex) onChange(clamped);
+      }, 80);
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => { el.removeEventListener('scroll', onScroll); clearTimeout(timeout); };
+  }, [items.length, selectedIndex, onChange]);
+
+  return (
+    <div className={`relative ${width}`} style={{ height: ITEM_H * 3 }}>
+      {/* 選中行高亮 */}
+      <div className="absolute left-0 right-0 pointer-events-none z-10 border-y border-[#3498DB]/40 bg-[#3498DB]/5 rounded-lg"
+        style={{ top: ITEM_H, height: ITEM_H }} />
+      {/* 上下漸層遮罩 */}
+      <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-[#1a1a2e] to-transparent z-20 pointer-events-none" />
+      <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#1a1a2e] to-transparent z-20 pointer-events-none" />
+      {/* 滾動列表 */}
+      <div ref={colRef} className="h-full overflow-y-auto no-scrollbar snap-y snap-mandatory"
+        style={{ scrollSnapType: 'y mandatory', paddingTop: ITEM_H, paddingBottom: ITEM_H }}>
+        {items.map((item, i) => (
+          <div key={i} className="snap-center flex items-center justify-center cursor-pointer"
+            style={{ height: ITEM_H }}
+            onClick={() => { onChange(i); if (colRef.current) colRef.current.scrollTo({ top: i * ITEM_H, behavior: 'smooth' }); }}>
+            <span className={`font-black text-xl italic transition-all ${i === selectedIndex ? 'text-white scale-110' : 'text-white/20 scale-90'}`}>
+              {item.label}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// 生成日期選項（前 7 天 + 今天）
+function getDateOptions() {
+  const options = [];
+  const today = new Date();
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const iso = d.toISOString().split('T')[0];
+    const m = d.getMonth() + 1;
+    const day = d.getDate();
+    let label = `${m}月${day}日`;
+    if (i === 0) label = '今天';
+    else if (i === 1) label = '昨天';
+    else if (i === 2) label = '前天';
+    options.push({ label, value: iso });
+  }
+  return options;
+}
+
+// 時間選擇器組件（滾輪式）
+function TimePicker({ value, onCancel, onSave, title }) {
   const d = new Date(value);
-  const [date, setDate] = useState(d.toISOString().split('T')[0]);
-  const [hour, setHour] = useState(d.getHours());
-  const [minute, setMinute] = useState(d.getMinutes());
+  const dateOptions = getDateOptions();
+  const hourItems = Array.from({ length: 24 }, (_, i) => ({ label: String(i).padStart(2, '0'), value: i }));
+  const minuteItems = Array.from({ length: 60 }, (_, i) => ({ label: String(i).padStart(2, '0'), value: i }));
+  const ampmItems = [{ label: '上午', value: 'am' }, { label: '下午', value: 'pm' }];
+
+  const initDateIdx = dateOptions.findIndex(o => o.value === d.toISOString().split('T')[0]);
+  const [dateIdx, setDateIdx] = useState(initDateIdx >= 0 ? initDateIdx : dateOptions.length - 1);
+  const [hourIdx, setHourIdx] = useState(d.getHours());
+  const [minuteIdx, setMinuteIdx] = useState(d.getMinutes());
 
   const handleSave = () => {
-    const newTime = new Date(`${date}T${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}:00`).getTime();
+    const selectedDate = dateOptions[dateIdx]?.value || dateOptions[dateOptions.length - 1].value;
+    const h = hourItems[hourIdx].value;
+    const m = minuteItems[minuteIdx].value;
+    const newTime = new Date(`${selectedDate}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`).getTime();
     onSave(newTime);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end justify-center animate-fade-in" onClick={onCancel}>
-      <div className="w-full max-w-md bg-[#1a1a2e] border-t border-white/10 rounded-t-[2rem] p-6 animate-slide-bottom" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end justify-center" onClick={onCancel}>
+      <div className="w-full max-w-md bg-[#1a1a2e] border-t border-white/10 rounded-t-[2.5rem] p-6 pb-8 animate-slide-bottom" onClick={e => e.stopPropagation()}>
+        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-white font-black italic text-lg">{title}</h3>
           <button onClick={onCancel} className="text-white/30 hover:text-white"><X size={20}/></button>
         </div>
 
-        {/* 日期 */}
-        <div className="mb-4">
-          <input type="date" value={date} onChange={e => setDate(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-white font-bold text-center outline-none text-lg" />
+        {/* 滾輪選擇器 */}
+        <div className="flex items-center justify-center gap-1 mb-8">
+          <ScrollColumn items={dateOptions} selectedIndex={dateIdx} onChange={setDateIdx} width="w-24" />
+          <ScrollColumn items={hourItems} selectedIndex={hourIdx} onChange={setHourIdx} />
+          <span className="text-white/30 font-black text-xl mx-1">:</span>
+          <ScrollColumn items={minuteItems} selectedIndex={minuteIdx} onChange={setMinuteIdx} />
+          <ScrollColumn items={ampmItems} selectedIndex={hourIdx >= 12 ? 1 : 0}
+            onChange={(i) => {
+              const isPM = i === 1;
+              const currentH = hourIdx;
+              if (isPM && currentH < 12) setHourIdx(currentH + 12);
+              else if (!isPM && currentH >= 12) setHourIdx(currentH - 12);
+            }} width="w-16" />
         </div>
 
-        {/* 時 : 分 滾輪模擬 */}
-        <div className="flex items-center justify-center gap-4 mb-6">
-          <div className="flex flex-col items-center">
-            <button onClick={() => setHour((hour + 1) % 24)} className="p-2 text-white/30 hover:text-white"><ChevronUp size={24}/></button>
-            <div className="w-20 h-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center">
-              <span className="text-white font-black text-3xl italic">{String(hour).padStart(2, '0')}</span>
-            </div>
-            <button onClick={() => setHour((hour - 1 + 24) % 24)} className="p-2 text-white/30 hover:text-white"><ChevronDown size={24}/></button>
-            <span className="text-[10px] text-white/20 font-bold mt-1">時</span>
-          </div>
-
-          <span className="text-white font-black text-3xl italic mt-[-20px]">:</span>
-
-          <div className="flex flex-col items-center">
-            <button onClick={() => setMinute((minute + 1) % 60)} className="p-2 text-white/30 hover:text-white"><ChevronUp size={24}/></button>
-            <div className="w-20 h-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center">
-              <span className="text-white font-black text-3xl italic">{String(minute).padStart(2, '0')}</span>
-            </div>
-            <button onClick={() => setMinute((minute - 1 + 60) % 60)} className="p-2 text-white/30 hover:text-white"><ChevronDown size={24}/></button>
-            <span className="text-[10px] text-white/20 font-bold mt-1">分</span>
-          </div>
-
-          <div className="flex flex-col items-center ml-2">
-            <button onClick={() => setHour(hour < 12 ? hour + 12 : hour - 12)}
-              className="w-16 h-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mt-8">
-              <span className="text-white font-black text-lg">{hour < 12 ? '上午' : '下午'}</span>
-            </button>
-          </div>
-        </div>
-
+        {/* 按鈕 */}
         <div className="flex gap-3">
-          <button onClick={onCancel} className="flex-1 py-4 rounded-[2rem] font-black text-sm text-white/40 border border-white/10">取消</button>
-          <button onClick={handleSave} className="flex-1 py-4 rounded-[2rem] font-black text-sm text-white bg-[#3498DB] shadow-lg flex items-center justify-center gap-2">
+          <button onClick={onCancel} className="flex-1 py-4 rounded-[2rem] font-black text-sm text-white/40 border border-white/10 hover:bg-white/5 transition-all">
+            取消
+          </button>
+          <button onClick={handleSave} className="flex-1 py-4 rounded-[2rem] font-black text-sm text-white bg-[#3498DB] shadow-lg shadow-[#3498DB]/20 flex items-center justify-center gap-2 active:scale-95 transition-all">
             <Save size={16}/> 保存
           </button>
         </div>
