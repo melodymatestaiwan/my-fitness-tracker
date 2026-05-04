@@ -76,24 +76,27 @@ export function getUserChallengeConfig(profile) {
 
 export function getUserDietPlan(profile) {
   if (!profile) return DIET_PLAN;
-  const w = profile.currentWeight || 80;
   const type = profile.dietPlanType || 'carb-cycling';
+  const m = profile.macros;
+
+  // 如果 onboarding 已計算巨量營養素，以它為基準
+  const baseP = m?.protein || 160;
+  const baseC = m?.carbs || 150;
+  const baseF = m?.fat || 60;
 
   if (type === 'balanced') {
-    const p = Math.round(w * 2), c = Math.round(w * 3), f = Math.round(w * 0.8);
-    const day = { name: '均衡飲食', protein: p, carbs: c, fat: f };
+    const day = { name: '均衡飲食', protein: baseP, carbs: baseC, fat: baseF };
     return Object.fromEntries(DAY_KEYS.map(k => [k, day]));
   }
   if (type === 'low-carb') {
-    const p = Math.round(w * 2.2), c = Math.round(w * 1), f = Math.round(w * 1.2);
-    const day = { name: '低碳飲食', protein: p, carbs: c, fat: f };
+    const day = { name: '低碳飲食', protein: Math.round(baseP * 1.1), carbs: Math.round(baseC * 0.4), fat: Math.round(baseF * 1.5) };
     return Object.fromEntries(DAY_KEYS.map(k => [k, day]));
   }
-  // carb-cycling: 使用自訂巨量營養素（如果有的話）
+  // carb-cycling: 使用自訂巨量營養素（如果有的話），否則從 TDEE 計算的 macros 推導
   const cm = profile.customMacros || {};
-  const high = cm.high || { p: 160, c: 230, f: 51 };
-  const low = cm.low || { p: 160, c: 100, f: 87 };
-  const zero = cm.zero || { p: 160, c: 40, f: 98 };
+  const high = cm.high || { p: baseP, c: Math.round(baseC * 1.5), f: Math.round(baseF * 0.7) };
+  const low = cm.low || { p: baseP, c: baseC, f: baseF };
+  const zero = cm.zero || { p: baseP, c: Math.round(baseC * 0.3), f: Math.round(baseF * 1.3) };
   return {
     monday:    { name: "低碳日", protein: low.p, carbs: low.c, fat: low.f },
     tuesday:   { name: "低碳日", protein: low.p, carbs: low.c, fat: low.f },
