@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale, LinearScale, PointElement, LineElement,
@@ -83,17 +83,24 @@ const App = () => {
     })();
   }, [firebaseUser]);
 
-  const uid = firebaseUser?.uid;
-  const save = (key, value) => {
+  // --- 自動儲存到 localStorage + Firestore ---
+  const uidRef = useRef(null);
+  useEffect(() => { uidRef.current = firebaseUser?.uid || null; }, [firebaseUser]);
+
+  const save = useCallback((key, value) => {
     saveState(key, value);
-    if (uid) saveCloud(uid, key, value).catch(() => {});
-  };
-  useEffect(() => { if (dataLoaded) save('records', records); }, [records, dataLoaded]);
-  useEffect(() => { if (dataLoaded) save('workouts', workouts); }, [workouts, dataLoaded]);
-  useEffect(() => { if (dataLoaded) save('diet', diet); }, [diet, dataLoaded]);
-  useEffect(() => { if (dataLoaded) save('fasting', fasting); }, [fasting, dataLoaded]);
-  useEffect(() => { if (dataLoaded) save('photos', photoData); }, [photoData, dataLoaded]);
-  useEffect(() => { if (dataLoaded && userProfile) save('userProfile', userProfile); }, [userProfile, dataLoaded]);
+    const uid = uidRef.current;
+    if (uid) {
+      saveCloud(uid, key, value).catch(e => console.error(`saveCloud(${key}) failed:`, e));
+    }
+  }, []);
+
+  useEffect(() => { if (dataLoaded) save('records', records); }, [records, dataLoaded, save]);
+  useEffect(() => { if (dataLoaded) save('workouts', workouts); }, [workouts, dataLoaded, save]);
+  useEffect(() => { if (dataLoaded) save('diet', diet); }, [diet, dataLoaded, save]);
+  useEffect(() => { if (dataLoaded) save('fasting', fasting); }, [fasting, dataLoaded, save]);
+  useEffect(() => { if (dataLoaded) save('photos', photoData); }, [photoData, dataLoaded, save]);
+  useEffect(() => { if (dataLoaded && userProfile) save('userProfile', userProfile); }, [userProfile, dataLoaded, save]);
 
   const dayKey = formatDate(currentDate);
 
