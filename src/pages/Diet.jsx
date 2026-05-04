@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Trash2, Plus, Search, Clock } from 'lucide-react';
+import { Trash2, Plus, Search, Clock, Edit3, Minus } from 'lucide-react';
 import { GlassCard } from '../components';
 import { DIET_PLAN, DAY_KEYS, QUICK_FOODS, formatDate, getUserDietPlan } from '../constants';
 
@@ -45,6 +45,17 @@ export default function Diet({ diet, setDiet, currentDate, userProfile }) {
     f: acc.f + c.f * (c.servings || 1),
     kcal: acc.kcal + c.kcal * (c.servings || 1),
   }), { p: 0, c: 0, f: 0, kcal: 0 });
+
+  const [editingId, setEditingId] = useState(null);
+
+  const updateServings = (id, newServings) => {
+    if (newServings <= 0) return;
+    setDiet(diet.map(d => d.id === id ? { ...d, servings: newServings } : d));
+  };
+
+  const updateMeal = (id, newMeal) => {
+    setDiet(diet.map(d => d.id === id ? { ...d, meal: newMeal } : d));
+  };
 
   const addFood = (food, meal) => {
     setDiet([...diet, { ...food, id: Date.now(), date: dayKey, servings: 1, meal: meal || '午餐' }]);
@@ -168,22 +179,80 @@ export default function Diet({ diet, setDiet, currentDate, userProfile }) {
                 <span className="flex items-center gap-2"><div className="w-1 h-3 bg-[#2ECC71]" /> {meal}</span>
                 <span>{Math.round(mealKcal)} kcal</span>
               </h4>
-              <div className="space-y-4">
-                {items.map(item => (
-                  <div key={item.id} className="flex justify-between items-center group">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-white/5 rounded-2xl flex items-center justify-center text-lg">🥗</div>
-                      <div>
-                        <p className="text-white font-black italic text-sm">{item.name}</p>
-                        <p className="text-[10px] font-bold text-white/20 uppercase">P:{item.p} C:{item.c} F:{item.f}</p>
-                      </div>
+              <div className="space-y-2">
+                {items.map(item => {
+                  const isEditing = editingId === item.id;
+                  const sv = item.servings || 1;
+                  return (
+                    <div key={item.id}>
+                      {/* Food Row */}
+                      <button
+                        onClick={() => setEditingId(isEditing ? null : item.id)}
+                        className={`w-full flex justify-between items-center p-3 rounded-xl transition-all text-left ${isEditing ? 'bg-white/10 border border-[#2ECC71]/30' : 'hover:bg-white/5'}`}
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-9 h-9 bg-white/5 rounded-xl flex items-center justify-center text-base flex-shrink-0">🥗</div>
+                          <div className="min-w-0">
+                            <p className="text-white font-black italic text-sm truncate">{item.name}</p>
+                            <p className="text-[10px] font-bold text-white/20">
+                              {sv !== 1 && <span className="text-[#2ECC71]">{sv}份 · </span>}
+                              P:{Math.round(item.p * sv)} C:{Math.round(item.c * sv)} F:{Math.round(item.f * sv)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className="text-white font-black italic text-sm">{Math.round(item.kcal * sv)}<span className="text-[10px] ml-0.5 opacity-40">kcal</span></span>
+                          <Edit3 size={12} className={`transition-all ${isEditing ? 'text-[#2ECC71]' : 'text-white/10'}`} />
+                        </div>
+                      </button>
+
+                      {/* Edit Panel */}
+                      {isEditing && (
+                        <div className="mt-2 ml-12 p-3 bg-white/5 rounded-xl border border-white/10 space-y-3 animate-slide-bottom">
+                          {/* Serving Adjuster */}
+                          <div>
+                            <p className="text-[10px] text-white/30 font-black uppercase mb-2">份數</p>
+                            <div className="flex items-center gap-3">
+                              <button onClick={() => updateServings(item.id, Math.max(0.25, sv - 0.25))}
+                                className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center text-white/60 hover:bg-white/20"><Minus size={14}/></button>
+                              <input type="number" step="0.1" min="0.1" value={sv}
+                                onChange={e => updateServings(item.id, parseFloat(e.target.value) || 0.1)}
+                                className="w-20 bg-white/5 border border-white/10 rounded-xl p-2 text-center text-white font-black text-lg outline-none" />
+                              <button onClick={() => updateServings(item.id, sv + 0.25)}
+                                className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center text-white/60 hover:bg-white/20"><Plus size={14}/></button>
+                              <span className="text-white/20 text-[10px]">份</span>
+                            </div>
+                          </div>
+                          {/* Real-time macro display */}
+                          <div className="grid grid-cols-4 gap-2 text-center">
+                            {[
+                              { l: 'P', v: Math.round(item.p * sv), c: '#FF5733' },
+                              { l: 'C', v: Math.round(item.c * sv), c: '#3498DB' },
+                              { l: 'F', v: Math.round(item.f * sv), c: '#F1C40F' },
+                              { l: 'kcal', v: Math.round(item.kcal * sv), c: '#2ECC71' },
+                            ].map(m => (
+                              <div key={m.l} className="bg-white/5 rounded-lg p-2">
+                                <p className="text-[8px] font-black uppercase" style={{ color: m.c }}>{m.l}</p>
+                                <p className="text-white font-black text-sm">{m.v}</p>
+                              </div>
+                            ))}
+                          </div>
+                          {/* Meal change + delete */}
+                          <div className="flex items-center gap-2">
+                            <select value={item.meal} onChange={e => updateMeal(item.id, e.target.value)}
+                              className="flex-1 bg-white/5 border border-white/10 rounded-xl p-2 text-white text-xs font-bold outline-none">
+                              <option value="早餐">早餐</option><option value="午餐">午餐</option><option value="晚餐">晚餐</option><option value="點心">點心</option>
+                            </select>
+                            <button onClick={() => { setDiet(diet.filter(x => x.id !== item.id)); setEditingId(null); }}
+                              className="px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-black hover:bg-red-500/20">
+                              刪除
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center gap-4">
-                      <span className="text-white font-black italic">{Math.round(item.kcal * (item.servings || 1))}<span className="text-[10px] ml-0.5 opacity-40">kcal</span></span>
-                      <button onClick={() => setDiet(diet.filter(x => x.id !== item.id))} className="text-white/10 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={16}/></button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </GlassCard>
           );
