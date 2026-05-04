@@ -1,5 +1,6 @@
-import { db } from './firebase';
+import { db, storage } from './firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 
 // --- Firestore 讀寫（以 userId 為根）---
 
@@ -40,4 +41,31 @@ export function saveState(key, value) {
 
 export function removeState(key) {
   localStorage.removeItem(`${APP_ID}-${key}`);
+}
+
+// --- Firebase Storage 圖片上傳 ---
+export async function uploadImage(userId, path, dataUrl) {
+  try {
+    const storageRef = ref(storage, `users/${userId}/${path}`);
+    const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
+    const url = await getDownloadURL(snapshot.ref);
+    return url;
+  } catch (e) {
+    console.error(`uploadImage(${path}) failed:`, e);
+    return null;
+  }
+}
+
+export async function uploadPhotos(userId, photos, prefix) {
+  const urls = {};
+  const entries = Object.entries(photos || {});
+  for (const [pose, dataUrl] of entries) {
+    if (dataUrl && dataUrl.startsWith('data:')) {
+      const url = await uploadImage(userId, `${prefix}/${pose}_${Date.now()}.jpg`, dataUrl);
+      if (url) urls[pose] = url;
+    } else if (dataUrl) {
+      urls[pose] = dataUrl;
+    }
+  }
+  return urls;
 }

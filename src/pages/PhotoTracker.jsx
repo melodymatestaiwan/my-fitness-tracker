@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Ruler, ChevronLeft, ChevronRight, Trash2, Plus, TrendingDown, TrendingUp } from 'lucide-react';
+import { Camera, Ruler, ChevronLeft, ChevronRight, Trash2, Plus, TrendingDown, TrendingUp, Loader } from 'lucide-react';
 import { GlassCard } from '../components';
+import { uploadImage } from '../api';
+import { auth } from '../firebase';
 import { formatDate } from '../constants';
 
 const POSES = [
@@ -65,21 +67,33 @@ export default function PhotoTracker({ photos, setPhotos }) {
     e.target.value = '';
   };
 
-  const savePhoto = (pose, dataUrl) => {
+  const [uploading, setUploading] = useState(false);
+
+  const savePhoto = async (pose, dataUrl) => {
     const today = selectedDate;
     const existing = [...(photos || [])];
     const entryIdx = existing.findIndex(e => e.date === today);
 
+    // 嘗試上傳到 Firebase Storage
+    let finalUrl = dataUrl;
+    const uid = auth.currentUser?.uid;
+    if (uid) {
+      setUploading(true);
+      const url = await uploadImage(uid, `photos/${today}_${pose}.jpg`, dataUrl);
+      if (url) finalUrl = url;
+      setUploading(false);
+    }
+
     if (entryIdx > -1) {
       existing[entryIdx] = {
         ...existing[entryIdx],
-        photos: { ...existing[entryIdx].photos, [pose]: dataUrl },
+        photos: { ...existing[entryIdx].photos, [pose]: finalUrl },
       };
     } else {
       existing.push({
         id: Date.now(),
         date: today,
-        photos: { [pose]: dataUrl },
+        photos: { [pose]: finalUrl },
         measurements: {},
       });
     }

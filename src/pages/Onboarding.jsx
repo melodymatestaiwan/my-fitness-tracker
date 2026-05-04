@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { ChevronRight, ChevronLeft, Rocket, User, Target, Utensils, Activity, Camera, Zap } from 'lucide-react';
 import { GlassCard } from '../components';
-import { saveCloud, saveState } from '../api';
+import { saveCloud, saveState, uploadPhotos } from '../api';
 import { auth } from '../firebase';
 import { FASTING_MODES, formatDate } from '../constants';
 
@@ -147,24 +147,36 @@ export default function Onboarding({ userName, onComplete }) {
   // --- Finish ---
   const finish = () => {
     const startDate = formatDate(new Date());
-    const estDays = goalType === 'maintain' ? 90 : Math.max(30, Math.round(Math.abs(w - (parseFloat(document.querySelector('[data-target-weight]')?.value) || w)) / (weeklyRate || 0.5) * 7));
+    const estDays = goalType === 'maintain' ? 90 : Math.max(30, Math.round(Math.abs(w - (parseFloat(currentWeight) + (goalType === 'bulk' ? weeklyRate * 12 : -weeklyRate * 12))) / (weeklyRate || 0.5) * 7));
     const profile = {
       name: userName,
       height: h, currentWeight: w, age: a, gender, bodyFat: parseFloat(bodyFat) || null,
       activityLevel, goalType, weeklyRate, trainingDays,
       bmr, tdee, dailyCalories,
       macros,
-      targetWeight: goalType === 'maintain' ? w : parseFloat(currentWeight) + (goalType === 'bulk' ? weeklyRate * 12 : -weeklyRate * 12),
+      targetWeight: goalType === 'maintain' ? w : w + (goalType === 'bulk' ? weeklyRate * 12 : -weeklyRate * 12),
       challengeDays: estDays > 200 ? 90 : estDays,
       startDate,
       dietPlanType, fastingMode,
       beforePhotos,
       onboardingCompletedAt: Date.now(),
     };
+    // 立即存 localStorage 並進入主頁
     saveState('userProfile', profile);
-    const uid = auth.currentUser?.uid;
-    if (uid) saveCloud(uid, 'userProfile', profile).catch(() => {});
     onComplete(profile);
+    // 背景上傳照片到 Firebase Storage + 存 Firestore
+    const uid = auth.currentUser?.uid;
+    if (uid) {
+      (async () => {
+        if (Object.keys(beforePhotos).length > 0) {
+          const urls = await uploadPhotos(uid, beforePhotos, 'before');
+          if (Object.keys(urls).length > 0) {
+            profile.beforePhotos = urls;
+          }
+        }
+        saveCloud(uid, 'userProfile', profile).catch(() => {});
+      })();
+    }
   };
 
   const inputClass = "w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold outline-none focus:border-[#FF5733]/50 transition-colors placeholder:text-white/20";
