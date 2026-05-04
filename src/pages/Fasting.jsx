@@ -3,7 +3,7 @@ import { Zap, Trash2 } from 'lucide-react';
 import { GlassCard } from '../components';
 import { FASTING_MODES } from '../constants';
 
-export default function Fasting({ fasting, setFasting, addCoins }) {
+export default function Fasting({ fasting, setFasting }) {
   const [timeLeft, setTimeLeft] = useState(0);
 
   useEffect(() => {
@@ -50,7 +50,6 @@ export default function Fasting({ fasting, setFasting, addCoins }) {
     });
     if (metGoal) {
       alert('🎉 恭喜達成斷食目標！');
-      if (addCoins) addCoins(80, '完成斷食目標');
     }
   };
 

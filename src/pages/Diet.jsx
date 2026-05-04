@@ -3,7 +3,7 @@ import { Trash2, Plus, Search, Clock } from 'lucide-react';
 import { GlassCard } from '../components';
 import { DIET_PLAN, DAY_KEYS, QUICK_FOODS, formatDate, getUserDietPlan } from '../constants';
 
-export default function Diet({ diet, setDiet, currentDate, userProfile, addCoins }) {
+export default function Diet({ diet, setDiet, currentDate, userProfile }) {
   const dayKey = formatDate(currentDate);
   const dow = DAY_KEYS[currentDate.getDay()];
   const dietPlan = getUserDietPlan(userProfile);
@@ -48,7 +48,7 @@ export default function Diet({ diet, setDiet, currentDate, userProfile, addCoins
 
   const addFood = (food, meal) => {
     setDiet([...diet, { ...food, id: Date.now(), date: dayKey, servings: 1, meal: meal || '午餐' }]);
-    if (addCoins) addCoins(20, '記錄飲食');
+
     setSearchQuery('');
     setSearchResults([]);
   };
@@ -205,7 +205,7 @@ export default function Diet({ diet, setDiet, currentDate, userProfile, addCoins
             kcal: parseInt(fd.get('k')) || (p * 4 + c * 4 + f * 9),
             meal: fd.get('m'), servings: 1,
           }]);
-          if (addCoins) addCoins(20, '記錄飲食');
+      
           e.target.reset();
         }} className="space-y-4">
           <input name="n" placeholder="食物名稱..." className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold italic outline-none" required />
