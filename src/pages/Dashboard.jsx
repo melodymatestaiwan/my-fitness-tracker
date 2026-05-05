@@ -113,9 +113,9 @@ export default function Dashboard({ records, setRecords, dayKey, userProfile }) 
             </select>
           </div>
           <div className="grid grid-cols-3 gap-2">
-            <input name="weight" type="number" step="0.1" placeholder="體重 kg" required className="bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold" />
-            <input name="bf" type="number" step="0.1" placeholder="體脂%" className="bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold" />
-            <input name="muscle" type="number" step="0.1" placeholder="肌肉 kg" className="bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold" />
+            <input name="weight" type="text" inputMode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="體重 kg" required className="bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold" />
+            <input name="bf" type="text" inputMode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="體脂%" className="bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold" />
+            <input name="muscle" type="text" inputMode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="肌肉 kg" className="bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold" />
           </div>
           <button className="w-full bg-[#FF5733] text-white font-black py-5 rounded-[2rem] shadow-xl shadow-[#FF5733]/20 uppercase italic tracking-widest hover:brightness-110 active:scale-95 transition-all">Submit Entry</button>
         </form>

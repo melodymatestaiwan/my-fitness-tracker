@@ -204,12 +204,12 @@ export default function Onboarding({ userName, onComplete }) {
       </div>
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-3">
-          <div><label className={labelClass}>身高 (cm)</label><input type="number" value={height} onChange={e => setHeight(e.target.value)} placeholder="175" className={inputClass} /></div>
-          <div><label className={labelClass}>體重 (kg)</label><input type="number" step="0.1" value={currentWeight} onChange={e => setCurrentWeight(e.target.value)} placeholder="80" className={inputClass} /></div>
+          <div><label className={labelClass}>身高 (cm)</label><input type="text" inputMode="numeric" pattern="[0-9]*" value={height} onChange={e => setHeight(e.target.value)} placeholder="175" className={inputClass} /></div>
+          <div><label className={labelClass}>體重 (kg)</label><input type="text" inputMode="decimal" pattern="[0-9]*[.]?[0-9]*" value={currentWeight} onChange={e => setCurrentWeight(e.target.value)} placeholder="80" className={inputClass} /></div>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <div><label className={labelClass}>年齡</label><input type="number" value={age} onChange={e => setAge(e.target.value)} placeholder="25" className={inputClass} /></div>
-          <div><label className={labelClass}>體脂率 % (選填)</label><input type="number" step="0.1" value={bodyFat} onChange={e => setBodyFat(e.target.value)} placeholder="20" className={inputClass} /></div>
+          <div><label className={labelClass}>年齡</label><input type="text" inputMode="numeric" pattern="[0-9]*" value={age} onChange={e => setAge(e.target.value)} placeholder="25" className={inputClass} /></div>
+          <div><label className={labelClass}>體脂率 % (選填)</label><input type="text" inputMode="decimal" pattern="[0-9]*[.]?[0-9]*" value={bodyFat} onChange={e => setBodyFat(e.target.value)} placeholder="20" className={inputClass} /></div>
         </div>
         <div>
           <label className={labelClass}>性別</label>

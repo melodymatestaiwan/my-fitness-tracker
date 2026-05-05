@@ -120,8 +120,8 @@ export default function Workout({ workouts, setWorkouts, currentDate, setCurrent
                 <div key={si} className="flex items-center gap-4 animate-slide-bottom" style={{ animationDelay: `${si * 80}ms` }}>
                   <span className="w-10 h-10 bg-white/5 rounded-2xl flex items-center justify-center text-xs font-black text-[#FF5733] italic">{si+1}</span>
                   <div className="flex-1 grid grid-cols-2 gap-2">
-                    <input type="number" value={s.kg || ''} onChange={e => updateSet(exIdx, si, 'kg', e.target.value)} className="bg-white/5 border border-white/5 rounded-2xl p-3 text-center text-white font-black italic text-sm" placeholder="KG" />
-                    <input type="number" value={s.reps || ''} onChange={e => updateSet(exIdx, si, 'reps', e.target.value)} className="bg-white/5 border border-white/5 rounded-2xl p-3 text-center text-white font-black italic text-sm" placeholder="REPS" />
+                    <input type="text" inputMode="numeric" pattern="[0-9]*" value={s.kg || ''} onChange={e => updateSet(exIdx, si, 'kg', e.target.value)} className="bg-white/5 border border-white/5 rounded-2xl p-3 text-center text-white font-black italic text-sm" placeholder="KG" />
+                    <input type="text" inputMode="numeric" pattern="[0-9]*" value={s.reps || ''} onChange={e => updateSet(exIdx, si, 'reps', e.target.value)} className="bg-white/5 border border-white/5 rounded-2xl p-3 text-center text-white font-black italic text-sm" placeholder="REPS" />
                   </div>
                   <button
                     onClick={() => toggleComplete(exIdx, si)}

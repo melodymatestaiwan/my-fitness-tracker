@@ -46,11 +46,11 @@ export default function Settings({ userProfile, onSave, onLogout, onReset }) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>身高 (cm)</label>
-            <input type="number" value={form.height || ''} onChange={e => set('height', parseFloat(e.target.value))} className={inputClass} />
+            <input type="text" inputMode="numeric" pattern="[0-9]*" value={form.height || ''} onChange={e => set('height', parseFloat(e.target.value))} className={inputClass} />
           </div>
           <div>
             <label className={labelClass}>年齡</label>
-            <input type="number" value={form.age || ''} onChange={e => set('age', parseInt(e.target.value))} className={inputClass} />
+            <input type="text" inputMode="numeric" pattern="[0-9]*" value={form.age || ''} onChange={e => set('age', parseInt(e.target.value))} className={inputClass} />
           </div>
           <div>
             <label className={labelClass}>性別</label>
@@ -72,15 +72,15 @@ export default function Settings({ userProfile, onSave, onLogout, onReset }) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>目前體重 (kg)</label>
-            <input type="number" step="0.1" value={form.currentWeight || ''} onChange={e => set('currentWeight', parseFloat(e.target.value))} className={inputClass} />
+            <input type="text" inputMode="decimal" pattern="[0-9]*[.]?[0-9]*" value={form.currentWeight || ''} onChange={e => set('currentWeight', parseFloat(e.target.value))} className={inputClass} />
           </div>
           <div>
             <label className={labelClass}>目標體重 (kg)</label>
-            <input type="number" step="0.1" value={form.targetWeight || ''} onChange={e => set('targetWeight', parseFloat(e.target.value))} className={inputClass} />
+            <input type="text" inputMode="decimal" pattern="[0-9]*[.]?[0-9]*" value={form.targetWeight || ''} onChange={e => set('targetWeight', parseFloat(e.target.value))} className={inputClass} />
           </div>
           <div>
             <label className={labelClass}>挑戰天數</label>
-            <input type="number" value={form.challengeDays || ''} onChange={e => set('challengeDays', parseInt(e.target.value))} className={inputClass} />
+            <input type="text" inputMode="numeric" pattern="[0-9]*" value={form.challengeDays || ''} onChange={e => set('challengeDays', parseInt(e.target.value))} className={inputClass} />
           </div>
           <div>
             <label className={labelClass}>開始日期</label>
@@ -121,21 +121,21 @@ export default function Settings({ userProfile, onSave, onLogout, onReset }) {
                     <div className="grid grid-cols-3 gap-2">
                       <div>
                         <label className="text-[8px] text-white/30 font-bold uppercase block mb-1">蛋白質 g</label>
-                        <input type="number" value={macros.p} onChange={e => {
+                        <input type="text" inputMode="numeric" pattern="[0-9]*" value={macros.p} onChange={e => {
                           const custom = { ...(form.customMacros || {}), [day.key]: { ...macros, p: parseInt(e.target.value) || 0 } };
                           set('customMacros', custom);
                         }} className={inputClass + ' text-sm p-3'} />
                       </div>
                       <div>
                         <label className="text-[8px] text-white/30 font-bold uppercase block mb-1">碳水 g</label>
-                        <input type="number" value={macros.c} onChange={e => {
+                        <input type="text" inputMode="numeric" pattern="[0-9]*" value={macros.c} onChange={e => {
                           const custom = { ...(form.customMacros || {}), [day.key]: { ...macros, c: parseInt(e.target.value) || 0 } };
                           set('customMacros', custom);
                         }} className={inputClass + ' text-sm p-3'} />
                       </div>
                       <div>
                         <label className="text-[8px] text-white/30 font-bold uppercase block mb-1">脂肪 g</label>
-                        <input type="number" value={macros.f} onChange={e => {
+                        <input type="text" inputMode="numeric" pattern="[0-9]*" value={macros.f} onChange={e => {
                           const custom = { ...(form.customMacros || {}), [day.key]: { ...macros, f: parseInt(e.target.value) || 0 } };
                           set('customMacros', custom);
                         }} className={inputClass + ' text-sm p-3'} />

@@ -223,7 +223,7 @@ export default function Diet({ diet, setDiet, currentDate, setCurrentDate, userP
                           <div className="flex items-center gap-3">
                             <span className="text-[10px] text-white/30 font-black w-8">份數</span>
                             <button onClick={() => updateServings(item.id, Math.max(0.25, sv-0.25))} className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center"><Minus size={12} className="text-white/60"/></button>
-                            <input type="number" step="0.1" value={sv} onChange={e => updateServings(item.id, parseFloat(e.target.value)||0.1)}
+                            <input type="text" inputMode="decimal" pattern="[0-9]*[.]?[0-9]*" value={sv} onChange={e => updateServings(item.id, parseFloat(e.target.value)||0.1)}
                               className="w-16 bg-white/5 border border-white/10 rounded-lg p-1.5 text-center text-white font-black outline-none text-sm" />
                             <button onClick={() => updateServings(item.id, sv+0.25)} className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center"><Plus size={12} className="text-white/60"/></button>
                           </div>
@@ -344,10 +344,10 @@ export default function Diet({ diet, setDiet, currentDate, setCurrentDate, userP
                 }} className="mt-3 space-y-2">
                   <input name="n" placeholder="食物名稱..." className={inputClass + ' w-full'} required />
                   <div className="grid grid-cols-4 gap-1.5">
-                    <input name="k" type="number" placeholder="kcal" className={inputClass} />
-                    <input name="p" type="number" step="0.1" placeholder="P(g)" className={inputClass} />
-                    <input name="c" type="number" step="0.1" placeholder="C(g)" className={inputClass} />
-                    <input name="f" type="number" step="0.1" placeholder="F(g)" className={inputClass} />
+                    <input name="k" type="text" inputMode="numeric" pattern="[0-9]*" placeholder="kcal" className={inputClass} />
+                    <input name="p" type="text" inputMode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="P(g)" className={inputClass} />
+                    <input name="c" type="text" inputMode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="C(g)" className={inputClass} />
+                    <input name="f" type="text" inputMode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="F(g)" className={inputClass} />
                   </div>
                   <button className="w-full bg-[#2ECC71] text-black font-black py-3 rounded-xl text-xs uppercase italic active:scale-95 transition-all">新增到{meal}</button>
                 </form>
@@ -365,7 +365,7 @@ export default function Diet({ diet, setDiet, currentDate, setCurrentDate, userP
       {showQuickAdd && (
         <GlassCard className="p-4 border-[#F1C40F]/20 animate-slide-bottom">
           <div className="flex gap-2">
-            <input type="number" value={quickCal} onChange={e => setQuickCal(e.target.value)}
+            <input type="text" inputMode="numeric" pattern="[0-9]*" value={quickCal} onChange={e => setQuickCal(e.target.value)}
               placeholder="輸入卡路里" className={inputClass + ' flex-1'} autoFocus />
             <select value={quickMeal} onChange={e => setQuickMeal(e.target.value)}
               className={inputClass + ' w-20'}>

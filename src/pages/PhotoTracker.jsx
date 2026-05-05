@@ -239,7 +239,7 @@ export default function PhotoTracker({ photos, setPhotos }) {
             <div key={m.id} className="flex items-center gap-2">
               <span className="text-sm">{m.emoji}</span>
               <input
-                type="number" step="0.1" placeholder={`${m.name} (${m.unit})`}
+                type="text" inputMode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder={`${m.name} (${m.unit})`}
                 value={measurements[m.id] || ''}
                 onChange={e => setMeasurements({ ...measurements, [m.id]: e.target.value })}
                 className={inputClass + ' text-sm'}
