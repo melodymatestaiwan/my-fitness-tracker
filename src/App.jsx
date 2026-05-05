@@ -28,7 +28,8 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [dataLoaded, setDataLoaded] = useState(false);
-  const [syncReady, setSyncReady] = useState(false); // auto-save 只在 Firestore 載入完成後才啟用
+  const [syncReady, setSyncReady] = useState(false);
+  const [syncError, setSyncError] = useState(null); // auto-save 只在 Firestore 載入完成後才啟用
 
   const [records, setRecords] = useState([]);
   const [workouts, setWorkouts] = useState({});
@@ -51,6 +52,7 @@ const App = () => {
 
     (async () => {
       try {
+        console.log('[Sync] Loading from Firestore, uid:', uid);
         const [p, r, w, d, f, ph] = await Promise.all([
           loadCloud(uid, 'userProfile', null),
           loadCloud(uid, 'records', []),
@@ -59,25 +61,25 @@ const App = () => {
           loadCloud(uid, 'fasting', { active: false, startTime: null, mode: 16, history: [] }),
           loadCloud(uid, 'photos', []),
         ]);
+        console.log('[Sync] Firestore loaded:', { profile: !!p, records: r?.length, diet: d?.length, workouts: Object.keys(w||{}).length });
         setUserProfile(p);
         setRecords(r || []);
         setWorkouts(w || {});
         setDiet(d || []);
         setFasting(f || { active: false, startTime: null, mode: 16, history: [] });
         setPhotoData(ph || []);
-
-        // 同步到 localStorage（離線快取用）
         saveState('userProfile', p);
         saveState('records', r || []);
         saveState('workouts', w || {});
         saveState('diet', d || []);
         saveState('fasting', f || { active: false, startTime: null, mode: 16, history: [] });
         saveState('photos', ph || []);
+        setSyncError(null);
       } catch (e) {
-        console.error('Firestore load failed:', e);
+        console.error('[Sync] Firestore load FAILED:', e);
+        setSyncError('Firestore 讀取失敗: ' + e.message);
       }
       setDataLoaded(true);
-      // 延遲啟用 auto-save，確保初始載入不會觸發回寫
       setTimeout(() => setSyncReady(true), 500);
     })();
   }, [firebaseUser]);
@@ -90,7 +92,15 @@ const App = () => {
     saveState(key, value);
     const uid = uidRef.current;
     if (uid) {
-      saveCloud(uid, key, value).catch(e => console.error(`saveCloud(${key}) failed:`, e));
+      console.log(`[Sync] Saving ${key} to Firestore...`);
+      saveCloud(uid, key, value)
+        .then(() => console.log(`[Sync] ${key} saved OK`))
+        .catch(e => {
+          console.error(`[Sync] saveCloud(${key}) FAILED:`, e);
+          setSyncError(`儲存失敗 (${key}): ${e.message}`);
+        });
+    } else {
+      console.warn(`[Sync] No uid, ${key} saved to localStorage only`);
     }
   }, []);
 
@@ -139,6 +149,13 @@ const App = () => {
   return (
     <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#FF5733] pb-40">
       <BgGlow />
+      {/* Sync 狀態指示 */}
+      {syncError && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white text-xs font-bold text-center py-2 px-4">
+          ⚠️ {syncError}
+          <button onClick={() => setSyncError(null)} className="ml-2 underline">關閉</button>
+        </div>
+      )}
       <div className="relative z-10 max-w-lg mx-auto px-6 pt-12">
         {activeTab === 'dashboard' && <Dashboard records={records} setRecords={setRecords} dayKey={dayKey} userProfile={userProfile} />}
         {activeTab === 'workout' && <Workout workouts={workouts} setWorkouts={setWorkouts} currentDate={currentDate} setCurrentDate={setCurrentDate} />}
