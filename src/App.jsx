@@ -7,7 +7,7 @@ import {
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
 import { Navbar, LoadingScreen } from './components';
-import { loadCloud, saveCloud, loadState, saveState } from './api';
+import { loadCloud, saveCloud, saveState } from './api';
 import { formatDate } from './constants';
 import { logout } from './auth';
 import Login from './pages/Login';
@@ -28,6 +28,7 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [syncReady, setSyncReady] = useState(false); // auto-save 只在 Firestore 載入完成後才啟用
 
   const [records, setRecords] = useState([]);
   const [workouts, setWorkouts] = useState({});
@@ -35,29 +36,18 @@ const App = () => {
   const [fasting, setFasting] = useState({ active: false, startTime: null, mode: 16, history: [] });
   const [photoData, setPhotoData] = useState([]);
 
+  // --- 監聽 Firebase Auth ---
   useEffect(() => {
     return onAuthStateChanged(auth, (user) => {
       setFirebaseUser(user || null);
-      if (!user) { setDataLoaded(false); setUserProfile(null); }
+      if (!user) { setDataLoaded(false); setSyncReady(false); setUserProfile(null); }
     });
   }, []);
 
+  // --- 登入後從 Firestore 載入資料（唯一資料來源）---
   useEffect(() => {
     if (!firebaseUser) return;
     const uid = firebaseUser.uid;
-
-    const localProfile = loadState('userProfile', null);
-    if (localProfile) {
-      setUserProfile(localProfile);
-      setRecords(loadState('records', []));
-      setWorkouts(loadState('workouts', {}));
-      setDiet(loadState('diet', []));
-      setFasting(loadState('fasting', { active: false, startTime: null, mode: 16, history: [] }));
-      setPhotoData(loadState('photos', []));
-      setDataLoaded(true);
-    } else {
-      setDataLoaded(true);
-    }
 
     (async () => {
       try {
@@ -69,21 +59,30 @@ const App = () => {
           loadCloud(uid, 'fasting', { active: false, startTime: null, mode: 16, history: [] }),
           loadCloud(uid, 'photos', []),
         ]);
-        const finalProfile = p || localProfile;
-        if (finalProfile) setUserProfile(finalProfile);
-        if (r.length > 0) setRecords(r);
-        if (Object.keys(w).length > 0) setWorkouts(w);
-        if (d.length > 0) setDiet(d);
-        if (f.history?.length > 0) setFasting(f);
-        if (ph.length > 0) setPhotoData(ph);
+        setUserProfile(p);
+        setRecords(r || []);
+        setWorkouts(w || {});
+        setDiet(d || []);
+        setFasting(f || { active: false, startTime: null, mode: 16, history: [] });
+        setPhotoData(ph || []);
+
+        // 同步到 localStorage（離線快取用）
+        saveState('userProfile', p);
+        saveState('records', r || []);
+        saveState('workouts', w || {});
+        saveState('diet', d || []);
+        saveState('fasting', f || { active: false, startTime: null, mode: 16, history: [] });
+        saveState('photos', ph || []);
       } catch (e) {
-        console.error('Firestore sync failed:', e);
+        console.error('Firestore load failed:', e);
       }
       setDataLoaded(true);
+      // 延遲啟用 auto-save，確保初始載入不會觸發回寫
+      setTimeout(() => setSyncReady(true), 500);
     })();
   }, [firebaseUser]);
 
-  // --- 自動儲存到 localStorage + Firestore ---
+  // --- 自動儲存（只在 syncReady 後才啟用）---
   const uidRef = useRef(null);
   useEffect(() => { uidRef.current = firebaseUser?.uid || null; }, [firebaseUser]);
 
@@ -95,26 +94,30 @@ const App = () => {
     }
   }, []);
 
-  useEffect(() => { if (dataLoaded) save('records', records); }, [records, dataLoaded, save]);
-  useEffect(() => { if (dataLoaded) save('workouts', workouts); }, [workouts, dataLoaded, save]);
-  useEffect(() => { if (dataLoaded) save('diet', diet); }, [diet, dataLoaded, save]);
-  useEffect(() => { if (dataLoaded) save('fasting', fasting); }, [fasting, dataLoaded, save]);
-  useEffect(() => { if (dataLoaded) save('photos', photoData); }, [photoData, dataLoaded, save]);
-  useEffect(() => { if (dataLoaded && userProfile) save('userProfile', userProfile); }, [userProfile, dataLoaded, save]);
+  useEffect(() => { if (syncReady) save('records', records); }, [records, syncReady, save]);
+  useEffect(() => { if (syncReady) save('workouts', workouts); }, [workouts, syncReady, save]);
+  useEffect(() => { if (syncReady) save('diet', diet); }, [diet, syncReady, save]);
+  useEffect(() => { if (syncReady) save('fasting', fasting); }, [fasting, syncReady, save]);
+  useEffect(() => { if (syncReady) save('photos', photoData); }, [photoData, syncReady, save]);
+  useEffect(() => { if (syncReady && userProfile) save('userProfile', userProfile); }, [userProfile, syncReady, save]);
 
   const dayKey = formatDate(currentDate);
 
+  // --- Handlers ---
   const handleLoginSuccess = () => {};
   const handleOnboardingComplete = (profile) => {
-    if (profile) { setUserProfile(profile); setDataLoaded(true); }
-    else if (uid) loadCloud(uid, 'userProfile', null).then(setUserProfile);
+    if (profile) { setUserProfile(profile); setDataLoaded(true); setSyncReady(true); }
   };
   const handleProfileUpdate = (newProfile) => { setUserProfile(newProfile); };
   const handleLogout = async () => { await logout(); };
   const handleReset = () => {
     setUserProfile(null);
+    setSyncReady(false);
     saveState('userProfile', null);
+    const uid = uidRef.current;
+    if (uid) saveCloud(uid, 'userProfile', null).catch(() => {});
     setActiveTab('dashboard');
+    setTimeout(() => setSyncReady(true), 300);
   };
 
   const BgGlow = () => (
