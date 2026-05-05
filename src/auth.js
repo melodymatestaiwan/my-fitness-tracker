@@ -1,17 +1,11 @@
 import { auth, googleProvider } from './firebase';
-import { signInWithPopup, signInWithRedirect, getRedirectResult, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { signInWithRedirect, getRedirectResult, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 
-// --- Google 登入（先嘗試 popup，失敗改 redirect）---
+// --- Google 登入（直接用 redirect，避免 COOP 問題）---
 export async function loginWithGoogle() {
   try {
-    const result = await signInWithPopup(auth, googleProvider);
-    return { success: true, user: toSessionUser(result.user) };
+    await signInWithRedirect(auth, googleProvider);
   } catch (error) {
-    if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user' || error.message?.includes('Cross-Origin')) {
-      // Popup 被擋，改用 redirect
-      await signInWithRedirect(auth, googleProvider);
-      return { success: true, user: null }; // redirect 後會重新載入頁面
-    }
     return { success: false, error: firebaseErrorMsg(error) };
   }
 }
