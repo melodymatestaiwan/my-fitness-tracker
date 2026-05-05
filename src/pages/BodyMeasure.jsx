@@ -128,6 +128,8 @@ export default function BodyMeasure({ userProfile, onSave }) {
   const [poseStatus, setPoseStatus] = useState({ ok: false, msg: '準備中...' });
   const [countdown, setCountdown] = useState(null);
   const [cameraReady, setCameraReady] = useState(false);
+  const [tilt, setTilt] = useState(0); // 手機傾斜角度
+  const [lastSpoke, setLastSpoke] = useState('');
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -135,8 +137,35 @@ export default function BodyMeasure({ userProfile, onSave }) {
   const streamRef = useRef(null);
   const animFrameRef = useRef(null);
   const countdownRef = useRef(null);
+  const lastSpokeTime = useRef(0);
 
   const userHeight = userProfile?.height || 175;
+
+  // 語音提示（防止重複播報）
+  const speak = useCallback((text) => {
+    const now = Date.now();
+    if (text === lastSpoke && now - lastSpokeTime.current < 4000) return;
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'zh-TW';
+    u.rate = 1.1;
+    u.volume = 1;
+    window.speechSynthesis.speak(u);
+    setLastSpoke(text);
+    lastSpokeTime.current = now;
+  }, [lastSpoke]);
+
+  // 手機水平偵測
+  useEffect(() => {
+    if (phase !== 'camera') return;
+    const handler = (e) => {
+      const gamma = Math.abs(e.gamma || 0); // 左右傾斜
+      setTilt(gamma);
+    };
+    window.addEventListener('deviceorientation', handler);
+    return () => window.removeEventListener('deviceorientation', handler);
+  }, [phase]);
 
   // 初始化 MediaPipe（改為 VIDEO 模式）
   useEffect(() => {
@@ -233,10 +262,20 @@ export default function BodyMeasure({ userProfile, onSave }) {
           });
         }
 
-        // 姿勢正確 → 自動開始倒數
-        if (status.ok && countdown === null) {
+        // 手機傾斜檢查
+        const isTilted = tilt > 8;
+        if (isTilted) {
+          speak('請將手機擺正');
+        } else if (!status.ok) {
+          speak(status.msg);
+        } else if (status.ok && !isTilted) {
+          speak('姿勢正確，準備拍照');
+        }
+
+        // 姿勢正確 + 手機水平 → 自動開始倒數
+        if (status.ok && !isTilted && countdown === null) {
           startCountdown();
-        } else if (!status.ok && countdown !== null) {
+        } else if ((!status.ok || isTilted) && countdown !== null) {
           clearInterval(countdownRef.current);
           setCountdown(null);
         }
@@ -380,6 +419,7 @@ export default function BodyMeasure({ userProfile, onSave }) {
   }
 
   // --- Camera Live View ---
+  const isTilted = tilt > 8;
   if (phase === 'camera') {
     return (
       <div className="space-y-4 animate-fade-in">
@@ -387,14 +427,41 @@ export default function BodyMeasure({ userProfile, onSave }) {
           <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }} />
           <canvas ref={overlayCanvasRef} className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ transform: 'scaleX(-1)' }} />
 
-          {/* 人形輪廓引導 */}
+          {/* 人形輪廓引導（SVG 人形） */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-40 h-72 border-2 border-dashed border-white/15 rounded-3xl" />
+            <svg viewBox="0 0 120 300" className="h-[70%] opacity-20" fill="none" stroke={poseStatus.ok && !isTilted ? '#2ECC71' : 'white'} strokeWidth="2">
+              {/* 頭 */}
+              <circle cx="60" cy="25" r="18" />
+              {/* 身體 */}
+              <line x1="60" y1="43" x2="60" y2="150" />
+              {/* 肩膀 */}
+              <line x1="20" y1="65" x2="100" y2="65" />
+              {/* 左手（微張） */}
+              <line x1="20" y1="65" x2="5" y2="140" />
+              {/* 右手（微張） */}
+              <line x1="100" y1="65" x2="115" y2="140" />
+              {/* 左腿 */}
+              <line x1="60" y1="150" x2="35" y2="280" />
+              {/* 右腿 */}
+              <line x1="60" y1="150" x2="85" y2="280" />
+            </svg>
           </div>
 
+          {/* 手機水平指示器 */}
+          {isTilted && (
+            <div className="absolute top-14 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none animate-pulse">
+              <div className="bg-red-500/90 backdrop-blur-xl px-4 py-2 rounded-full text-xs font-black text-white flex items-center gap-2">
+                📐 手機傾斜 {Math.round(tilt)}° — 請擺正
+              </div>
+              <div className="mt-2 w-20 h-1 bg-white/10 rounded-full relative">
+                <div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-red-500 rounded-full transition-all" style={{ left: `${50 + tilt}%` }} />
+              </div>
+            </div>
+          )}
+
           {/* 狀態指示 */}
-          <div className={`absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-xs font-black backdrop-blur-xl ${poseStatus.ok ? 'bg-[#2ECC71]/80 text-black' : 'bg-[#FF5733]/80 text-white'}`}>
-            {poseStatus.msg}
+          <div className={`absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-xs font-black backdrop-blur-xl ${poseStatus.ok && !isTilted ? 'bg-[#2ECC71]/80 text-black' : 'bg-[#FF5733]/80 text-white'}`}>
+            {isTilted ? '📐 請將手機擺正' : poseStatus.msg}
           </div>
 
           {/* 倒數 */}
