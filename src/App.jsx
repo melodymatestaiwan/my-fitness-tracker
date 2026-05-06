@@ -9,7 +9,7 @@ import { auth } from './firebase';
 import { Navbar, LoadingScreen } from './components';
 import { loadCloud, saveCloud, saveState } from './api';
 import { formatDate } from './constants';
-import { logout, handleRedirectResult } from './auth';
+import { logout } from './auth';
 import Login from './pages/Login';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
@@ -37,9 +37,7 @@ const App = () => {
   const [fasting, setFasting] = useState({ active: false, startTime: null, mode: 16, history: [] });
   const [photoData, setPhotoData] = useState([]);
 
-  // --- 監聽 Firebase Auth + 處理 redirect 回來 ---
   useEffect(() => {
-    handleRedirectResult().catch(() => {});
     return onAuthStateChanged(auth, (user) => {
       setFirebaseUser(user || null);
       if (!user) { setDataLoaded(false); setSyncReady(false); setUserProfile(null); }

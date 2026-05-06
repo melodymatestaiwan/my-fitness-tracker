@@ -5,7 +5,7 @@ import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAjcdK5pzIjX9GKIDuwvKHqQUDPRIg1Oy4",
-  authDomain: "fitness-da269.firebaseapp.com",
+  authDomain: "melodymatestaiwan.github.io",
   projectId: "fitness-da269",
   storageBucket: "fitness-da269.firebasestorage.app",
   messagingSenderId: "835868364194",

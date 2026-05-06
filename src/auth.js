@@ -1,23 +1,14 @@
 import { auth, googleProvider } from './firebase';
-import { signInWithRedirect, getRedirectResult, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { signInWithPopup, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 
-// --- Google 登入（直接用 redirect，避免 COOP 問題）---
+// --- Google 登入 ---
 export async function loginWithGoogle() {
   try {
-    await signInWithRedirect(auth, googleProvider);
+    const result = await signInWithPopup(auth, googleProvider);
+    return { success: true, user: toSessionUser(result.user) };
   } catch (error) {
+    console.error('Google login error:', error);
     return { success: false, error: firebaseErrorMsg(error) };
-  }
-}
-
-// --- 處理 redirect 回來的結果 ---
-export async function handleRedirectResult() {
-  try {
-    const result = await getRedirectResult(auth);
-    if (result?.user) return { success: true, user: toSessionUser(result.user) };
-    return { success: false };
-  } catch {
-    return { success: false };
   }
 }
 
