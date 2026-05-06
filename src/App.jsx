@@ -146,25 +146,27 @@ const App = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#FF5733] pb-40">
+    <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#FF5733]">
       <BgGlow />
-      {/* Sync 狀態指示 */}
       {syncError && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white text-xs font-bold text-center py-2 px-4">
-          ⚠️ {syncError}
+          {syncError}
           <button onClick={() => setSyncError(null)} className="ml-2 underline">關閉</button>
         </div>
       )}
-      <div className="relative z-10 max-w-lg mx-auto px-6 pt-12">
-        {activeTab === 'dashboard' && <Dashboard records={records} setRecords={setRecords} dayKey={dayKey} userProfile={userProfile} />}
-        {activeTab === 'workout' && <Workout workouts={workouts} setWorkouts={setWorkouts} currentDate={currentDate} setCurrentDate={setCurrentDate} />}
-        {activeTab === 'diet' && <Diet diet={diet} setDiet={setDiet} currentDate={currentDate} setCurrentDate={setCurrentDate} userProfile={userProfile} />}
-        {activeTab === 'fasting' && <Fasting fasting={fasting} setFasting={setFasting} />}
-        {activeTab === 'photos' && <PhotoTracker photos={photoData} setPhotos={setPhotoData} />}
-        {activeTab === 'bodyscan' && <BodyMeasure userProfile={userProfile} onSave={(m) => setPhotoData(prev => [...prev, { id: Date.now(), date: formatDate(new Date()), measurements: m, photos: m.photo ? { front: m.photo } : {} }])} />}
-        {activeTab === 'settings' && <Settings userProfile={userProfile} onSave={handleProfileUpdate} onLogout={handleLogout} onReset={handleReset} />}
+      {/* 桌面版：左側導航 + 右側內容 */}
+      <div className="lg:pl-64 xl:pl-72">
+        <div className="relative z-10 max-w-lg lg:max-w-5xl mx-auto px-6 pt-12 pb-40 lg:pb-12 lg:pt-8">
+          {activeTab === 'dashboard' && <Dashboard records={records} setRecords={setRecords} dayKey={dayKey} userProfile={userProfile} />}
+          {activeTab === 'workout' && <Workout workouts={workouts} setWorkouts={setWorkouts} currentDate={currentDate} setCurrentDate={setCurrentDate} />}
+          {activeTab === 'diet' && <Diet diet={diet} setDiet={setDiet} currentDate={currentDate} setCurrentDate={setCurrentDate} userProfile={userProfile} />}
+          {activeTab === 'fasting' && <Fasting fasting={fasting} setFasting={setFasting} />}
+          {activeTab === 'photos' && <PhotoTracker photos={photoData} setPhotos={setPhotoData} />}
+          {activeTab === 'bodyscan' && <BodyMeasure userProfile={userProfile} onSave={(m) => setPhotoData(prev => [...prev, { id: Date.now(), date: formatDate(new Date()), measurements: m, photos: m.photo ? { front: m.photo } : {} }])} />}
+          {activeTab === 'settings' && <Settings userProfile={userProfile} onSave={handleProfileUpdate} onLogout={handleLogout} onReset={handleReset} />}
+        </div>
       </div>
-      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} userName={firebaseUser?.displayName || firebaseUser?.email} />
     </div>
   );
 };

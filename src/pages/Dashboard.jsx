@@ -48,7 +48,7 @@ export default function Dashboard({ records, setRecords, dayKey, userProfile }) 
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Hero */}
-      <div className="relative h-72 rounded-[3rem] overflow-hidden shadow-2xl mb-8 group">
+      <div className="relative h-48 lg:h-56 rounded-2xl lg:rounded-3xl overflow-hidden shadow-2xl mb-8 group">
         <img
           src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&q=80&w=1200"
           alt="健身"
