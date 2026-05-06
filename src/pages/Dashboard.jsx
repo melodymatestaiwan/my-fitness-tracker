@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, Trash2 } from 'lucide-react';
+import { TrendingUp, Trash2, Scale, Heart, Flame, Calendar } from 'lucide-react';
 import { Line } from 'react-chartjs-2';
 import { GlassCard } from '../components';
 import { formatDate, getUserChallengeConfig, getUserBMR } from '../constants';
@@ -15,6 +15,9 @@ export default function Dashboard({ records, setRecords, dayKey, userProfile }) 
   const today = new Date(); today.setHours(0,0,0,0);
   const start = new Date(challenge.startDate); start.setHours(0,0,0,0);
   const challengeDay = Math.max(1, Math.floor((today - start) / 86400000) + 1);
+
+  const weightDiff = records.length >= 2 ? (latest.weight - records[0].weight).toFixed(1) : null;
+  const bmiStatus = bmi < 18.5 ? '過輕' : bmi < 24 ? '正常' : bmi < 27 ? '過重' : '肥胖';
 
   const handleAdd = (e) => {
     e.preventDefault();
@@ -39,105 +42,156 @@ export default function Dashboard({ records, setRecords, dayKey, userProfile }) 
   const chartData = {
     labels: allDates,
     datasets: [
-      { label: '早晨體重', data: allDates.map(d => { const r = morningData.find(x => x.date === d); return r ? r.weight : null; }), borderColor: '#FF5733', backgroundColor: 'rgba(255,87,51,0.1)', fill: true, tension: 0.4, pointRadius: 4, spanGaps: true },
-      { label: '傍晚體重', data: allDates.map(d => { const r = eveningData.find(x => x.date === d); return r ? r.weight : null; }), borderColor: '#3498DB', borderDash: [5,5], tension: 0.4, pointRadius: 4, spanGaps: true },
+      { label: '早晨', data: allDates.map(d => { const r = morningData.find(x => x.date === d); return r ? r.weight : null; }), borderColor: '#FF5733', backgroundColor: 'rgba(255,87,51,0.08)', fill: true, tension: 0.4, pointRadius: 3, pointHoverRadius: 6, spanGaps: true, borderWidth: 2 },
+      { label: '傍晚', data: allDates.map(d => { const r = eveningData.find(x => x.date === d); return r ? r.weight : null; }), borderColor: '#3498DB', backgroundColor: 'rgba(52,152,219,0.05)', fill: true, borderDash: [5,5], tension: 0.4, pointRadius: 3, spanGaps: true, borderWidth: 2 },
     ],
   };
-  const chartOpts = { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } };
+  const chartOpts = {
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: true, position: 'top', align: 'end', labels: { color: 'rgba(255,255,255,0.4)', font: { size: 11, weight: 'bold' }, boxWidth: 12, padding: 16 } },
+      tooltip: { backgroundColor: 'rgba(0,0,0,0.8)', titleFont: { size: 12 }, bodyFont: { size: 12 }, padding: 12, cornerRadius: 8 },
+    },
+    scales: {
+      x: { display: true, grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: 'rgba(255,255,255,0.2)', font: { size: 10 }, maxRotation: 0, maxTicksLimit: 8 } },
+      y: { display: true, grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: 'rgba(255,255,255,0.2)', font: { size: 10 } } },
+    },
+  };
+
+  const inputClass = "bg-[#111118] border border-white/10 rounded-lg px-4 py-3 text-white text-sm outline-none focus:border-[#FF5733]/40 transition-colors placeholder:text-white/20";
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Hero */}
-      <div className="relative h-48 lg:h-56 rounded-2xl lg:rounded-3xl overflow-hidden shadow-2xl mb-8 group">
-        <img
-          src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&q=80&w=1200"
-          alt="健身"
-          className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-110"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
-        <div className="absolute bottom-8 left-8">
-          <p className="text-white/40 font-black tracking-[0.4em] text-[10px] uppercase mb-2">
-            {userProfile?.name ? `${userProfile.name} //` : 'Elite Status //'} Day {challengeDay}
-          </p>
-          <h1 className="text-5xl font-black text-white italic tracking-tighter leading-none uppercase">
-            {challenge.totalDays} Days<br/><span className="text-[#FF5733]">Odyssey</span>
-          </h1>
+    <div className="animate-fade-in">
+      {/* 頁面標題 */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-white tracking-tight">儀表板</h1>
+          <p className="text-white/30 text-sm mt-1">第 {challengeDay} 天 / {challenge.totalDays} 天挑戰</p>
         </div>
-        <div className="absolute top-8 right-8 flex flex-col items-end">
-          <div className="bg-[#FF5733] text-white px-4 py-1 rounded-full text-xs font-black italic mb-2">Day {challengeDay}</div>
-          <div className="w-32 bg-white/10 h-2 rounded-full border border-white/20 overflow-hidden">
-            <div className="bg-white h-full transition-all duration-1000" style={{ width: `${progressPercent}%` }} />
-          </div>
+        <div className="hidden lg:flex items-center gap-2 text-white/20 text-sm">
+          <Calendar size={14} />
+          <span>{dayKey}</span>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* 進度條 */}
+      <div className="mb-8">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-white/40 text-xs font-medium">挑戰進度</span>
+          <span className="text-white/60 text-xs font-bold">{Math.round(progressPercent)}%</span>
+        </div>
+        <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-[#FF5733] to-[#FF8C66] rounded-full transition-all duration-1000" style={{ width: `${progressPercent}%` }} />
+        </div>
+      </div>
+
+      {/* 統計卡片 — 桌面 4 欄 / 手機 2 欄 */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-8">
         {[
-          { l: 'Weight', v: latest.weight || '--', u: 'kg', c: 'text-white' },
-          { l: 'BMI', v: bmi, u: '', c: 'text-[#2ECC71]' },
-          { l: 'BMR', v: bmr, u: 'kcal', c: 'text-[#3498DB]' },
-        ].map(i => (
-          <GlassCard key={i.l} className="p-4 text-center border-white/5">
-            <p className="text-[10px] font-black text-white/40 uppercase mb-1 tracking-widest">{i.l}</p>
-            <p className={`text-2xl font-black italic ${i.c}`}>{i.v}<span className="text-[10px] ml-0.5 opacity-50">{i.u}</span></p>
-          </GlassCard>
+          { label: '體重', value: latest.weight || '--', unit: 'kg', sub: weightDiff ? `${weightDiff > 0 ? '+' : ''}${weightDiff} kg` : '首筆紀錄', subColor: weightDiff && weightDiff < 0 ? 'text-emerald-400' : weightDiff > 0 ? 'text-red-400' : 'text-white/30', icon: Scale },
+          { label: 'BMI', value: bmi, unit: '', sub: bmiStatus, subColor: bmiStatus === '正常' ? 'text-emerald-400' : 'text-amber-400', icon: Heart },
+          { label: '基礎代謝', value: bmr, unit: 'kcal', sub: '每日基礎消耗', subColor: 'text-white/30', icon: Flame },
+          { label: '體脂率', value: latest.bodyFat || '--', unit: '%', sub: latest.muscle ? `骨骼肌 ${latest.muscle}kg` : '', subColor: 'text-white/30', icon: TrendingUp },
+        ].map(card => (
+          <div key={card.label} className="bg-[#111118] border border-white/5 rounded-xl p-4 lg:p-5">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-white/40 text-xs font-medium">{card.label}</span>
+              <card.icon size={16} className="text-white/10" />
+            </div>
+            <p className="text-white text-2xl lg:text-3xl font-bold tracking-tight">{card.value}<span className="text-sm text-white/30 ml-1 font-normal">{card.unit}</span></p>
+            {card.sub && <p className={`text-xs mt-1 font-medium ${card.subColor}`}>{card.sub}</p>}
+          </div>
         ))}
       </div>
 
-      {/* Chart */}
-      <GlassCard>
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-black text-white italic uppercase tracking-tight flex items-center gap-2">
-            <TrendingUp className="text-[#FF5733]" size={20} /> Trend Line
-          </h3>
-          <div className="flex gap-4 text-[10px] font-black uppercase text-white/40">
-            <span className="flex items-center gap-1"><div className="w-2 h-2 bg-[#FF5733] rounded-full"/> AM</span>
-            <span className="flex items-center gap-1"><div className="w-2 h-2 bg-[#3498DB] rounded-full"/> PM</span>
+      {/* 桌面：圖表 + 表單並排 / 手機：堆疊 */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-8">
+        {/* 圖表（桌面佔 2 欄） */}
+        <div className="lg:col-span-2 bg-[#111118] border border-white/5 rounded-xl p-5 lg:p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-white font-bold text-base">體重趨勢</h3>
+          </div>
+          <div className="h-56 lg:h-72">
+            {records.length > 0 ? <Line data={chartData} options={chartOpts} /> : <p className="text-white/20 text-center pt-20 text-sm">尚無資料，請新增第一筆紀錄</p>}
           </div>
         </div>
-        <div className="h-64">
-          {records.length > 0 ? <Line data={chartData} options={chartOpts} /> : <p className="text-white/20 text-center pt-20">尚無資料</p>}
-        </div>
-      </GlassCard>
 
-      {/* Form */}
-      <GlassCard>
-        <h3 className="text-xl font-black text-white italic uppercase mb-6">Log Daily Data</h3>
-        <form onSubmit={handleAdd} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <input name="date" type="date" required defaultValue={dayKey} className="bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold outline-none" />
-            <select name="time" className="bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold outline-none">
-              <option value="morning">早晨 (空腹)</option>
-              <option value="evening">傍晚</option>
-            </select>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <input name="weight" type="text" inputMode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="體重 kg" required className="bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold" />
-            <input name="bf" type="text" inputMode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="體脂%" className="bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold" />
-            <input name="muscle" type="text" inputMode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="肌肉 kg" className="bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold" />
-          </div>
-          <button className="w-full bg-[#FF5733] text-white font-black py-5 rounded-[2rem] shadow-xl shadow-[#FF5733]/20 uppercase italic tracking-widest hover:brightness-110 active:scale-95 transition-all">Submit Entry</button>
-        </form>
-      </GlassCard>
-
-      {/* Raw Data */}
-      <div className="pb-12">
-        <h3 className="text-lg font-black text-white italic uppercase mb-4">Raw Data</h3>
-        <div className="space-y-2">
-          {records.slice().reverse().slice(0, 10).map(r => (
-            <div key={r.id} className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5">
-              <div className="flex gap-4 items-center">
-                <span className="text-[10px] font-black text-white/20">{r.date}</span>
-                <span className="text-white font-black italic">{r.weight}kg</span>
-                <span className={`text-[10px] font-bold ${r.time === 'morning' ? 'text-orange-400' : 'text-blue-400'}`}>{r.time === 'morning' ? 'AM' : 'PM'}</span>
-                {r.bodyFat && <span className="text-[10px] text-white/30">BF:{r.bodyFat}%</span>}
-              </div>
-              <button onClick={() => setRecords(records.filter(x => x.id !== r.id))} className="text-white/10 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>
+        {/* 新增表單（桌面佔 1 欄） */}
+        <div className="bg-[#111118] border border-white/5 rounded-xl p-5 lg:p-6">
+          <h3 className="text-white font-bold text-base mb-4">新增紀錄</h3>
+          <form onSubmit={handleAdd} className="space-y-3">
+            <div>
+              <label className="text-white/30 text-xs font-medium block mb-1.5">日期</label>
+              <input name="date" type="date" required defaultValue={dayKey} className={inputClass + ' w-full'} />
             </div>
-          ))}
-          {records.length === 0 && <p className="text-white/20 text-center py-8">尚無紀錄，請新增數據</p>}
+            <div>
+              <label className="text-white/30 text-xs font-medium block mb-1.5">時段</label>
+              <select name="time" className={inputClass + ' w-full'}>
+                <option value="morning">早晨（空腹）</option>
+                <option value="evening">傍晚</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-white/30 text-xs font-medium block mb-1.5">體重 (kg)</label>
+              <input name="weight" type="text" inputMode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="75.5" required className={inputClass + ' w-full'} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-white/30 text-xs font-medium block mb-1.5">體脂 %</label>
+                <input name="bf" type="text" inputMode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="18.5" className={inputClass + ' w-full'} />
+              </div>
+              <div>
+                <label className="text-white/30 text-xs font-medium block mb-1.5">骨骼肌 kg</label>
+                <input name="muscle" type="text" inputMode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="35.0" className={inputClass + ' w-full'} />
+              </div>
+            </div>
+            <button type="submit" className="w-full bg-[#FF5733] hover:bg-[#e64d2e] text-white font-bold py-3 rounded-lg transition-colors mt-2">
+              儲存紀錄
+            </button>
+          </form>
         </div>
+      </div>
+
+      {/* 歷史紀錄表格 */}
+      <div className="bg-[#111118] border border-white/5 rounded-xl p-5 lg:p-6">
+        <h3 className="text-white font-bold text-base mb-4">歷史紀錄</h3>
+        {records.length === 0 ? (
+          <p className="text-white/20 text-center py-8 text-sm">尚無紀錄</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/5">
+                  <th className="text-left text-white/30 font-medium py-2 pr-4">日期</th>
+                  <th className="text-left text-white/30 font-medium py-2 pr-4">時段</th>
+                  <th className="text-right text-white/30 font-medium py-2 pr-4">體重</th>
+                  <th className="text-right text-white/30 font-medium py-2 pr-4 hidden sm:table-cell">體脂</th>
+                  <th className="text-right text-white/30 font-medium py-2 pr-4 hidden sm:table-cell">骨骼肌</th>
+                  <th className="text-right text-white/30 font-medium py-2 w-10"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {records.slice().reverse().slice(0, 15).map(r => (
+                  <tr key={r.id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
+                    <td className="py-3 pr-4 text-white/60">{r.date}</td>
+                    <td className="py-3 pr-4">
+                      <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${r.time === 'morning' ? 'bg-amber-500/10 text-amber-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                        {r.time === 'morning' ? '早晨' : '傍晚'}
+                      </span>
+                    </td>
+                    <td className="py-3 pr-4 text-right text-white font-bold">{r.weight} kg</td>
+                    <td className="py-3 pr-4 text-right text-white/40 hidden sm:table-cell">{r.bodyFat ? `${r.bodyFat}%` : '-'}</td>
+                    <td className="py-3 pr-4 text-right text-white/40 hidden sm:table-cell">{r.muscle ? `${r.muscle} kg` : '-'}</td>
+                    <td className="py-3 text-right">
+                      <button onClick={() => setRecords(records.filter(x => x.id !== r.id))} className="text-white/10 hover:text-red-400 transition-colors p-1"><Trash2 size={14}/></button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
