@@ -118,7 +118,7 @@ export default function Coach({ data, coach, setCoach }) {
 
       {!coachAvailable ? (
         <GlassCard>
-          <p className="text-white/60 text-sm">AI 教練對話尚未啟用。完成 Cloudflare Worker 與 Claude API 金鑰設定後即可使用（見 <code className="text-white/80">cloudflare/photo-worker/README.md</code>）。</p>
+          <p className="text-white/60 text-sm">AI 教練對話尚未啟用。完成 Cloudflare Worker 與 OpenRouter 金鑰設定後即可使用（見 <code className="text-white/80">cloudflare/photo-worker/README.md</code>）。</p>
         </GlassCard>
       ) : (
         <GlassCard className="flex flex-col">

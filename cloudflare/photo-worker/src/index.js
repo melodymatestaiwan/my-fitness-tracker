@@ -1,12 +1,11 @@
-// 健身追蹤器的後端：照片存進 Cloudflare R2，AI 教練呼叫 Claude
+// 健身追蹤器的後端：照片存進 Cloudflare R2，AI 教練透過 OpenRouter 呼叫模型
 //
 // POST   /upload          上傳一張圖片（需 Firebase 登入憑證），回傳 { url }
 // GET    /photos/<key>    讀取圖片（網址含隨機 ID，無法被猜到）
 // DELETE /photos/<key>    刪除自己的圖片（需 Firebase 登入憑證）
 // POST   /coach           AI 教練問答（需 Firebase 登入憑證），回傳 { reply }
 
-import Anthropic from '@anthropic-ai/sdk';
-import { handleCoach, defaultCreateClient } from './coach.js';
+import { handleCoach, CoachApiError } from './coach.js';
 
 const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -66,7 +65,7 @@ function corsHeaders(request, env) {
   } : { Vary: 'Origin' };
 }
 
-export function createHandler({ getKeys, createClient = defaultCreateClient } = {}) {
+export function createHandler({ getKeys, fetchImpl } = {}) {
   return async function handle(request, env) {
     const cors = corsHeaders(request, env);
     const json = (body, status = 200) => new Response(JSON.stringify(body), {
@@ -100,12 +99,10 @@ export function createHandler({ getKeys, createClient = defaultCreateClient } = 
         const uid = await authenticate().catch(e => { throw Object.assign(e, { status: 401 }); });
         const body = await request.json().catch(() => null);
         try {
-          const result = await handleCoach({ uid, body, env, createClient });
+          const result = await handleCoach({ uid, body, env, fetchImpl });
           return json(result.body, result.status);
         } catch (e) {
-          if (e instanceof Anthropic.RateLimitError) return json({ error: 'AI 服務忙碌中，請稍後再試' }, 503);
-          if (e instanceof Anthropic.AuthenticationError) return json({ error: 'AI 教練金鑰無效，請檢查設定' }, 503);
-          if (e instanceof Anthropic.APIError) return json({ error: `AI 服務錯誤（${e.status ?? '連線失敗'}）` }, 502);
+          if (e instanceof CoachApiError) return json({ error: e.message }, 502);
           throw e;
         }
       }
