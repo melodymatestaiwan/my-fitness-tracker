@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: ['main', 'claude/document-ui-inventory-DAQ1R']
+    branches: ['main']
 
 permissions:
   contents: read

@@ -24,12 +24,12 @@ export default function Login({ onSuccess }) {
         if (password !== confirm) return setError('兩次密碼不一致');
         const res = await registerWithEmail(email.trim(), password, name.trim());
         if (!res.success) return setError(res.error);
-        onSuccess(res.user);
+        onSuccess?.(res.user);
       } else {
         if (!email.trim() || !password) return setError('請填寫所有欄位');
         const res = await loginWithEmail(email.trim(), password);
         if (!res.success) return setError(res.error);
-        onSuccess(res.user);
+        onSuccess?.(res.user);
       }
     } finally {
       setLoading(false);
@@ -42,7 +42,7 @@ export default function Login({ onSuccess }) {
     try {
       const res = await loginWithGoogle();
       if (!res.success) return setError(res.error);
-      onSuccess(res.user);
+      onSuccess?.(res.user);
     } finally {
       setLoading(false);
     }

@@ -128,6 +128,7 @@ export default function BodyMeasure({ userProfile, onSave }) {
   const [poseStatus, setPoseStatus] = useState({ ok: false, msg: '準備中...' });
   const [countdown, setCountdown] = useState(null);
   const [cameraReady, setCameraReady] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [tilt, setTilt] = useState(0); // 手機傾斜角度
   const [lastSpoke, setLastSpoke] = useState('');
 
@@ -533,9 +534,13 @@ export default function BodyMeasure({ userProfile, onSave }) {
         <button onClick={reset} className="flex-1 py-4 rounded-[2rem] font-black text-sm text-white/40 border border-white/10 hover:bg-white/5 transition-all flex items-center justify-center gap-2">
           <RotateCcw size={16} /> 重新拍攝
         </button>
-        <button onClick={() => { if (onSave && measurements) onSave({ ...measurements, date: new Date().toISOString(), photo }); }}
+        <button disabled={saving} onClick={async () => {
+          if (!onSave || !measurements || saving) return;
+          setSaving(true);
+          try { await onSave({ ...measurements, photo }); } finally { setSaving(false); }
+        }}
           className="flex-1 bg-[#FF5733] text-white font-black py-4 rounded-[2rem] shadow-xl uppercase italic active:scale-95 transition-all flex items-center justify-center gap-2">
-          <Check size={16} /> 儲存結果
+          <Check size={16} /> {saving ? '儲存中…' : '儲存結果'}
         </button>
       </div>
     </div>
