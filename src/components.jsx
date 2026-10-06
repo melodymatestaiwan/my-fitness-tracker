@@ -17,11 +17,12 @@ export const SectionTitle = ({ icon: Icon, children }) => (
   </div>
 );
 
-export const LoadingScreen = () => (
+export const LoadingScreen = ({ message }) => (
   <div className="min-h-screen bg-[#050505] flex items-center justify-center">
     <div className="text-center">
       <div className="w-16 h-16 border-4 border-[#FF5733]/30 border-t-[#FF5733] rounded-full animate-spin mx-auto mb-6" />
       <p className="text-white/40 font-black tracking-widest text-xs uppercase">Loading Data...</p>
+      {message && <p className="text-white/50 text-sm mt-3">{message}</p>}
     </div>
   </div>
 );

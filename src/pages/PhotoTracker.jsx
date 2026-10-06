@@ -1,8 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Camera, Ruler, ChevronLeft, ChevronRight, Trash2, Plus, TrendingDown, TrendingUp, Loader } from 'lucide-react';
 import { GlassCard } from '../components';
-import { uploadImage } from '../api';
-import { auth } from '../firebase';
+import { uploadImage, deletePhotos } from '../api';
 import { formatDate } from '../constants';
 
 const POSES = [
@@ -12,6 +11,7 @@ const POSES = [
 ];
 
 const MEASUREMENTS = [
+  { id: 'shoulder', name: '肩寬', unit: 'cm', emoji: '↔️' },
   { id: 'chest', name: '胸圍', unit: 'cm', emoji: '💪' },
   { id: 'waist', name: '腰圍', unit: 'cm', emoji: '📏' },
   { id: 'hip', name: '臀圍', unit: 'cm', emoji: '🍑' },
@@ -27,7 +27,7 @@ export default function PhotoTracker({ photos, setPhotos }) {
   const [uploadPose, setUploadPose] = useState(null);
 
   // 所有紀錄按日期排序（新→舊）
-  const allEntries = (photos || []).sort((a, b) => b.date.localeCompare(a.date));
+  const allEntries = [...(photos || [])].sort((a, b) => b.date.localeCompare(a.date));
   const todayEntry = allEntries.find(e => e.date === selectedDate);
   const uniqueDates = [...new Set(allEntries.map(e => e.date))].sort().reverse();
 
@@ -70,34 +70,19 @@ export default function PhotoTracker({ photos, setPhotos }) {
   const [uploading, setUploading] = useState(false);
 
   const savePhoto = async (pose, dataUrl) => {
-    const today = selectedDate;
-    const existing = [...(photos || [])];
-    const entryIdx = existing.findIndex(e => e.date === today);
-
-    // 嘗試上傳到 Firebase Storage
-    let finalUrl = dataUrl;
-    const uid = auth.currentUser?.uid;
-    if (uid) {
-      setUploading(true);
-      const url = await uploadImage(uid, `photos/${today}_${pose}.jpg`, dataUrl);
-      if (url) finalUrl = url;
-      setUploading(false);
-    }
-
-    if (entryIdx > -1) {
-      existing[entryIdx] = {
-        ...existing[entryIdx],
-        photos: { ...existing[entryIdx].photos, [pose]: finalUrl },
-      };
-    } else {
-      existing.push({
-        id: Date.now(),
-        date: today,
-        photos: { [pose]: finalUrl },
-        measurements: {},
-      });
-    }
-    setPhotos(existing);
+    const date = selectedDate;
+    // 先上傳到雲端照片空間；未設定或失敗時保留壓縮後的圖片
+    setUploading(true);
+    const finalUrl = (await uploadImage(dataUrl)) || dataUrl;
+    setUploading(false);
+    // 用最新的狀態合併，避免上傳期間的其他修改被蓋掉
+    setPhotos(prev => {
+      const list = [...(prev || [])];
+      const idx = list.findIndex(e => e.date === date);
+      if (idx > -1) list[idx] = { ...list[idx], photos: { ...list[idx].photos, [pose]: finalUrl } };
+      else list.push({ id: Date.now(), date, photos: { [pose]: finalUrl }, measurements: {} });
+      return list;
+    });
   };
 
   // --- 儲存尺寸 ---
@@ -131,7 +116,9 @@ export default function PhotoTracker({ photos, setPhotos }) {
   // --- 刪除紀錄 ---
   const deleteEntry = (date) => {
     if (!confirm(`確定刪除 ${date} 的紀錄？`)) return;
+    const removed = (photos || []).filter(e => e.date === date);
     setPhotos((photos || []).filter(e => e.date !== date));
+    deletePhotos(removed.flatMap(e => Object.values(e.photos || {})));
   };
 
   // --- 對比檢視 ---
@@ -206,7 +193,8 @@ export default function PhotoTracker({ photos, setPhotos }) {
             );
           })}
         </div>
-        {todayEntry?.photos && Object.keys(todayEntry.photos).length > 0 && (
+        {uploading && <p className="text-[10px] text-[#FF5733] text-center mt-2">照片上傳中…</p>}
+        {!uploading && todayEntry?.photos && Object.keys(todayEntry.photos).length > 0 && (
           <p className="text-[10px] text-white/20 text-center mt-2">點擊照片可重新上傳</p>
         )}
       </GlassCard>

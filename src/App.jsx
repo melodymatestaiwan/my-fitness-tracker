@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale, LinearScale, PointElement, LineElement,
@@ -7,7 +7,9 @@ import {
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
 import { Navbar, LoadingScreen } from './components';
-import { loadCloud, saveCloud, saveState } from './api';
+import { uploadImage, uploadPhotos, compressDataUrl } from './api';
+import { useCloudSync } from './useCloudSync';
+import { getUserWorkoutPlan } from './workoutPlans';
 import { formatDate } from './constants';
 import { logout } from './auth';
 import Login from './pages/Login';
@@ -22,151 +24,149 @@ import BodyMeasure from './pages/BodyMeasure';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
+const BgGlow = () => (
+  <div className="fixed inset-0 pointer-events-none z-0">
+    <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] bg-[#FF5733]/10 rounded-full blur-[150px]" />
+    <div className="absolute bottom-[-10%] left-[-10%] w-[60%] h-[60%] bg-blue-500/5 rounded-full blur-[150px]" />
+  </div>
+);
+
+const Shell = ({ children }) => (
+  <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#FF5733]">
+    <BgGlow />
+    <div className="relative z-10">{children}</div>
+  </div>
+);
+
 const App = () => {
   const [firebaseUser, setFirebaseUser] = useState(undefined);
-  const [userProfile, setUserProfile] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [dataLoaded, setDataLoaded] = useState(false);
-  const [syncReady, setSyncReady] = useState(false);
-  const [syncError, setSyncError] = useState(null); // auto-save 只在 Firestore 載入完成後才啟用
+  const [slowLoad, setSlowLoad] = useState(false);
 
-  const [records, setRecords] = useState([]);
-  const [workouts, setWorkouts] = useState({});
-  const [diet, setDiet] = useState([]);
-  const [fasting, setFasting] = useState({ active: false, startTime: null, mode: 16, history: [] });
-  const [photoData, setPhotoData] = useState([]);
+  useEffect(() => onAuthStateChanged(auth, user => setFirebaseUser(user || null)), []);
+
+  const uid = firebaseUser?.uid || null;
+  const { data, set, status, everReady, error, retry, clearError } = useCloudSync(uid);
+  const { userProfile, records, workouts, diet, fasting, photos, water } = data;
 
   useEffect(() => {
-    return onAuthStateChanged(auth, (user) => {
-      setFirebaseUser(user || null);
-      if (!user) { setDataLoaded(false); setSyncReady(false); setUserProfile(null); }
-    });
-  }, []);
+    if (status !== 'loading') { setSlowLoad(false); return undefined; }
+    const t = setTimeout(() => setSlowLoad(true), 8000);
+    return () => clearTimeout(t);
+  }, [status]);
 
-  // --- 登入後從 Firestore 載入資料（唯一資料來源）---
-  useEffect(() => {
-    if (!firebaseUser) return;
-    const uid = firebaseUser.uid;
+  // 偏好的斷食模式要套用到斷食頁（進行中的斷食不更動）
+  const applyFastingMode = (mode) => {
+    if (mode) set.fasting(f => (f.active ? f : { ...f, mode }));
+  };
 
-    (async () => {
-      try {
-        console.log('[Sync] Loading from Firestore, uid:', uid);
-        const [p, r, w, d, f, ph] = await Promise.all([
-          loadCloud(uid, 'userProfile', null),
-          loadCloud(uid, 'records', []),
-          loadCloud(uid, 'workouts', {}),
-          loadCloud(uid, 'diet', []),
-          loadCloud(uid, 'fasting', { active: false, startTime: null, mode: 16, history: [] }),
-          loadCloud(uid, 'photos', []),
-        ]);
-        console.log('[Sync] Firestore loaded:', { profile: !!p, records: r?.length, diet: d?.length, workouts: Object.keys(w||{}).length });
-        setUserProfile(p);
-        setRecords(r || []);
-        setWorkouts(w || {});
-        setDiet(d || []);
-        setFasting(f || { active: false, startTime: null, mode: 16, history: [] });
-        setPhotoData(ph || []);
-        saveState('userProfile', p);
-        saveState('records', r || []);
-        saveState('workouts', w || {});
-        saveState('diet', d || []);
-        saveState('fasting', f || { active: false, startTime: null, mode: 16, history: [] });
-        saveState('photos', ph || []);
-        setSyncError(null);
-      } catch (e) {
-        console.error('[Sync] Firestore load FAILED:', e);
-        setSyncError('Firestore 讀取失敗: ' + e.message);
-      }
-      setDataLoaded(true);
-      setTimeout(() => setSyncReady(true), 500);
-    })();
-  }, [firebaseUser]);
-
-  // --- 自動儲存（只在 syncReady 後才啟用）---
-  const uidRef = useRef(null);
-  useEffect(() => { uidRef.current = firebaseUser?.uid || null; }, [firebaseUser]);
-
-  const save = useCallback((key, value) => {
-    saveState(key, value);
-    const uid = uidRef.current;
-    if (uid) {
-      console.log(`[Sync] Saving ${key} to Firestore...`);
-      saveCloud(uid, key, value)
-        .then(() => console.log(`[Sync] ${key} saved OK`))
-        .catch(e => {
-          console.error(`[Sync] saveCloud(${key}) FAILED:`, e);
-          setSyncError(`儲存失敗 (${key}): ${e.message}`);
-        });
-    } else {
-      console.warn(`[Sync] No uid, ${key} saved to localStorage only`);
-    }
-  }, []);
-
-  useEffect(() => { if (syncReady) save('records', records); }, [records, syncReady, save]);
-  useEffect(() => { if (syncReady) save('workouts', workouts); }, [workouts, syncReady, save]);
-  useEffect(() => { if (syncReady) save('diet', diet); }, [diet, syncReady, save]);
-  useEffect(() => { if (syncReady) save('fasting', fasting); }, [fasting, syncReady, save]);
-  useEffect(() => { if (syncReady) save('photos', photoData); }, [photoData, syncReady, save]);
-  useEffect(() => { if (syncReady && userProfile) save('userProfile', userProfile); }, [userProfile, syncReady, save]);
-
-  const dayKey = formatDate(currentDate);
-
-  // --- Handlers ---
-  const handleLoginSuccess = () => {};
   const handleOnboardingComplete = (profile) => {
-    if (profile) { setUserProfile(profile); setDataLoaded(true); setSyncReady(true); }
-  };
-  const handleProfileUpdate = (newProfile) => { setUserProfile(newProfile); };
-  const handleLogout = async () => { await logout(); };
-  const handleReset = () => {
-    setUserProfile(null);
-    setSyncReady(false);
-    saveState('userProfile', null);
-    const uid = uidRef.current;
-    if (uid) saveCloud(uid, 'userProfile', null).catch(() => {});
-    setActiveTab('dashboard');
-    setTimeout(() => setSyncReady(true), 300);
+    set.userProfile(profile);
+    applyFastingMode(profile.fastingMode);
+    // 訓練前照片在背景上傳，完成後把 base64 換成雲端網址
+    if (Object.keys(profile.beforePhotos || {}).length > 0) {
+      uploadPhotos(profile.beforePhotos).then(urls => {
+        set.userProfile(p => (p ? { ...p, beforePhotos: urls } : p));
+      });
+    }
   };
 
-  const BgGlow = () => (
-    <div className="fixed inset-0 pointer-events-none z-0">
-      <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] bg-[#FF5733]/10 rounded-full blur-[150px]" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[60%] h-[60%] bg-blue-500/5 rounded-full blur-[150px]" />
-    </div>
-  );
+  const handleProfileUpdate = (newProfile) => {
+    set.userProfile(newProfile);
+    applyFastingMode(newProfile.fastingMode);
+  };
+
+  // AI 量身結果併入當天的照片紀錄（同一天只會有一筆）
+  const handleBodyScanSave = async ({ photo, date: _date, ...measurements }) => {
+    const today = formatDate(new Date());
+    let photoUrl = null;
+    if (photo) {
+      const small = await compressDataUrl(photo).catch(() => null);
+      if (small) photoUrl = (await uploadImage(small)) || small;
+    }
+    set.photos(prev => {
+      const list = [...(prev || [])];
+      const idx = list.findIndex(e => e.date === today);
+      const entry = idx > -1 ? list[idx] : { id: Date.now(), date: today, photos: {}, measurements: {} };
+      const merged = {
+        ...entry,
+        measurements: { ...entry.measurements, ...measurements },
+        photos: photoUrl ? { ...entry.photos, front: photoUrl } : entry.photos,
+      };
+      if (idx > -1) list[idx] = merged; else list.push(merged);
+      return list;
+    });
+    setActiveTab('photos');
+  };
 
   if (firebaseUser === undefined) return <LoadingScreen />;
-  if (!firebaseUser) {
-    return (<div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#FF5733]"><BgGlow /><div className="relative z-10"><Login onSuccess={handleLoginSuccess} /></div></div>);
+  if (!firebaseUser) return <Shell><Login /></Shell>;
+
+  // 還沒成功載入過就失敗：不能進 Onboarding，否則會用空白資料蓋掉雲端
+  if (status === 'error' && !everReady) {
+    return (
+      <Shell>
+        <div className="min-h-screen flex items-center justify-center px-6">
+          <div className="max-w-sm w-full bg-[#111118] border border-white/10 rounded-2xl p-6 text-center">
+            <h2 className="text-white font-bold text-lg mb-2">無法連線到雲端資料</h2>
+            <p className="text-white/50 text-sm mb-1">{error}</p>
+            <p className="text-white/30 text-xs mb-6">為了避免覆蓋你的紀錄，連線恢復前不會儲存任何變更。</p>
+            <div className="flex gap-3">
+              <button onClick={() => logout()} className="flex-1 py-3 rounded-lg border border-white/10 text-white/60 text-sm">登出</button>
+              <button onClick={retry} className="flex-1 py-3 rounded-lg bg-[#FF5733] text-white font-bold text-sm">重試</button>
+            </div>
+          </div>
+        </div>
+      </Shell>
+    );
   }
-  if (!dataLoaded) return <LoadingScreen />;
-  if (!userProfile || !userProfile.onboardingCompletedAt) {
-    return (<div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#FF5733]"><BgGlow /><div className="relative z-10"><Onboarding userName={firebaseUser.displayName || firebaseUser.email?.split('@')[0]} onComplete={handleOnboardingComplete} /></div></div>);
+  if (status !== 'ready' && !everReady) {
+    return <LoadingScreen message={slowLoad ? '連線較慢，請確認網路…' : undefined} />;
   }
+  if (!userProfile?.onboardingCompletedAt) {
+    return (
+      <Shell>
+        <Onboarding
+          userName={firebaseUser.displayName || firebaseUser.email?.split('@')[0]}
+          onComplete={handleOnboardingComplete}
+        />
+      </Shell>
+    );
+  }
+
+  const dayKey = formatDate(currentDate);
 
   return (
     <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#FF5733]">
       <BgGlow />
-      {syncError && (
+      {error && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white text-xs font-bold text-center py-2 px-4">
-          {syncError}
-          <button onClick={() => setSyncError(null)} className="ml-2 underline">關閉</button>
+          {error}
+          {status === 'error'
+            ? <button onClick={retry} className="ml-3 underline">重新連線</button>
+            : <button onClick={clearError} className="ml-3 underline">關閉</button>}
         </div>
       )}
-      {/* 桌面版：左側導航 + 右側內容 */}
       <div className="lg:pl-64 xl:pl-72">
         <div className="relative z-10 max-w-lg lg:max-w-5xl mx-auto px-6 pt-12 pb-40 lg:pb-12 lg:pt-8">
-          {activeTab === 'dashboard' && <Dashboard records={records} setRecords={setRecords} dayKey={dayKey} userProfile={userProfile} />}
-          {activeTab === 'workout' && <Workout workouts={workouts} setWorkouts={setWorkouts} currentDate={currentDate} setCurrentDate={setCurrentDate} />}
-          {activeTab === 'diet' && <Diet diet={diet} setDiet={setDiet} currentDate={currentDate} setCurrentDate={setCurrentDate} userProfile={userProfile} />}
-          {activeTab === 'fasting' && <Fasting fasting={fasting} setFasting={setFasting} />}
-          {activeTab === 'photos' && <PhotoTracker photos={photoData} setPhotos={setPhotoData} />}
-          {activeTab === 'bodyscan' && <BodyMeasure userProfile={userProfile} onSave={(m) => setPhotoData(prev => [...prev, { id: Date.now(), date: formatDate(new Date()), measurements: m, photos: m.photo ? { front: m.photo } : {} }])} />}
-          {activeTab === 'settings' && <Settings userProfile={userProfile} onSave={handleProfileUpdate} onLogout={handleLogout} onReset={handleReset} />}
+          {activeTab === 'dashboard' && <Dashboard records={records} setRecords={set.records} dayKey={dayKey} userProfile={userProfile} />}
+          {activeTab === 'workout' && (
+            <Workout
+              workouts={workouts} setWorkouts={set.workouts}
+              currentDate={currentDate} setCurrentDate={setCurrentDate}
+              workoutPlan={getUserWorkoutPlan(userProfile)} trainingDays={userProfile.trainingDays}
+              onPlanChange={(workoutPlan, trainingDays) => set.userProfile(p => ({ ...p, workoutPlan, trainingDays }))}
+            />
+          )}
+          {activeTab === 'diet' && <Diet diet={diet} setDiet={set.diet} water={water} setWater={set.water} currentDate={currentDate} userProfile={userProfile} />}
+          {activeTab === 'fasting' && <Fasting fasting={fasting} setFasting={set.fasting} />}
+          {activeTab === 'photos' && <PhotoTracker photos={photos} setPhotos={set.photos} />}
+          {activeTab === 'bodyscan' && <BodyMeasure userProfile={userProfile} onSave={handleBodyScanSave} />}
+          {activeTab === 'settings' && <Settings userProfile={userProfile} onSave={handleProfileUpdate} onLogout={logout} onReset={() => { set.userProfile(null); setActiveTab('dashboard'); }} />}
         </div>
       </div>
-      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} userName={firebaseUser?.displayName || firebaseUser?.email} />
+      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} userName={firebaseUser.displayName || firebaseUser.email} />
     </div>
   );
 };

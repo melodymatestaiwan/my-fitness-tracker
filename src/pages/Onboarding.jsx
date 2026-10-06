@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { ChevronRight, ChevronLeft, Rocket, User, Target, Utensils, Activity, Camera, Zap } from 'lucide-react';
 import { GlassCard } from '../components';
-import { saveCloud, saveState, uploadPhotos } from '../api';
-import { auth } from '../firebase';
 import { FASTING_MODES, formatDate } from '../constants';
+import { ACTIVITY_LEVELS, GOAL_TYPES, RATE_OPTIONS, calcTargets, estimateChallengeDays } from '../nutrition';
+import { generatePlan, templateName } from '../workoutPlans';
 
 const DIET_TYPES = [
   { id: 'carb-cycling', name: '碳水循環', desc: '高低碳交替，適合減脂增肌', color: '#FF5733' },
@@ -11,56 +11,11 @@ const DIET_TYPES = [
   { id: 'low-carb', name: '低碳飲食', desc: '降低碳水攝取，提高脂肪比例', color: '#2ECC71' },
 ];
 
-const ACTIVITY_LEVELS = [
-  { id: 'sedentary', name: '久坐', desc: '幾乎不運動，辦公桌工作', multiplier: 1.2 },
-  { id: 'light', name: '輕度活動', desc: '輕度運動 1-3 天/週', multiplier: 1.375 },
-  { id: 'moderate', name: '中度活動', desc: '中度運動 3-5 天/週', multiplier: 1.55 },
-  { id: 'active', name: '高度活動', desc: '高強度運動 6-7 天/週', multiplier: 1.725 },
-  { id: 'extreme', name: '極度活動', desc: '高強度運動 + 體力工作', multiplier: 1.9 },
-];
-
-const GOAL_TYPES = [
-  { id: 'cut', name: '減脂', emoji: '🔥', desc: '降低體脂、保留肌肉' },
-  { id: 'maintain', name: '維持', emoji: '⚖️', desc: '維持目前體重和體態' },
-  { id: 'bulk', name: '增肌', emoji: '💪', desc: '增加肌肉量、適度增重' },
-];
-
-const RATE_OPTIONS = {
-  cut: [
-    { label: '慢速 (-0.25 kg/週)', value: 0.25 },
-    { label: '標準 (-0.5 kg/週)', value: 0.5 },
-    { label: '快速 (-0.75 kg/週)', value: 0.75 },
-  ],
-  bulk: [
-    { label: '精瘦增肌 (+0.25 kg/週)', value: 0.25 },
-    { label: '標準增肌 (+0.5 kg/週)', value: 0.5 },
-  ],
-};
-
 const POSES = [
   { id: 'front', name: '正面', emoji: '🧍' },
   { id: 'side', name: '側面', emoji: '🧍‍♂️' },
   { id: 'back', name: '背面', emoji: '🔙' },
 ];
-
-function calcBMR(weight, height, age, gender) {
-  return gender === 'female'
-    ? 10 * weight + 6.25 * height - 5 * age - 161
-    : 10 * weight + 6.25 * height - 5 * age + 5;
-}
-
-function calcMacros(goalType, calories, weightKg) {
-  let pRatio, cRatio, fRatio;
-  if (goalType === 'cut') { pRatio = 0.35; cRatio = 0.35; fRatio = 0.30; }
-  else if (goalType === 'bulk') { pRatio = 0.27; cRatio = 0.45; fRatio = 0.28; }
-  else { pRatio = 0.30; cRatio = 0.40; fRatio = 0.30; }
-  const proteinMin = weightKg * 2;
-  let protein = Math.round(calories * pRatio / 4);
-  if (protein < proteinMin) protein = Math.round(proteinMin);
-  const fat = Math.round(calories * fRatio / 9);
-  const carbs = Math.round((calories - protein * 4 - fat * 9) / 4);
-  return { protein, carbs, fat };
-}
 
 export default function Onboarding({ userName, onComplete }) {
   const [step, setStep] = useState(1);
@@ -77,6 +32,7 @@ export default function Onboarding({ userName, onComplete }) {
   const [activityLevel, setActivityLevel] = useState('moderate');
   const [goalType, setGoalType] = useState('cut');
   const [weeklyRate, setWeeklyRate] = useState(0.5);
+  const [targetWeight, setTargetWeight] = useState('');
   const [trainingDays, setTrainingDays] = useState(4);
 
   // Step 3: Calculated (auto)
@@ -95,13 +51,11 @@ export default function Onboarding({ userName, onComplete }) {
   const w = parseFloat(currentWeight) || 70;
   const h = parseFloat(height) || 175;
   const a = parseInt(age) || 25;
-  const bmr = Math.round(calcBMR(w, h, a, gender));
-  const actMult = ACTIVITY_LEVELS.find(l => l.id === activityLevel)?.multiplier || 1.55;
-  const tdee = Math.round(bmr * actMult);
-  const calorieAdjust = goalType === 'cut' ? -(weeklyRate * 1100) : goalType === 'bulk' ? (weeklyRate * 1100) : 0;
-  const dailyCalories = Math.max(1200, Math.round(tdee + calorieAdjust));
-  const macros = calcMacros(goalType, dailyCalories, w);
-  const challengeDays = goalType === 'maintain' ? 90 : Math.round(Math.abs(w - (parseFloat(document.querySelector?.('[data-target-weight]')?.value) || w)) / (weeklyRate || 0.5) * 7) || 90;
+  const { bmr, tdee, dailyCalories, calorieAdjust, macros } = calcTargets({
+    currentWeight: w, height: h, age: a, gender, activityLevel, goalType, weeklyRate,
+  });
+  const tw = parseFloat(targetWeight);
+  const challengeDays = estimateChallengeDays(goalType, w, tw, weeklyRate);
 
   // --- Validation ---
   const validateStep = () => {
@@ -111,6 +65,11 @@ export default function Onboarding({ userName, onComplete }) {
       if (h < 100 || h > 250) return setError('身高請輸入 100-250 cm') || false;
       if (w < 30 || w > 300) return setError('體重請輸入 30-300 kg') || false;
       if (a < 10 || a > 100) return setError('年齡請輸入 10-100') || false;
+    }
+    if (step === 2 && goalType !== 'maintain') {
+      if (!tw) return setError('請輸入目標體重') || false;
+      if (goalType === 'cut' && tw >= w) return setError('減脂的目標體重需低於目前體重') || false;
+      if (goalType === 'bulk' && tw <= w) return setError('增肌的目標體重需高於目前體重') || false;
     }
     return true;
   };
@@ -146,37 +105,19 @@ export default function Onboarding({ userName, onComplete }) {
 
   // --- Finish ---
   const finish = () => {
-    const startDate = formatDate(new Date());
-    const estDays = goalType === 'maintain' ? 90 : Math.max(30, Math.round(Math.abs(w - (parseFloat(currentWeight) + (goalType === 'bulk' ? weeklyRate * 12 : -weeklyRate * 12))) / (weeklyRate || 0.5) * 7));
-    const profile = {
+    onComplete({
       name: userName,
       height: h, currentWeight: w, age: a, gender, bodyFat: parseFloat(bodyFat) || null,
       activityLevel, goalType, weeklyRate, trainingDays,
-      bmr, tdee, dailyCalories,
-      macros,
-      targetWeight: goalType === 'maintain' ? w : w + (goalType === 'bulk' ? weeklyRate * 12 : -weeklyRate * 12),
-      challengeDays: estDays > 200 ? 90 : estDays,
-      startDate,
+      workoutPlan: generatePlan(trainingDays),
+      bmr, tdee, dailyCalories, macros,
+      targetWeight: goalType === 'maintain' ? w : tw,
+      challengeDays,
+      startDate: formatDate(new Date()),
       dietPlanType, fastingMode,
       beforePhotos,
       onboardingCompletedAt: Date.now(),
-    };
-    // 立即存 localStorage 並進入主頁
-    saveState('userProfile', profile);
-    onComplete(profile);
-    // 背景上傳照片到 Firebase Storage + 存 Firestore
-    const uid = auth.currentUser?.uid;
-    if (uid) {
-      (async () => {
-        if (Object.keys(beforePhotos).length > 0) {
-          const urls = await uploadPhotos(uid, beforePhotos, 'before');
-          if (Object.keys(urls).length > 0) {
-            profile.beforePhotos = urls;
-          }
-        }
-        saveCloud(uid, 'userProfile', profile).catch(() => {});
-      })();
-    }
+    });
   };
 
   const inputClass = "w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold outline-none focus:border-[#FF5733]/50 transition-colors placeholder:text-white/20";
@@ -268,6 +209,15 @@ export default function Onboarding({ userName, onComplete }) {
             </div>
           </div>
         )}
+        {goalType !== 'maintain' && (
+          <div>
+            <label className={labelClass}>目標體重 (kg)</label>
+            <input type="text" inputMode="decimal" pattern="[0-9]*[.]?[0-9]*" value={targetWeight}
+              onChange={e => setTargetWeight(e.target.value)} placeholder={goalType === 'cut' ? String(Math.round(w - 5)) : String(Math.round(w + 3))}
+              className={inputClass} />
+            {tw > 0 && <p className="text-white/30 text-[10px] mt-2">預計約 {challengeDays} 天（{Math.round(challengeDays / 7)} 週）達成</p>}
+          </div>
+        )}
         <div>
           <label className={labelClass}>每週訓練天數</label>
           <div className="grid grid-cols-5 gap-2">
@@ -276,6 +226,7 @@ export default function Onboarding({ userName, onComplete }) {
                 className={`py-3 rounded-2xl font-black text-sm transition-all border-2 ${trainingDays === d ? 'bg-[#FF5733] text-white border-[#FF5733]' : 'bg-white/5 text-white/30 border-transparent'}`}>{d}天</button>
             ))}
           </div>
+          <p className="text-white/30 text-[10px] mt-2">將套用「{templateName(trainingDays)}」課表，之後可在訓練頁編輯</p>
         </div>
       </div>
     </div>
@@ -408,7 +359,8 @@ export default function Onboarding({ userName, onComplete }) {
           {[
             { l: '身體', v: `${h}cm / ${w}kg / ${a}歲 / ${gender === 'male' ? '男' : '女'}` },
             { l: 'BMR → TDEE', v: `${bmr} → ${tdee} kcal` },
-            { l: '目標', v: `${GOAL_TYPES.find(g => g.id === goalType)?.name}${goalType !== 'maintain' ? ` (${weeklyRate} kg/週)` : ''}` },
+            { l: '目標', v: `${GOAL_TYPES.find(g => g.id === goalType)?.name}${goalType !== 'maintain' ? ` → ${tw} kg (${weeklyRate} kg/週)` : ''}` },
+            { l: '挑戰天數', v: `${challengeDays} 天` },
             { l: '飲食', v: DIET_TYPES.find(d => d.id === dietPlanType)?.name },
             { l: '斷食', v: `${fastingMode}:${24 - fastingMode}` },
             { l: '訓練', v: `每週 ${trainingDays} 天` },

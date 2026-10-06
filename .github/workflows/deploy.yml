@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: ['main', 'claude/document-ui-inventory-DAQ1R']
+    branches: ['main']
 
 permissions:
   contents: read
@@ -24,6 +24,8 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm run build
+        env:
+          VITE_PHOTO_API_URL: ${{ vars.PHOTO_API_URL }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist

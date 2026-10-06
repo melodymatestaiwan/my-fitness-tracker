@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { LogOut, Save, User, Target, Utensils, RotateCcw } from 'lucide-react';
 import { GlassCard } from '../components';
-import { FASTING_MODES } from '../constants';
+import { FASTING_MODES, getUserDietPlan } from '../constants';
+import { ACTIVITY_LEVELS, GOAL_TYPES, RATE_OPTIONS, calcTargets } from '../nutrition';
 
 const DIET_TYPES = [
   { id: 'carb-cycling', name: '碳水循環' },
@@ -12,13 +13,34 @@ const DIET_TYPES = [
 export default function Settings({ userProfile, onSave, onLogout, onReset }) {
   const [form, setForm] = useState({ ...userProfile });
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
 
   const set = (key, value) => { setForm({ ...form, [key]: value }); setSaved(false); };
   const inputClass = "w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold outline-none focus:border-[#FF5733]/50 transition-colors";
   const labelClass = "text-[10px] font-black text-white/40 uppercase tracking-widest mb-2 block";
 
+  const goalType = form.goalType || 'maintain';
+  const weeklyRate = goalType === 'maintain' ? 0 : (form.weeklyRate || 0.5);
+  const valid = form.height > 0 && form.currentWeight > 0 && form.age > 0;
+  // 依目前表單即時試算，讓使用者存檔前就看到新的目標
+  const preview = valid ? calcTargets({
+    currentWeight: form.currentWeight, height: form.height, age: form.age, gender: form.gender,
+    activityLevel: form.activityLevel || 'moderate', goalType, weeklyRate,
+  }) : null;
+
+  // 沒有自訂時，碳水循環各日的值由試算出的巨量營養素推導（與飲食頁一致）
+  const derivedPlan = getUserDietPlan({ ...form, customMacros: undefined, macros: preview?.macros || form.macros });
+  const cyclingDefaults = {
+    high: { p: derivedPlan.thursday.protein, c: derivedPlan.thursday.carbs, f: derivedPlan.thursday.fat },
+    low: { p: derivedPlan.monday.protein, c: derivedPlan.monday.carbs, f: derivedPlan.monday.fat },
+    zero: { p: derivedPlan.wednesday.protein, c: derivedPlan.wednesday.carbs, f: derivedPlan.wednesday.fat },
+  };
+
   const handleSave = () => {
-    onSave({ ...form, onboardingCompletedAt: form.onboardingCompletedAt || Date.now() });
+    if (!valid) { setError('身高、體重、年齡需為有效數字'); return; }
+    setError('');
+    const { calorieAdjust, ...targets } = preview;
+    onSave({ ...form, goalType, weeklyRate, ...targets, onboardingCompletedAt: form.onboardingCompletedAt || Date.now() });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -66,6 +88,49 @@ export default function Settings({ userProfile, onSave, onLogout, onReset }) {
         </div>
       </GlassCard>
 
+      {/* Goal & activity */}
+      <GlassCard>
+        <h3 className="text-sm font-black text-white/40 uppercase tracking-widest mb-6 flex items-center gap-2"><Target size={16} /> 目標與活動量</h3>
+        <div className="space-y-4">
+          <div>
+            <label className={labelClass}>日常活動量</label>
+            <select value={form.activityLevel || 'moderate'} onChange={e => set('activityLevel', e.target.value)} className={inputClass}>
+              {ACTIVITY_LEVELS.map(l => <option key={l.id} value={l.id}>{l.name}（{l.desc}）</option>)}
+            </select>
+          </div>
+          <div>
+            <label className={labelClass}>目標</label>
+            <div className="grid grid-cols-3 gap-2">
+              {GOAL_TYPES.map(g => (
+                <button key={g.id} type="button" onClick={() => setForm({ ...form, goalType: g.id, weeklyRate: g.id === 'maintain' ? 0 : (form.weeklyRate || 0.5) })}
+                  className={`py-3 rounded-2xl font-black text-xs transition-all border-2 ${goalType === g.id ? 'bg-[#FF5733] text-white border-[#FF5733]' : 'bg-white/5 text-white/30 border-transparent'}`}>
+                  {g.name}
+                </button>
+              ))}
+            </div>
+          </div>
+          {goalType !== 'maintain' && (
+            <div>
+              <label className={labelClass}>每週變化速率</label>
+              <div className="grid grid-cols-3 gap-2">
+                {RATE_OPTIONS[goalType].map(r => (
+                  <button key={r.value} type="button" onClick={() => set('weeklyRate', r.value)}
+                    className={`py-3 rounded-2xl font-black text-[10px] transition-all border-2 ${weeklyRate === r.value ? 'bg-[#FF5733] text-white border-[#FF5733]' : 'bg-white/5 text-white/30 border-transparent'}`}>
+                    {r.value} kg/週
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {preview && (
+            <div className="bg-white/5 rounded-2xl p-4 text-xs text-white/50 flex justify-between">
+              <span>BMR {preview.bmr} · TDEE {preview.tdee}</span>
+              <span className="text-white font-bold">每日目標 {preview.dailyCalories} kcal</span>
+            </div>
+          )}
+        </div>
+      </GlassCard>
+
       {/* Challenge */}
       <GlassCard>
         <h3 className="text-sm font-black text-white/40 uppercase tracking-widest mb-6 flex items-center gap-2"><Target size={16} /> 挑戰設定</h3>
@@ -110,9 +175,9 @@ export default function Settings({ userProfile, onSave, onLogout, onReset }) {
             <div className="space-y-4 pt-4 border-t border-white/10">
               <p className="text-[10px] font-black text-[#FF5733] uppercase tracking-widest">碳水循環 — 各日營養素設定</p>
               {[
-                { key: 'high', label: '高碳日', desc: '(週四)', defaults: { p: 160, c: 230, f: 51 } },
-                { key: 'low', label: '低碳日', desc: '(週一二五六)', defaults: { p: 160, c: 100, f: 87 } },
-                { key: 'zero', label: '無碳日', desc: '(週三日)', defaults: { p: 160, c: 40, f: 98 } },
+                { key: 'high', label: '高碳日', desc: '(週四)', defaults: cyclingDefaults.high },
+                { key: 'low', label: '低碳日', desc: '(週一二五六)', defaults: cyclingDefaults.low },
+                { key: 'zero', label: '無碳日', desc: '(週三日)', defaults: cyclingDefaults.zero },
               ].map(day => {
                 const macros = form.customMacros?.[day.key] || day.defaults;
                 return (
@@ -165,6 +230,7 @@ export default function Settings({ userProfile, onSave, onLogout, onReset }) {
       </GlassCard>
 
       {/* Actions */}
+      {error && <p className="text-red-400 text-xs font-bold text-center">{error}</p>}
       <button onClick={handleSave}
         className={`w-full font-black py-5 rounded-[2rem] uppercase italic tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 ${saved ? 'bg-[#2ECC71] text-black shadow-xl shadow-[#2ECC71]/20' : 'bg-[#FF5733] text-white shadow-xl shadow-[#FF5733]/20'}`}>
         <Save size={18} /> {saved ? '已儲存 ✓' : '儲存所有變更'}

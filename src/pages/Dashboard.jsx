@@ -6,7 +6,6 @@ import { formatDate, getUserChallengeConfig, getUserBMR } from '../constants';
 
 export default function Dashboard({ records, setRecords, dayKey, userProfile }) {
   const challenge = getUserChallengeConfig(userProfile);
-  const progressPercent = Math.min(100, (records.length / challenge.totalDays) * 100);
   const latest = records[records.length - 1] || { weight: userProfile?.currentWeight || 70, bodyFat: 20, muscle: 30 };
   const HEIGHT = userProfile?.height || 175;
   const bmi = (latest.weight / Math.pow(HEIGHT / 100, 2)).toFixed(1);
@@ -15,6 +14,13 @@ export default function Dashboard({ records, setRecords, dayKey, userProfile }) 
   const today = new Date(); today.setHours(0,0,0,0);
   const start = new Date(challenge.startDate); start.setHours(0,0,0,0);
   const challengeDay = Math.max(1, Math.floor((today - start) / 86400000) + 1);
+  // 進度以經過天數計算（不是紀錄筆數，早晚各量一次不會讓進度變兩倍）
+  const progressPercent = Math.min(100, (challengeDay / challenge.totalDays) * 100);
+  const challengeDone = challengeDay > challenge.totalDays;
+  // 減脂看還要降多少、增肌看還要增多少；維持目標不顯示
+  const goalSign = userProfile?.goalType === 'bulk' ? -1 : 1;
+  const toTarget = (latest.weight && challenge.targetWeight && userProfile?.goalType !== 'maintain')
+    ? (goalSign * (latest.weight - challenge.targetWeight)).toFixed(1) : null;
 
   const weightDiff = records.length >= 2 ? (latest.weight - records[0].weight).toFixed(1) : null;
   const bmiStatus = bmi < 18.5 ? '過輕' : bmi < 24 ? '正常' : bmi < 27 ? '過重' : '肥胖';
@@ -67,7 +73,10 @@ export default function Dashboard({ records, setRecords, dayKey, userProfile }) 
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-white tracking-tight">儀表板</h1>
-          <p className="text-white/30 text-sm mt-1">第 {challengeDay} 天 / {challenge.totalDays} 天挑戰</p>
+          <p className="text-white/30 text-sm mt-1">
+            {challengeDone ? `${challenge.totalDays} 天挑戰已完成` : `第 ${challengeDay} 天 / ${challenge.totalDays} 天挑戰`}
+            {toTarget !== null && ` · 距目標 ${challenge.targetWeight} kg ${toTarget > 0 ? `還差 ${toTarget} kg` : '已達成'}`}
+          </p>
         </div>
         <div className="hidden lg:flex items-center gap-2 text-white/20 text-sm">
           <Calendar size={14} />

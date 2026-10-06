@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Zap, Trash2, Plus, Clock, Edit3, Save, X } from 'lucide-react';
 import { GlassCard } from '../components';
-import { FASTING_MODES } from '../constants';
+import { FASTING_MODES, formatDate } from '../constants';
 
 // 斷食代謝階段（根據 Zero/LIFE/Fastic 等 app + 科學文獻）
 const FASTING_STAGES = [
@@ -106,7 +106,7 @@ function getDateOptions() {
   for (let i = 6; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
-    const iso = d.toISOString().split('T')[0];
+    const iso = formatDate(d);
     const m = d.getMonth() + 1;
     const day = d.getDate();
     let label = `${m}月${day}日`;
@@ -126,7 +126,7 @@ function TimePicker({ value, onCancel, onSave, title }) {
   const minuteItems = Array.from({ length: 60 }, (_, i) => ({ label: String(i).padStart(2, '0'), value: i }));
   const ampmItems = [{ label: '上午', value: 'am' }, { label: '下午', value: 'pm' }];
 
-  const initDateIdx = dateOptions.findIndex(o => o.value === d.toISOString().split('T')[0]);
+  const initDateIdx = dateOptions.findIndex(o => o.value === formatDate(d));
   const [dateIdx, setDateIdx] = useState(initDateIdx >= 0 ? initDateIdx : dateOptions.length - 1);
   const [hourIdx, setHourIdx] = useState(d.getHours());
   const [minuteIdx, setMinuteIdx] = useState(d.getMinutes());

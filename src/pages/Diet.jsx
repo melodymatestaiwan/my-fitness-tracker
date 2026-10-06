@@ -3,7 +3,7 @@ import { Trash2, Plus, Search, Clock, Edit3, Minus, ChevronLeft, ChevronRight, D
 import { GlassCard } from '../components';
 import { DIET_PLAN, DAY_KEYS, QUICK_FOODS, formatDate, getUserDietPlan } from '../constants';
 
-export default function Diet({ diet, setDiet, currentDate, setCurrentDate, userProfile }) {
+export default function Diet({ diet, setDiet, water, setWater: setWaterLog, currentDate, userProfile }) {
   const [selectedDate, setSelectedDate] = useState(formatDate(currentDate || new Date()));
   const dow = DAY_KEYS[new Date(selectedDate + 'T00:00:00').getDay()];
   const dietPlan = getUserDietPlan(userProfile);
@@ -18,7 +18,6 @@ export default function Diet({ diet, setDiet, currentDate, setCurrentDate, userP
   const [collapsedMeals, setCollapsedMeals] = useState({});
   const [addingMeal, setAddingMeal] = useState(null); // which meal's add panel is open
   const [searchTab, setSearchTab] = useState('recent'); // recent | frequent | search
-  const [waterCups, setWaterCups] = useState(0);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickCal, setQuickCal] = useState('');
   const [quickMeal, setQuickMeal] = useState('午餐');
@@ -70,28 +69,22 @@ export default function Diet({ diet, setDiet, currentDate, setCurrentDate, userP
     return map;
   }, new Map()).values()].sort((a, b) => b.count - a.count).slice(0, 12);
 
-  // 水分追蹤
-  useEffect(() => {
-    const key = `water-${selectedDate}`;
-    setWaterCups(parseInt(localStorage.getItem(key)) || 0);
-  }, [selectedDate]);
-  const setWater = (v) => {
-    const cups = Math.max(0, v);
-    setWaterCups(cups);
-    localStorage.setItem(`water-${selectedDate}`, cups);
-  };
+  // 水分追蹤（存在雲端，跨裝置同步）
+  const waterCups = water?.[selectedDate] || 0;
+  const setWater = (v) => setWaterLog(prev => ({ ...(prev || {}), [selectedDate]: Math.max(0, v) }));
 
   // 新增食物
   const addFood = (food, meal) => {
-    setDiet([...diet, { ...food, id: Date.now(), date: selectedDate, servings: 1, meal: meal || addingMeal || '午餐' }]);
+    setDiet([...diet, { ...food, id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, date: selectedDate, servings: 1, meal: meal || addingMeal || '午餐' }]);
     setAddingMeal(null);
     setSearchQuery('');
     setSearchResults([]);
   };
 
   const selectSearchResult = (food) => {
+    // 資料庫數值為每 100g
     const f = {
-      name: food.name,
+      name: `${food.name} (100g)`,
       p: food.protein || food.p || 0,
       c: food.carbs || food.c || 0,
       f: food.fat || food.f || 0,
@@ -288,7 +281,7 @@ export default function Diet({ diet, setDiet, currentDate, setCurrentDate, userP
                           <button key={i} onClick={() => selectSearchResult(f)}
                             className="w-full text-left p-2 bg-white/5 rounded-lg hover:bg-[#2ECC71]/10 transition-all flex justify-between">
                             <span className="text-white text-xs font-bold truncate flex-1">{f.name}</span>
-                            <span className="text-[10px] text-white/30 ml-2 flex-shrink-0">P:{f.protein?.toFixed(0)} C:{f.carbs?.toFixed(0)} F:{f.fat?.toFixed(0)}</span>
+                            <span className="text-[10px] text-white/30 ml-2 flex-shrink-0">每100g · P:{f.protein?.toFixed(0)} C:{f.carbs?.toFixed(0)} F:{f.fat?.toFixed(0)}</span>
                           </button>
                         ))}
                       </div>

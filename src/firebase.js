@@ -1,11 +1,10 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAjcdK5pzIjX9GKIDuwvKHqQUDPRIg1Oy4",
-  authDomain: "melodymatestaiwan.github.io",
+  authDomain: "fitness-da269.firebaseapp.com",
   projectId: "fitness-da269",
   storageBucket: "fitness-da269.firebasestorage.app",
   messagingSenderId: "835868364194",
@@ -16,5 +15,4 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();
