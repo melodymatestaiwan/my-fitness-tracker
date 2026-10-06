@@ -9,6 +9,7 @@ import { auth } from './firebase';
 import { Navbar, LoadingScreen } from './components';
 import { uploadImage, uploadPhotos, compressDataUrl } from './api';
 import { useCloudSync } from './useCloudSync';
+import { getUserWorkoutPlan } from './workoutPlans';
 import { formatDate } from './constants';
 import { logout } from './auth';
 import Login from './pages/Login';
@@ -150,7 +151,14 @@ const App = () => {
       <div className="lg:pl-64 xl:pl-72">
         <div className="relative z-10 max-w-lg lg:max-w-5xl mx-auto px-6 pt-12 pb-40 lg:pb-12 lg:pt-8">
           {activeTab === 'dashboard' && <Dashboard records={records} setRecords={set.records} dayKey={dayKey} userProfile={userProfile} />}
-          {activeTab === 'workout' && <Workout workouts={workouts} setWorkouts={set.workouts} currentDate={currentDate} setCurrentDate={setCurrentDate} />}
+          {activeTab === 'workout' && (
+            <Workout
+              workouts={workouts} setWorkouts={set.workouts}
+              currentDate={currentDate} setCurrentDate={setCurrentDate}
+              workoutPlan={getUserWorkoutPlan(userProfile)} trainingDays={userProfile.trainingDays}
+              onPlanChange={(workoutPlan, trainingDays) => set.userProfile(p => ({ ...p, workoutPlan, trainingDays }))}
+            />
+          )}
           {activeTab === 'diet' && <Diet diet={diet} setDiet={set.diet} water={water} setWater={set.water} currentDate={currentDate} userProfile={userProfile} />}
           {activeTab === 'fasting' && <Fasting fasting={fasting} setFasting={set.fasting} />}
           {activeTab === 'photos' && <PhotoTracker photos={photos} setPhotos={set.photos} />}

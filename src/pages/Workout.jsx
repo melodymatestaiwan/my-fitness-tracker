@@ -1,7 +1,9 @@
-import React from 'react';
-import { ChevronLeft, ChevronRight, Trash2, CheckCircle2, Info, X, History } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronLeft, ChevronRight, Trash2, CheckCircle2, Info, X, History, Pencil } from 'lucide-react';
 import { GlassCard } from '../components';
-import { WORKOUT_PLAN, DAY_KEYS, COACH_TIPS, formatDate } from '../constants';
+import { DAY_KEYS, COACH_TIPS, formatDate } from '../constants';
+import { dayTitle } from '../workoutPlans';
+import WorkoutPlanEditor from './WorkoutPlanEditor';
 
 // 找出某動作在指定日期之前最近一次的紀錄
 function findLastSession(workouts, exerciseName, beforeKey) {
@@ -14,10 +16,11 @@ function findLastSession(workouts, exerciseName, beforeKey) {
   return null;
 }
 
-export default function Workout({ workouts, setWorkouts, currentDate, setCurrentDate }) {
+export default function Workout({ workouts, setWorkouts, currentDate, setCurrentDate, workoutPlan, trainingDays, onPlanChange }) {
+  const [editingPlan, setEditingPlan] = useState(false);
   const dayKey = formatDate(currentDate);
   const dow = DAY_KEYS[currentDate.getDay()];
-  const plan = WORKOUT_PLAN[dow];
+  const plan = { ...workoutPlan[dow], dayName: dayTitle(dow, workoutPlan[dow]) };
   const currentWorkouts = workouts[dayKey] || [];
 
   // 以不可變方式更新當天的動作清單
@@ -61,6 +64,17 @@ export default function Workout({ workouts, setWorkouts, currentDate, setCurrent
   const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
   const todayKey = formatDate(new Date());
 
+  if (editingPlan) {
+    return (
+      <WorkoutPlanEditor
+        plan={workoutPlan}
+        trainingDays={trainingDays}
+        onCancel={() => setEditingPlan(false)}
+        onSave={(newPlan, days) => { onPlanChange(newPlan, days); setEditingPlan(false); }}
+      />
+    );
+  }
+
   const numInput = "bg-white/5 border border-white/5 rounded-2xl p-3 text-center text-white font-black italic text-sm w-full";
 
   return (
@@ -73,7 +87,12 @@ export default function Workout({ workouts, setWorkouts, currentDate, setCurrent
           <button onClick={() => shiftDate(1)} className="p-2 text-white/40 hover:text-white"><ChevronRight size={18}/></button>
         </div>
       </header>
-      <p className="text-center text-white/30 text-xs font-bold -mt-4 mb-2">{plan.dayName}</p>
+      <div className="flex justify-center items-center gap-3 -mt-4 mb-2">
+        <p className="text-white/30 text-xs font-bold">{plan.dayName}</p>
+        <button onClick={() => setEditingPlan(true)} className="flex items-center gap-1 text-[11px] font-bold text-[#FF5733]/80 hover:text-[#FF5733]">
+          <Pencil size={11}/> 編輯課表
+        </button>
+      </div>
 
       {/* Week Day Selector */}
       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-4">

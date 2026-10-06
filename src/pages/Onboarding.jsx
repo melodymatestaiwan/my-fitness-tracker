@@ -3,6 +3,7 @@ import { ChevronRight, ChevronLeft, Rocket, User, Target, Utensils, Activity, Ca
 import { GlassCard } from '../components';
 import { FASTING_MODES, formatDate } from '../constants';
 import { ACTIVITY_LEVELS, GOAL_TYPES, RATE_OPTIONS, calcTargets, estimateChallengeDays } from '../nutrition';
+import { generatePlan, templateName } from '../workoutPlans';
 
 const DIET_TYPES = [
   { id: 'carb-cycling', name: '碳水循環', desc: '高低碳交替，適合減脂增肌', color: '#FF5733' },
@@ -108,6 +109,7 @@ export default function Onboarding({ userName, onComplete }) {
       name: userName,
       height: h, currentWeight: w, age: a, gender, bodyFat: parseFloat(bodyFat) || null,
       activityLevel, goalType, weeklyRate, trainingDays,
+      workoutPlan: generatePlan(trainingDays),
       bmr, tdee, dailyCalories, macros,
       targetWeight: goalType === 'maintain' ? w : tw,
       challengeDays,
@@ -224,6 +226,7 @@ export default function Onboarding({ userName, onComplete }) {
                 className={`py-3 rounded-2xl font-black text-sm transition-all border-2 ${trainingDays === d ? 'bg-[#FF5733] text-white border-[#FF5733]' : 'bg-white/5 text-white/30 border-transparent'}`}>{d}天</button>
             ))}
           </div>
+          <p className="text-white/30 text-[10px] mt-2">將套用「{templateName(trainingDays)}」課表，之後可在訓練頁編輯</p>
         </div>
       </div>
     </div>
