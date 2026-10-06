@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Trash2, CheckCircle2, Info, X, History, Pencil } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Trash2, CheckCircle2, Info, X, History, Pencil, TrendingUp, TrendingDown, Target } from 'lucide-react';
 import { GlassCard } from '../components';
 import { DAY_KEYS, COACH_TIPS, formatDate } from '../constants';
 import { dayTitle } from '../workoutPlans';
+import { suggestNext } from '../progression';
 import WorkoutPlanEditor from './WorkoutPlanEditor';
 
 // 找出某動作在指定日期之前最近一次的紀錄
@@ -33,11 +34,11 @@ export default function Workout({ workouts, setWorkouts, currentDate, setCurrent
       const last = day[idx].sets[day[idx].sets.length - 1] || {};
       return day.map((e, i) => i === idx ? { ...e, sets: [...e.sets, { kg: last.kg || '', reps: last.reps || '', completed: false }] } : e);
     }
-    const prev = findLastSession(workouts, exerciseName, dayKey);
-    const seed = prev?.sets[0] || {};
+    // 第一組直接帶入建議重量與次數
+    const next = suggestNext(workouts, exerciseName, dayKey);
     return [...day, {
       name: exerciseName,
-      sets: [{ kg: seed.kg || '', reps: seed.reps || '', completed: false }],
+      sets: [{ kg: next ? String(next.kg) : '', reps: next ? String(next.reps) : '', completed: false }],
       tips: COACH_TIPS[exerciseName] || '專注感受肌肉收縮。',
     }];
   });
@@ -140,6 +141,8 @@ export default function Workout({ workouts, setWorkouts, currentDate, setCurrent
       <div className="space-y-6">
         {currentWorkouts.map((ex, exIdx) => {
           const last = findLastSession(workouts, ex.name, dayKey);
+          const next = suggestNext(workouts, ex.name, dayKey);
+          const NextIcon = next?.action === 'increase' ? TrendingUp : next?.action === 'deload' ? TrendingDown : Target;
           return (
             <GlassCard key={`${ex.name}-${exIdx}`} className="relative overflow-hidden">
               <div className="flex justify-between items-start mb-4">
@@ -153,6 +156,11 @@ export default function Workout({ workouts, setWorkouts, currentDate, setCurrent
               {last && (
                 <p className="text-white/30 text-[11px] mb-4 flex items-center gap-1.5">
                   <History size={12}/> 上次 {last.date.slice(5)}：{last.sets.map(s => `${s.kg || 0}kg×${s.reps || 0}`).join(' / ')}
+                </p>
+              )}
+              {next && (
+                <p className={`text-[11px] -mt-2 mb-4 flex items-center gap-1.5 ${next.action === 'increase' ? 'text-emerald-400' : next.action === 'deload' ? 'text-amber-400' : 'text-white/50'}`}>
+                  <NextIcon size={12}/> 建議 {next.kg}kg × {next.reps}：{next.reason}
                 </p>
               )}
 

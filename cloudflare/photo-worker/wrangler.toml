@@ -8,5 +8,8 @@ bucket_name = "fitness-photos"
 
 [vars]
 FIREBASE_PROJECT_ID = "fitness-da269"
+# AI 教練使用的 OpenRouter 模型與每人每天問答上限（金鑰用 wrangler secret put OPENROUTER_API_KEY 設定）
+COACH_MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free"
+COACH_DAILY_LIMIT = "30"
 # 允許呼叫此服務的網站（逗號分隔）
 ALLOWED_ORIGINS = "https://melodymatestaiwan.github.io,http://localhost:5173,http://localhost:4173"
