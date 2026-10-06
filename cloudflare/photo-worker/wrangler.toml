@@ -1,0 +1,12 @@
+name = "fitness-photos"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+[[r2_buckets]]
+binding = "PHOTOS"
+bucket_name = "fitness-photos"
+
+[vars]
+FIREBASE_PROJECT_ID = "fitness-da269"
+# 允許呼叫此服務的網站（逗號分隔）
+ALLOWED_ORIGINS = "https://melodymatestaiwan.github.io,http://localhost:5173,http://localhost:4173"

@@ -66,7 +66,7 @@ const App = () => {
     applyFastingMode(profile.fastingMode);
     // 訓練前照片在背景上傳，完成後把 base64 換成雲端網址
     if (Object.keys(profile.beforePhotos || {}).length > 0) {
-      uploadPhotos(uid, profile.beforePhotos, 'before').then(urls => {
+      uploadPhotos(profile.beforePhotos).then(urls => {
         set.userProfile(p => (p ? { ...p, beforePhotos: urls } : p));
       });
     }
@@ -83,7 +83,7 @@ const App = () => {
     let photoUrl = null;
     if (photo) {
       const small = await compressDataUrl(photo).catch(() => null);
-      if (small) photoUrl = (await uploadImage(uid, `photos/${today}_scan_${Date.now()}.jpg`, small)) || small;
+      if (small) photoUrl = (await uploadImage(small)) || small;
     }
     set.photos(prev => {
       const list = [...(prev || [])];

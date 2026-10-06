@@ -1,6 +1,5 @@
-import { db, storage } from './firebase';
+import { db, auth } from './firebase';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
-import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 
 // Firestore 單一文件上限 1 MiB，留一點餘裕給欄位名與 metadata
 const MAX_DOC_BYTES = 950 * 1024;
@@ -57,29 +56,47 @@ export function removeState(key) {
   localStorage.removeItem(`${APP_ID}-${key}`);
 }
 
-// --- Firebase Storage 圖片上傳 ---
-export async function uploadImage(userId, path, dataUrl) {
+// --- 照片上傳（Cloudflare R2，見 cloudflare/photo-worker）---
+// 沒有設定 VITE_PHOTO_API_URL 時回傳 null，呼叫端會改把壓縮後的圖片存在 Firestore
+const PHOTO_API = (import.meta.env.VITE_PHOTO_API_URL || '').replace(/\/$/, '');
+
+export const isCloudPhoto = (url) => Boolean(PHOTO_API && url?.startsWith(`${PHOTO_API}/photos/`));
+
+export async function uploadImage(dataUrl) {
+  if (!PHOTO_API || !auth.currentUser) return null;
   try {
-    const storageRef = ref(storage, `users/${userId}/${path}`);
-    const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
-    return await getDownloadURL(snapshot.ref);
+    const blob = await (await fetch(dataUrl)).blob();
+    const token = await auth.currentUser.getIdToken();
+    const res = await fetch(`${PHOTO_API}/upload`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': blob.type || 'image/jpeg' },
+      body: blob,
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `HTTP ${res.status}`);
+    return (await res.json()).url;
   } catch (e) {
-    console.error(`uploadImage(${path}) failed:`, e);
+    console.error('照片上傳失敗:', e);
     return null;
   }
 }
 
-export async function uploadPhotos(userId, photos, prefix) {
+export async function uploadPhotos(photos) {
   const urls = {};
   for (const [pose, dataUrl] of Object.entries(photos || {})) {
-    if (dataUrl && dataUrl.startsWith('data:')) {
-      const url = await uploadImage(userId, `${prefix}/${pose}_${Date.now()}.jpg`, dataUrl);
-      urls[pose] = url || dataUrl;
-    } else if (dataUrl) {
-      urls[pose] = dataUrl;
-    }
+    if (dataUrl?.startsWith('data:')) urls[pose] = (await uploadImage(dataUrl)) || dataUrl;
+    else if (dataUrl) urls[pose] = dataUrl;
   }
   return urls;
+}
+
+// 刪除紀錄時一併刪除雲端照片；失敗不影響紀錄刪除
+export async function deletePhotos(urls) {
+  const targets = (urls || []).filter(isCloudPhoto);
+  if (!targets.length || !auth.currentUser) return;
+  const token = await auth.currentUser.getIdToken();
+  await Promise.all(targets.map(url => fetch(url, {
+    method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
+  }).catch(e => console.error('刪除照片失敗:', e))));
 }
 
 // 把圖片縮到長邊 maxSide 再轉 JPEG，避免照片把雲端文件撐爆

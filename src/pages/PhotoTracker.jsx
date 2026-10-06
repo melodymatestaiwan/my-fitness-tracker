@@ -1,8 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Camera, Ruler, ChevronLeft, ChevronRight, Trash2, Plus, TrendingDown, TrendingUp, Loader } from 'lucide-react';
 import { GlassCard } from '../components';
-import { uploadImage } from '../api';
-import { auth } from '../firebase';
+import { uploadImage, deletePhotos } from '../api';
 import { formatDate } from '../constants';
 
 const POSES = [
@@ -72,15 +71,10 @@ export default function PhotoTracker({ photos, setPhotos }) {
 
   const savePhoto = async (pose, dataUrl) => {
     const date = selectedDate;
-    // 先上傳到 Firebase Storage；失敗時保留壓縮後的圖片
-    let finalUrl = dataUrl;
-    const uid = auth.currentUser?.uid;
-    if (uid) {
-      setUploading(true);
-      const url = await uploadImage(uid, `photos/${date}_${pose}_${Date.now()}.jpg`, dataUrl);
-      if (url) finalUrl = url;
-      setUploading(false);
-    }
+    // 先上傳到雲端照片空間；未設定或失敗時保留壓縮後的圖片
+    setUploading(true);
+    const finalUrl = (await uploadImage(dataUrl)) || dataUrl;
+    setUploading(false);
     // 用最新的狀態合併，避免上傳期間的其他修改被蓋掉
     setPhotos(prev => {
       const list = [...(prev || [])];
@@ -122,7 +116,9 @@ export default function PhotoTracker({ photos, setPhotos }) {
   // --- 刪除紀錄 ---
   const deleteEntry = (date) => {
     if (!confirm(`確定刪除 ${date} 的紀錄？`)) return;
+    const removed = (photos || []).filter(e => e.date === date);
     setPhotos((photos || []).filter(e => e.date !== date));
+    deletePhotos(removed.flatMap(e => Object.values(e.photos || {})));
   };
 
   // --- 對比檢視 ---
