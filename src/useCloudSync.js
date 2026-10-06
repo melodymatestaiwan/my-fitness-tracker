@@ -10,11 +10,12 @@ export const SYNC_DEFAULTS = {
   fasting: { active: false, startTime: null, mode: 16, history: [] },
   photos: [],
   water: {},
+  coach: { messages: [] },
 };
 
 const LABELS = {
   userProfile: '個人資料', records: '體重紀錄', workouts: '訓練紀錄', diet: '飲食紀錄',
-  fasting: '斷食紀錄', photos: '照片與尺寸', water: '飲水紀錄',
+  fasting: '斷食紀錄', photos: '照片與尺寸', water: '飲水紀錄', coach: '教練對話',
 };
 
 const KEYS = Object.keys(SYNC_DEFAULTS);

@@ -21,6 +21,7 @@ import Fasting from './pages/Fasting';
 import Settings from './pages/Settings';
 import PhotoTracker from './pages/PhotoTracker';
 import BodyMeasure from './pages/BodyMeasure';
+import Coach from './pages/Coach';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -48,7 +49,7 @@ const App = () => {
 
   const uid = firebaseUser?.uid || null;
   const { data, set, status, everReady, error, retry, clearError } = useCloudSync(uid);
-  const { userProfile, records, workouts, diet, fasting, photos, water } = data;
+  const { userProfile, records, workouts, diet, fasting, photos, water, coach } = data;
 
   useEffect(() => {
     if (status !== 'loading') { setSlowLoad(false); return undefined; }
@@ -151,6 +152,7 @@ const App = () => {
       <div className="lg:pl-64 xl:pl-72">
         <div className="relative z-10 max-w-lg lg:max-w-5xl mx-auto px-6 pt-12 pb-40 lg:pb-12 lg:pt-8">
           {activeTab === 'dashboard' && <Dashboard records={records} setRecords={set.records} dayKey={dayKey} userProfile={userProfile} />}
+          {activeTab === 'coach' && <Coach data={data} coach={coach} setCoach={set.coach} />}
           {activeTab === 'workout' && (
             <Workout
               workouts={workouts} setWorkouts={set.workouts}

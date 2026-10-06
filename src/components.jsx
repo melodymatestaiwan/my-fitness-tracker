@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Activity, Dumbbell, Utensils, Clock,
-  TrendingUp, Trophy, Plus, Info, Settings, Camera, Scan, Flame
+  TrendingUp, Trophy, Plus, Info, Settings, Camera, Scan, Flame, Sparkles
 } from 'lucide-react';
 
 export const GlassCard = ({ children, className = "" }) => (
@@ -29,6 +29,7 @@ export const LoadingScreen = ({ message }) => (
 
 const NAV_ITEMS = [
   { id: 'dashboard', icon: Activity, label: '總覽' },
+  { id: 'coach', icon: Sparkles, label: '教練' },
   { id: 'workout', icon: Dumbbell, label: '訓練' },
   { id: 'diet', icon: Utensils, label: '飲食' },
   { id: 'fasting', icon: Clock, label: '斷食' },

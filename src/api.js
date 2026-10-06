@@ -99,6 +99,23 @@ export async function deletePhotos(urls) {
   }).catch(e => console.error('刪除照片失敗:', e))));
 }
 
+// --- AI 教練（同一個 Worker 的 /coach）---
+export const coachAvailable = Boolean(PHOTO_API);
+
+export async function askCoach(messages, context) {
+  if (!PHOTO_API) throw new Error('AI 教練尚未設定');
+  if (!auth.currentUser) throw new Error('請先登入');
+  const token = await auth.currentUser.getIdToken();
+  const res = await fetch(`${PHOTO_API}/coach`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages, context }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `連線失敗（${res.status}）`);
+  return data.reply;
+}
+
 // 把圖片縮到長邊 maxSide 再轉 JPEG，避免照片把雲端文件撐爆
 export function compressDataUrl(dataUrl, maxSide = 600, quality = 0.7) {
   return new Promise((resolve, reject) => {
