@@ -31,8 +31,12 @@ export function exerciseHistory(workouts, name, beforeKey) {
 }
 
 // 回傳 { action: 'increase'|'hold'|'deload'|'start', kg, reps, reason } 或 null
-export function suggestNext(workouts, name, beforeKey) {
+// override：教練提案的重量（{ kg, reps, date }）。date 之後還沒有練過才生效，練完就恢復自動建議
+export function suggestNext(workouts, name, beforeKey, override) {
   const [last, prev] = exerciseHistory(workouts, name, beforeKey);
+  if (override && (!last || override.date > last.date)) {
+    return { action: 'override', kg: override.kg, reps: override.reps, reason: '教練建議的重量，練完這次後會改回自動建議' };
+  }
   if (!last) return null;
 
   const topKg = Math.max(...last.sets.map(s => s.kg));

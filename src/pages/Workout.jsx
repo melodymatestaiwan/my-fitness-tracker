@@ -17,7 +17,7 @@ function findLastSession(workouts, exerciseName, beforeKey) {
   return null;
 }
 
-export default function Workout({ workouts, setWorkouts, currentDate, setCurrentDate, workoutPlan, trainingDays, onPlanChange }) {
+export default function Workout({ workouts, setWorkouts, currentDate, setCurrentDate, workoutPlan, trainingDays, onPlanChange, weightOverrides }) {
   const [editingPlan, setEditingPlan] = useState(false);
   const dayKey = formatDate(currentDate);
   const dow = DAY_KEYS[currentDate.getDay()];
@@ -35,7 +35,7 @@ export default function Workout({ workouts, setWorkouts, currentDate, setCurrent
       return day.map((e, i) => i === idx ? { ...e, sets: [...e.sets, { kg: last.kg || '', reps: last.reps || '', completed: false }] } : e);
     }
     // 第一組直接帶入建議重量與次數
-    const next = suggestNext(workouts, exerciseName, dayKey);
+    const next = suggestNext(workouts, exerciseName, dayKey, weightOverrides?.[exerciseName]);
     return [...day, {
       name: exerciseName,
       sets: [{ kg: next ? String(next.kg) : '', reps: next ? String(next.reps) : '', completed: false }],
@@ -141,7 +141,7 @@ export default function Workout({ workouts, setWorkouts, currentDate, setCurrent
       <div className="space-y-6">
         {currentWorkouts.map((ex, exIdx) => {
           const last = findLastSession(workouts, ex.name, dayKey);
-          const next = suggestNext(workouts, ex.name, dayKey);
+          const next = suggestNext(workouts, ex.name, dayKey, weightOverrides?.[ex.name]);
           const NextIcon = next?.action === 'increase' ? TrendingUp : next?.action === 'deload' ? TrendingDown : Target;
           return (
             <GlassCard key={`${ex.name}-${exIdx}`} className="relative overflow-hidden">
