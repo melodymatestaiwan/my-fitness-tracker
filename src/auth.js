@@ -1,5 +1,5 @@
 import { auth, googleProvider } from './firebase';
-import { signInWithPopup, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { signInWithPopup, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, updateProfile } from 'firebase/auth';
 
 // --- Google 登入 ---
 export async function loginWithGoogle() {
@@ -33,6 +33,17 @@ export async function loginWithEmail(email, password) {
   }
 }
 
+// --- 忘記密碼：寄送重設密碼信 ---
+export async function resetPassword(email) {
+  try {
+    auth.languageCode = 'zh-TW';
+    await sendPasswordResetEmail(auth, email);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: firebaseErrorMsg(error) };
+  }
+}
+
 // --- 登出 ---
 export async function logout() {
   await signOut(auth);
@@ -61,6 +72,8 @@ function firebaseErrorMsg(error) {
     'auth/wrong-password': '密碼錯誤',
     'auth/invalid-credential': '帳號或密碼錯誤',
     'auth/popup-closed-by-user': '登入已取消',
+    'auth/invalid-email': 'Email 格式不正確',
+    'auth/too-many-requests': '嘗試次數過多，請稍後再試',
     'auth/unauthorized-domain': '此網域未授權，請到 Firebase Console 新增',
   };
   return map[error.code] || `登入失敗: ${error.message}`;
