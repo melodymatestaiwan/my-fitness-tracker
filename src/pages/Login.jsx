@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Flame } from 'lucide-react';
 import { GlassCard } from '../components';
-import { registerWithEmail, loginWithEmail, loginWithGoogle } from '../auth';
+import { registerWithEmail, loginWithEmail, loginWithGoogle, resetPassword } from '../auth';
 
 export default function Login({ onSuccess }) {
   const [mode, setMode] = useState('login');
@@ -10,6 +10,7 @@ export default function Login({ onSuccess }) {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -31,6 +32,20 @@ export default function Login({ onSuccess }) {
         if (!res.success) return setError(res.error);
         onSuccess?.(res.user);
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReset = async () => {
+    setError('');
+    setNotice('');
+    if (!email.trim()) return setError('請先在上方輸入註冊時的 Email');
+    setLoading(true);
+    try {
+      const res = await resetPassword(email.trim());
+      if (!res.success) return setError(res.error);
+      setNotice('如果這個 Email 有註冊，幾分鐘內會收到重設密碼信（也請檢查垃圾郵件）。');
     } finally {
       setLoading(false);
     }
@@ -102,14 +117,20 @@ export default function Login({ onSuccess }) {
               <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="••••••" className={inputClass} />
             </div>
           )}
+          {mode === 'login' && (
+            <div className="text-right -mt-2">
+              <button type="button" onClick={handleReset} disabled={loading} className="text-white/40 text-xs font-bold hover:text-white/70 disabled:opacity-50">忘記密碼？</button>
+            </div>
+          )}
           {error && <p className="text-red-400 text-xs font-bold text-center py-1">{error}</p>}
+          {notice && <p className="text-emerald-400 text-xs font-bold text-center py-1">{notice}</p>}
           <button disabled={loading} className="w-full bg-[#FF5733] text-white font-black py-5 rounded-[2rem] shadow-xl shadow-[#FF5733]/20 uppercase italic tracking-widest hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 mt-2">
             {loading ? '處理中...' : mode === 'login' ? '登入' : '建立帳號'}
           </button>
         </form>
 
         <div className="text-center mt-6">
-          <button type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}
+          <button type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); setNotice(''); }}
             className="text-white/40 text-xs font-bold hover:text-white/70 transition-colors">
             {mode === 'login' ? '還沒有帳號？立即註冊 →' : '已有帳號？登入 →'}
           </button>
