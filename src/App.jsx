@@ -152,12 +152,12 @@ const App = () => {
       <div className="lg:pl-64 xl:pl-72">
         <div className="relative z-10 max-w-lg lg:max-w-5xl mx-auto px-6 pt-12 pb-40 lg:pb-12 lg:pt-8">
           {activeTab === 'dashboard' && <Dashboard records={records} setRecords={set.records} dayKey={dayKey} userProfile={userProfile} />}
-          {activeTab === 'coach' && <Coach data={data} coach={coach} setCoach={set.coach} />}
+          {activeTab === 'coach' && <Coach data={data} coach={coach} setCoach={set.coach} setProfile={set.userProfile} />}
           {activeTab === 'workout' && (
             <Workout
               workouts={workouts} setWorkouts={set.workouts}
               currentDate={currentDate} setCurrentDate={setCurrentDate}
-              workoutPlan={getUserWorkoutPlan(userProfile)} trainingDays={userProfile.trainingDays}
+              workoutPlan={getUserWorkoutPlan(userProfile)} trainingDays={userProfile.trainingDays} weightOverrides={userProfile.weightOverrides}
               onPlanChange={(workoutPlan, trainingDays) => set.userProfile(p => ({ ...p, workoutPlan, trainingDays }))}
             />
           )}

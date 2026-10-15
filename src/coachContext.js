@@ -1,6 +1,6 @@
 import { DAY_KEYS, formatDate, getUserDietPlan } from './constants';
 import { ACTIVITY_LEVELS, GOAL_TYPES } from './nutrition';
-import { getUserWorkoutPlan, dayTitle } from './workoutPlans';
+import { WEEKDAY_ORDER, getUserWorkoutPlan, dayTitle } from './workoutPlans';
 import { suggestNext } from './progression';
 
 const daysAgo = (n, from = new Date()) => {
@@ -53,8 +53,14 @@ export function buildCoachContext({ userProfile: p, records, workouts, diet }, n
   const todayPlan = workoutPlan[dow];
   lines.push(`\n## 今天課表：${dayTitle(dow, todayPlan)}`);
   (todayPlan?.exercises || []).forEach(name => {
-    const next = suggestNext(workouts, name, today);
+    const next = suggestNext(workouts, name, today, p.weightOverrides?.[name]);
     lines.push(next ? `${name}：App 建議 ${next.kg}kg×${next.reps}（${next.reason}）` : `${name}：沒有歷史紀錄`);
+  });
+
+  lines.push('\n## 每週課表（目前設定）');
+  WEEKDAY_ORDER.forEach(d => {
+    const day = workoutPlan[d];
+    lines.push(`${dayTitle(d, day)}：${day?.exercises?.length ? day.exercises.join('、') : '休息'}`);
   });
 
   lines.push('\n## 近 7 天飲食');

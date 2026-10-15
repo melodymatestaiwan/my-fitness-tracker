@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Sparkles, TrendingUp, TrendingDown, Target, Trash2 } from 'lucide-react';
+import { Send, Sparkles, TrendingUp, TrendingDown, Target, Trash2, Check, X } from 'lucide-react';
 import { GlassCard } from '../components';
 import { DAY_KEYS, formatDate } from '../constants';
 import { getUserWorkoutPlan, dayTitle } from '../workoutPlans';
 import { suggestNext } from '../progression';
 import { buildCoachContext } from '../coachContext';
 import { askCoach, coachAvailable } from '../api';
+import { parseCoachReply, checkProposal, applyProposalToProfile, describeProposal } from '../proposals';
 
 const KEEP_MESSAGES = 40;   // 雲端保留的對話數
 const SEND_MESSAGES = 12;   // 每次送給 AI 的最近對話數
@@ -28,7 +29,41 @@ function recentForApi(messages) {
   return recent;
 }
 
-export default function Coach({ data, coach, setCoach }) {
+// 教練的修改提案卡片：改前改後對照，按套用才會生效
+const ProposalCard = ({ proposal, profile, onApply, onDismiss }) => {
+  if (proposal.status === 'invalid') {
+    return <p className="text-amber-400 text-xs">有一項提案超出安全範圍，已略過：{proposal.error}</p>;
+  }
+  const { title, rows, note, reason } = describeProposal(proposal, profile);
+  return (
+    <div className="mt-3 rounded-xl border border-[#FF5733]/30 bg-[#FF5733]/5 p-3 text-xs">
+      <p className="text-white font-bold mb-2">{title}</p>
+      <ul className="space-y-1 mb-2">
+        {rows.map(r => (
+          <li key={r.label} className="flex flex-wrap gap-x-2">
+            <span className="text-white/40 w-16 shrink-0">{r.label}</span>
+            <span className="text-white/30 line-through">{r.before}</span>
+            <span className="text-white/30">→</span>
+            <span className="text-white font-bold">{r.after}</span>
+          </li>
+        ))}
+      </ul>
+      {reason && <p className="text-white/50 mb-2">{reason}</p>}
+      {note && <p className="text-white/40 mb-2">{note}</p>}
+      {proposal.error && <p className="text-red-400 mb-2">{proposal.error}</p>}
+      {proposal.status === 'pending' && (
+        <div className="flex gap-2">
+          <button onClick={onApply} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#FF5733] text-white font-bold"><Check size={12}/> 套用</button>
+          <button onClick={onDismiss} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/10 text-white/50"><X size={12}/> 忽略</button>
+        </div>
+      )}
+      {proposal.status === 'applied' && <p className="text-emerald-400 font-bold">已套用</p>}
+      {proposal.status === 'dismissed' && <p className="text-white/30">已忽略</p>}
+    </div>
+  );
+};
+
+export default function Coach({ data, coach, setCoach, setProfile }) {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
@@ -51,8 +86,16 @@ export default function Coach({ data, coach, setCoach }) {
     setError('');
     setSending(true);
     try {
-      const reply = await askCoach(recentForApi(history), buildCoachContext(data, new Date()));
-      const coachMsg = { role: 'assistant', content: reply, date: formatDate(new Date()) };
+      const raw = await askCoach(recentForApi(history), buildCoachContext(data, new Date()));
+      const parsed = parseCoachReply(raw, data.userProfile);
+      const proposals = parsed.proposals;
+      const coachMsg = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        role: 'assistant',
+        content: parsed.reply || (proposals.length ? '我整理了以下修改提案，請確認後再套用：' : '教練暫時沒有回覆，請再試一次。'),
+        date: formatDate(new Date()),
+        proposals,
+      };
       setCoach(c => ({ ...c, messages: [...(c?.messages || []), coachMsg].slice(-KEEP_MESSAGES) }));
     } catch (e) {
       setError(e.message);
@@ -62,6 +105,23 @@ export default function Coach({ data, coach, setCoach }) {
     } finally {
       setSending(false);
     }
+  };
+
+  const updateProposal = (msgId, idx, patch) => setCoach(c => ({
+    ...c,
+    messages: (c?.messages || []).map(m => m.id !== msgId ? m : {
+      ...m,
+      proposals: m.proposals.map((p, i) => i === idx ? { ...p, ...patch } : p),
+    }),
+  }));
+
+  // 套用前重新檢查一次，因為個人資料可能在提案後已經改過
+  const applyOne = (msg, idx) => {
+    const raw = msg.proposals[idx];
+    const check = checkProposal(raw, data.userProfile);
+    if (!check.ok) return updateProposal(msg.id, idx, { error: check.error });
+    setProfile(profile => applyProposalToProfile(profile, check.proposal, today));
+    updateProposal(msg.id, idx, { status: 'applied', error: null });
   };
 
   // 每天第一次打開時自動產生今日建議
@@ -97,7 +157,7 @@ export default function Coach({ data, coach, setCoach }) {
         {todayPlan?.exercises?.length ? (
           <ul className="space-y-3">
             {todayPlan.exercises.map(name => {
-              const next = suggestNext(data.workouts, name, today);
+              const next = suggestNext(data.workouts, name, today, data.userProfile.weightOverrides?.[name]);
               const Icon = next?.action === 'increase' ? TrendingUp : next?.action === 'deload' ? TrendingDown : Target;
               const color = next?.action === 'increase' ? 'text-emerald-400' : next?.action === 'deload' ? 'text-amber-400' : 'text-white/50';
               return (
@@ -127,10 +187,19 @@ export default function Coach({ data, coach, setCoach }) {
               <p className="text-white/40 text-sm text-center py-6">問我任何訓練、飲食或體重的問題</p>
             )}
             {messages.map((m, i) => (
-              <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div key={m.id || i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${m.role === 'user' ? 'bg-[#FF5733] text-white' : 'bg-white/5 border border-white/10 text-white/80'}`}>
                   {m.role === 'assistant' && <p className="text-[#FF5733] text-[10px] font-bold mb-1 flex items-center gap-1"><Sparkles size={10}/> 教練 · {m.date}</p>}
                   <RichText text={m.content} />
+                  {m.proposals?.map((p, idx) => (
+                    <ProposalCard
+                      key={idx}
+                      proposal={p}
+                      profile={data.userProfile}
+                      onApply={() => applyOne(m, idx)}
+                      onDismiss={() => updateProposal(m.id, idx, { status: 'dismissed' })}
+                    />
+                  ))}
                 </div>
               </div>
             ))}
