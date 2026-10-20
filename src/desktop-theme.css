@@ -1,0 +1,138 @@
+/*
+ * 電腦版配色（F 版：Nike 風格）
+ *
+ * 只在 1024px 以上生效，手機版維持原本的深色設計。
+ * 程式裡的顏色沿用 Tailwind 的 class（例如 text-white/40、bg-[#FF5733]），
+ * 這裡依 class 名稱把它們改成淺色底、黑色字、螢光綠強調色。
+ *
+ * 色票（對比度皆達 WCAG AA）：
+ *   頁面底色 #FFFFFF · 卡片 #F4F4F4 · 框線 #E0E0E0
+ *   主要文字 #111111 (18.9:1) · 次要文字 #5C5C5C (6.7:1) · 弱文字 #6B6B6B (5.3:1)
+ *   強調色 #B5F23D（螢光綠，搭配黑字 14.2:1）
+ *   成功 #15803D · 警告 #A16207 · 錯誤 #B91C1C · 資訊 #1D4ED8
+ */
+@media (min-width: 1024px) {
+  /* ---------- 底色與卡片 ---------- */
+  .bg-\[\#050505\],
+  .bg-\[\#0a0a0f\],
+  .bg-\[\#111118\] { background-color: #FFFFFF; }
+
+  .bg-white\/5 { background-color: #F4F4F4; }
+  .bg-white\/10 { background-color: #F4F4F4; }
+  .bg-white\/20 { background-color: #E8E8E8; }
+
+  .border-white\/5,
+  .border-white\/10,
+  .border-white\/\[0\.03\] { border-color: #E0E0E0; }
+  .border-white\/20,
+  .border-white\/30 { border-color: #D4D4D4; }
+
+  .backdrop-blur-2xl,
+  .backdrop-blur-3xl,
+  .backdrop-blur-xl,
+  .backdrop-blur-sm { backdrop-filter: none; }
+
+  /* 背景的光暈裝飾在淺色底上不需要 */
+  .blur-\[150px\] { display: none; }
+
+  /* 陰影：去掉發光效果，只留很淡的投影 */
+  [class*="shadow-[0_0"],
+  [class*="shadow-[#"] { box-shadow: none; }
+  .shadow-2xl { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06); }
+
+  /* ---------- 文字 ---------- */
+  .text-white { color: #111111; }
+  .text-white\/80 { color: #2B2B2B; }
+  .text-white\/70 { color: #2B2B2B; }
+  .text-white\/60 { color: #5C5C5C; }
+  .text-white\/50 { color: #5C5C5C; }
+  .text-white\/40 { color: #5C5C5C; }
+  .text-white\/30 { color: #6B6B6B; }
+  .text-white\/20 { color: #6B6B6B; }
+  .text-white\/10 { color: #8A8A8A; }
+  .placeholder\:text-white\/20::placeholder { color: #6B6B6B; }
+
+  .hover\:text-white:hover { color: #111111; }
+  .hover\:text-white\/70:hover { color: #2B2B2B; }
+  .hover\:text-white\/40:hover { color: #5C5C5C; }
+  .hover\:bg-white\/5:hover { background-color: #EFEFEF; }
+  .hover\:bg-white\/10:hover { background-color: #EBEBEB; }
+  .hover\:bg-white\/20:hover { background-color: #E0E0E0; }
+  .hover\:border-white\/10:hover { border-color: #CFCFCF; }
+  .hover\:border-white\/20:hover { border-color: #BDBDBD; }
+
+  /* 深色遮罩上的白字（相機畫面、彈出層）保持白色，不受上面的規則影響 */
+  [class*="bg-black"].text-white,
+  [class*="bg-black"] .text-white,
+  [class*="bg-red-500"].text-white { color: #FFFFFF; }
+
+  /* ---------- 強調色：橘 → 螢光綠 / 黑 ---------- */
+  .bg-\[\#FF5733\] { background-color: #B5F23D; }
+  .bg-\[\#FF5733\].text-white,
+  .bg-\[\#FF5733\] .text-white { color: #111111; }
+  .hover\:bg-\[\#e64d2e\]:hover { background-color: #A6E22C; }
+  .bg-\[\#FF5733\]\/5 { background-color: #F7FCE8; }
+  .bg-\[\#FF5733\]\/10,
+  .hover\:bg-\[\#FF5733\]\/10:hover { background-color: #F0FBD6; }
+  .bg-\[\#FF5733\]\/20,
+  .hover\:bg-\[\#FF5733\]\/40:hover { background-color: #E2F7B0; }
+  .bg-\[\#FF5733\]\/80 { background-color: #B5F23D; }
+  .bg-\[\#FF5733\]\/80.text-white { color: #111111; }
+
+  .text-\[\#FF5733\],
+  .hover\:text-\[\#FF5733\]:hover,
+  .text-\[\#FF5733\]\/80 { color: #111111; }
+  .border-\[\#FF5733\],
+  .border-\[\#FF5733\]\/30,
+  .border-\[\#FF5733\]\/40,
+  .border-\[\#FF5733\]\/50,
+  .focus\:border-\[\#FF5733\]\/40:focus,
+  .focus\:border-\[\#FF5733\]\/50:focus { border-color: #111111; }
+  .shadow-\[0_0_8px_\#FF5733\] { box-shadow: none; }
+
+  /* 進度條漸層：橘 → 螢光綠 */
+  .from-\[\#FF5733\] { --tw-gradient-from: #111111 var(--tw-gradient-from-position); }
+  .to-\[\#FF8C66\] { --tw-gradient-to: #B5F23D var(--tw-gradient-to-position); }
+
+  /* 綠色（完成、成功）→ 螢光綠，文字用深綠 */
+  .bg-\[\#2ECC71\] { background-color: #B5F23D; }
+  .text-\[\#2ECC71\],
+  .hover\:text-\[\#2ECC71\]\/80:hover { color: #15803D; }
+  .border-\[\#2ECC71\],
+  .border-\[\#2ECC71\]\/20,
+  .border-\[\#2ECC71\]\/30 { border-color: #15803D; }
+  .bg-\[\#2ECC71\]\/80 { background-color: #B5F23D; }
+  .bg-\[\#2ECC71\]\/10,
+  .hover\:bg-\[\#2ECC71\]\/10:hover { background-color: #F0FBD6; }
+  .hover\:bg-\[\#2ECC71\]:hover { background-color: #A6E22C; }
+
+  /* 藍色 → 深藍 */
+  .bg-\[\#3498DB\] { background-color: #1D4ED8; }
+  .text-\[\#3498DB\],
+  .group-hover\:text-\[\#3498DB\] { color: #1D4ED8; }
+  .border-\[\#3498DB\],
+  .border-\[\#3498DB\]\/20,
+  .border-\[\#3498DB\]\/30,
+  .border-\[\#3498DB\]\/40 { border-color: #1D4ED8; }
+  .bg-\[\#3498DB\]\/5,
+  .hover\:bg-\[\#3498DB\]\/10:hover { background-color: #EFF6FF; }
+
+  /* 黃色、紅色、綠色文字（狀態提示）改為可讀的深色 */
+  .text-\[\#F1C40F\] { color: #A16207; }
+  .border-\[\#F1C40F\]\/20,
+  .border-\[\#F1C40F\]\/30 { border-color: #A16207; }
+  .bg-\[\#F1C40F\] { background-color: #A16207; }
+  .text-red-400 { color: #B91C1C; }
+  .hover\:text-red-400:hover,
+  .hover\:text-red-500:hover { color: #B91C1C; }
+  .text-emerald-400 { color: #15803D; }
+  .text-amber-400 { color: #A16207; }
+  .text-blue-400 { color: #1D4ED8; }
+  .text-gray-500 { color: #6B6B6B; }
+  .border-red-500\/30 { border-color: #FCA5A5; }
+  .bg-red-500\/10,
+  .hover\:bg-red-500\/10:hover { background-color: #FEF2F2; }
+  .bg-amber-500\/10 { background-color: #FEF9C3; }
+  .bg-blue-500\/5,
+  .bg-blue-500\/10 { background-color: #EFF6FF; }
+}

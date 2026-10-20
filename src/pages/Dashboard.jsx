@@ -41,6 +41,11 @@ export default function Dashboard({ records, setRecords, dayKey, userProfile }) 
     e.target.reset();
   };
 
+  // 電腦版（淺色底）用深色線條，手機版維持橘與藍
+  const isDesktop = typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
+  const chartColors = isDesktop
+    ? { morning: '#111111', morningFill: 'rgba(17,17,17,0.06)', evening: '#0F766E', eveningFill: 'rgba(15,118,110,0.06)' }
+    : { morning: '#FF5733', morningFill: 'rgba(255,87,51,0.08)', evening: '#3498DB', eveningFill: 'rgba(52,152,219,0.05)' };
   const allDates = [...new Set(records.map(r => r.date))].sort();
   const morningData = records.filter(r => r.time === 'morning');
   const eveningData = records.filter(r => r.time === 'evening');
@@ -48,8 +53,8 @@ export default function Dashboard({ records, setRecords, dayKey, userProfile }) 
   const chartData = {
     labels: allDates,
     datasets: [
-      { label: '早晨', data: allDates.map(d => { const r = morningData.find(x => x.date === d); return r ? r.weight : null; }), borderColor: '#FF5733', backgroundColor: 'rgba(255,87,51,0.08)', fill: true, tension: 0.4, pointRadius: 3, pointHoverRadius: 6, spanGaps: true, borderWidth: 2 },
-      { label: '傍晚', data: allDates.map(d => { const r = eveningData.find(x => x.date === d); return r ? r.weight : null; }), borderColor: '#3498DB', backgroundColor: 'rgba(52,152,219,0.05)', fill: true, borderDash: [5,5], tension: 0.4, pointRadius: 3, spanGaps: true, borderWidth: 2 },
+      { label: '早晨', data: allDates.map(d => { const r = morningData.find(x => x.date === d); return r ? r.weight : null; }), borderColor: chartColors.morning, backgroundColor: chartColors.morningFill, fill: true, tension: 0.4, pointRadius: 3, pointHoverRadius: 6, spanGaps: true, borderWidth: 2 },
+      { label: '傍晚', data: allDates.map(d => { const r = eveningData.find(x => x.date === d); return r ? r.weight : null; }), borderColor: chartColors.evening, backgroundColor: chartColors.eveningFill, fill: true, borderDash: [5,5], tension: 0.4, pointRadius: 3, spanGaps: true, borderWidth: 2 },
     ],
   };
   const chartOpts = {
