@@ -3,7 +3,7 @@ import { Trash2, Plus, Search, Clock, Edit3, Minus, ChevronLeft, ChevronRight, D
 import { GlassCard } from '../components';
 import { DIET_PLAN, DAY_KEYS, QUICK_FOODS, formatDate, getUserDietPlan } from '../constants';
 
-export default function Diet({ diet, setDiet, water, setWater: setWaterLog, currentDate, userProfile }) {
+export default function Diet({ diet, setDiet, water, setWater: setWaterLog, customFoods = [], setCustomFoods, currentDate, userProfile }) {
   const [selectedDate, setSelectedDate] = useState(formatDate(currentDate || new Date()));
   const dow = DAY_KEYS[new Date(selectedDate + 'T00:00:00').getDay()];
   const dietPlan = getUserDietPlan(userProfile);
@@ -21,6 +21,8 @@ export default function Diet({ diet, setDiet, water, setWater: setWaterLog, curr
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickCal, setQuickCal] = useState('');
   const [quickMeal, setQuickMeal] = useState('午餐');
+  const [showCustomForm, setShowCustomForm] = useState(false);
+  const [customDraft, setCustomDraft] = useState({ name: '', p: '', c: '', f: '', unit: '100g', save: true });
 
   // 載入食物資料庫
   useEffect(() => {
@@ -35,8 +37,11 @@ export default function Diet({ diet, setDiet, water, setWater: setWaterLog, curr
   useEffect(() => {
     if (searchTab !== 'search' || !searchQuery.trim() || !dbLoaded) { setSearchResults([]); return; }
     const q = searchQuery.trim().toLowerCase();
-    setSearchResults(foodDb.filter(f => f.name.toLowerCase().includes(q)).slice(0, 10));
-  }, [searchQuery, foodDb, dbLoaded, searchTab]);
+    // 自訂食物排在前面
+    const customHits = customFoods.filter(f => f.name.toLowerCase().includes(q));
+    const dbHits = foodDb.filter(f => f.name.toLowerCase().includes(q));
+    setSearchResults([...customHits, ...dbHits].slice(0, 12));
+  }, [searchQuery, foodDb, dbLoaded, searchTab, customFoods]);
 
   // 日期導航
   const changeDate = (delta) => {
@@ -82,9 +87,10 @@ export default function Diet({ diet, setDiet, water, setWater: setWaterLog, curr
   };
 
   const selectSearchResult = (food) => {
-    // 資料庫數值為每 100g
+    // 資料庫與「每100g」的自訂食物以 100g 計；「每一份」的自訂食物直接以一份計
+    const perServing = food.unit === 'serving';
     const f = {
-      name: `${food.name} (100g)`,
+      name: perServing ? `${food.name} (1份)` : `${food.name} (100g)`,
       p: food.protein || food.p || 0,
       c: food.carbs || food.c || 0,
       f: food.fat || food.f || 0,
@@ -93,6 +99,23 @@ export default function Diet({ diet, setDiet, water, setWater: setWaterLog, curr
     f.kcal = f.p * 4 + f.c * 4 + f.f * 9;
     addFood(f);
   };
+
+  // 自訂食物：可選擇存進「我的食物庫」，並加入今日飲食
+  const toNum = (v) => { const n = parseFloat(v); return Number.isFinite(n) && n >= 0 ? n : null; };
+  const draftValid = customDraft.name.trim() !== '' && ['p', 'c', 'f'].every(k => toNum(customDraft[k]) !== null);
+  const addCustomFood = () => {
+    if (!draftValid) return;
+    const food = {
+      name: customDraft.name.trim(),
+      protein: toNum(customDraft.p), carbs: toNum(customDraft.c), fat: toNum(customDraft.f),
+      unit: customDraft.unit, custom: true,
+    };
+    if (customDraft.save) setCustomFoods([...customFoods, food]);
+    selectSearchResult(food);
+    setCustomDraft({ name: '', p: '', c: '', f: '', unit: customDraft.unit, save: customDraft.save });
+    setShowCustomForm(false);
+  };
+  const removeCustomFood = (idx) => setCustomFoods(customFoods.filter((_, i) => i !== idx));
 
   // 快速新增
   const handleQuickAdd = () => {
@@ -281,9 +304,53 @@ export default function Diet({ diet, setDiet, water, setWater: setWaterLog, curr
                           <button key={i} onClick={() => selectSearchResult(f)}
                             className="w-full text-left p-2 bg-white/5 rounded-lg hover:bg-[#2ECC71]/10 transition-all flex justify-between">
                             <span className="text-white text-xs font-bold truncate flex-1">{f.name}</span>
-                            <span className="text-[10px] text-white/30 ml-2 flex-shrink-0">每100g · P:{f.protein?.toFixed(0)} C:{f.carbs?.toFixed(0)} F:{f.fat?.toFixed(0)}</span>
+                            <span className="text-[10px] text-white/30 ml-2 flex-shrink-0">{f.custom && <b className="text-[#2ECC71] mr-1">自訂</b>}{f.unit === 'serving' ? '每份' : '每100g'} · P:{f.protein?.toFixed(0)} C:{f.carbs?.toFixed(0)} F:{f.fat?.toFixed(0)}</span>
                           </button>
                         ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 自訂食物 */}
+                {searchTab === 'search' && (
+                  <div className="mb-3">
+                    <button type="button" onClick={() => setShowCustomForm(s => !s)} className="text-[11px] font-bold text-[#2ECC71] hover:opacity-70">
+                      {showCustomForm ? '收起自訂食物' : '＋ 找不到？新增自訂食物'}
+                    </button>
+                    {showCustomForm && (
+                      <div className="mt-2 p-3 bg-white/5 rounded-xl space-y-2">
+                        <input type="text" value={customDraft.name} maxLength={40} placeholder="名稱，例如：御飯糰(鮪魚)"
+                          onChange={e => setCustomDraft({ ...customDraft, name: e.target.value })} className={inputClass} />
+                        <div className="flex gap-2 text-xs">
+                          {[['100g', '每 100g'], ['serving', '每一份']].map(([v, label]) => (
+                            <button key={v} type="button" onClick={() => setCustomDraft({ ...customDraft, unit: v })}
+                              className={`flex-1 py-2 rounded-lg font-bold ${customDraft.unit === v ? 'bg-[#2ECC71] text-black' : 'bg-white/5 text-white/40'}`}>{label}</button>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[['p', '蛋白質 g'], ['c', '碳水 g'], ['f', '脂肪 g']].map(([k, label]) => (
+                            <input key={k} type="text" inputMode="decimal" value={customDraft[k]} placeholder={label}
+                              onChange={e => setCustomDraft({ ...customDraft, [k]: e.target.value })} className={inputClass} />
+                          ))}
+                        </div>
+                        <label className="flex items-center gap-2 text-xs text-white/50">
+                          <input type="checkbox" checked={customDraft.save} onChange={e => setCustomDraft({ ...customDraft, save: e.target.checked })} />
+                          存到我的食物庫，之後可以直接搜尋
+                        </label>
+                        <button type="button" onClick={addCustomFood} disabled={!draftValid}
+                          className="w-full py-2 rounded-lg bg-[#2ECC71] text-black font-bold text-xs disabled:opacity-40">加入今日飲食</button>
+                        {customFoods.length > 0 && (
+                          <div className="pt-2 border-t border-white/5 space-y-1">
+                            <p className="text-[10px] text-white/30">我的食物庫</p>
+                            {customFoods.map((f, i) => (
+                              <div key={i} className="flex justify-between items-center text-xs text-white/60">
+                                <span className="truncate">{f.name} <span className="text-white/30">({f.unit === 'serving' ? '每份' : '每100g'})</span></span>
+                                <button type="button" onClick={() => removeCustomFood(i)} className="text-white/30 hover:text-red-400 px-2">刪除</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

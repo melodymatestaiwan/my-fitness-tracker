@@ -11,11 +11,12 @@ export const SYNC_DEFAULTS = {
   photos: [],
   water: {},
   coach: { messages: [] },
+  customFoods: [],
 };
 
 const LABELS = {
   userProfile: '個人資料', records: '體重紀錄', workouts: '訓練紀錄', diet: '飲食紀錄',
-  fasting: '斷食紀錄', photos: '照片與尺寸', water: '飲水紀錄', coach: '教練對話',
+  fasting: '斷食紀錄', photos: '照片與尺寸', water: '飲水紀錄', coach: '教練對話', customFoods: '自訂食物',
 };
 
 const KEYS = Object.keys(SYNC_DEFAULTS);
