@@ -45,7 +45,8 @@ export async function callOpenRouter({ apiKey, model, system, messages, fetchImp
 
 const MAX_MESSAGES = 30;
 const MAX_MESSAGE_CHARS = 4000;
-const MAX_CONTEXT_CHARS = 30000;
+// 近況資料包含全部紀錄（飲食、訓練、體重、尺寸、喝水、斷食），一年以上的資料可達數十萬字
+const MAX_CONTEXT_CHARS = 400000;
 
 const SYSTEM_PROMPT = `你是一位專業、務實的私人健身教練，用繁體中文回答。
 
@@ -98,7 +99,7 @@ export async function handleCoach({ uid, body, env, fetchImpl }) {
   const { messages, context } = body || {};
   if (!validMessages(messages)) return { status: 400, body: { error: '對話格式錯誤' } };
   if (typeof context !== 'string' || context.length > MAX_CONTEXT_CHARS) {
-    return { status: 400, body: { error: '近況資料格式錯誤' } };
+    return { status: 400, body: { error: '近況資料格式錯誤或超過上限' } };
   }
   if (!env.OPENROUTER_API_KEY) return { status: 503, body: { error: 'AI 教練尚未設定' } };
   if (!(await checkQuota(env.PHOTOS, uid, Number(env.COACH_DAILY_LIMIT) || 30))) {

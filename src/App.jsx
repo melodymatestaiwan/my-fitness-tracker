@@ -49,7 +49,7 @@ const App = () => {
 
   const uid = firebaseUser?.uid || null;
   const { data, set, status, everReady, error, retry, clearError } = useCloudSync(uid);
-  const { userProfile, records, workouts, diet, fasting, photos, water, coach } = data;
+  const { userProfile, records, workouts, diet, fasting, photos, water, coach, customFoods } = data;
 
   useEffect(() => {
     if (status !== 'loading') { setSlowLoad(false); return undefined; }
@@ -161,7 +161,7 @@ const App = () => {
               onPlanChange={(workoutPlan, trainingDays) => set.userProfile(p => ({ ...p, workoutPlan, trainingDays }))}
             />
           )}
-          {activeTab === 'diet' && <Diet diet={diet} setDiet={set.diet} water={water} setWater={set.water} currentDate={currentDate} userProfile={userProfile} />}
+          {activeTab === 'diet' && <Diet diet={diet} setDiet={set.diet} water={water} setWater={set.water} customFoods={customFoods} setCustomFoods={set.customFoods} currentDate={currentDate} userProfile={userProfile} />}
           {activeTab === 'fasting' && <Fasting fasting={fasting} setFasting={set.fasting} />}
           {activeTab === 'photos' && <PhotoTracker photos={photos} setPhotos={set.photos} />}
           {activeTab === 'bodyscan' && <BodyMeasure userProfile={userProfile} onSave={handleBodyScanSave} />}
